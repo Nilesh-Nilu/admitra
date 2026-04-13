@@ -1,12 +1,28 @@
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
-import { getApprovedProductsUrl, getCategoriesUrl, getCitiesUrl, getProductsUrl, getStatesUrl, getSubCategoriesUrl } from "@/constants/functions";
+import {
+  getApprovedProductsUrl,
+  getBannersUrl,
+  getCategoriesUrl,
+  getCitiesUrl,
+  getProductsByLocationUrl,
+  getProductsUrl,
+  getStatesUrl,
+  getSubCategoriesUrl
+} from "@/constants/functions";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 import { setClearData } from "@/store/reducers/paymentReducer";
-import { getApprovedProductsApi, getCategoriesApi, getCitiesApi, getProductsApi, getStatesApi, getSubCategoriesApi } from "@/store/reducers/userReducer";
+import {
+  getApprovedProductsApi,
+  getBannersApi,
+  getCategoriesApi,
+  getCitiesApi,
+  getProductsApiwithcityId,
+  getStatesApi,
+  getSubCategoriesApi,
+} from "@/store/reducers/userReducer";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -14,6 +30,9 @@ import {
   Dimensions,
   FlatList,
   Image,
+  Linking,
+  Modal,
+  Pressable,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -21,16 +40,22 @@ import {
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 
-const { width } = Dimensions.get("window");
-const CARD_WIDTH = (width - SIZES.padding * 2 - 12) / 2;
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const CARD_WIDTH = (SCREEN_WIDTH - SIZES.padding * 2 - 12) / 2;
+const FEATURED_CARD_WIDTH = SCREEN_WIDTH * 0.38;
+const BANNER_WIDTH = SCREEN_WIDTH - SIZES.padding * 2;
 
-// Shimmer effect component
-const ShimmerBlock = ({ style, animatedValue }: { style: any; animatedValue: Animated.Value }) => {
+const ShimmerBlock = ({
+  style,
+  animatedValue,
+}: {
+  style: any;
+  animatedValue: Animated.Value;
+}) => {
   const translateX = animatedValue.interpolate({
     inputRange: [0, 1],
     outputRange: [-200, 200],
   });
-
   return (
     <View style={[style, { overflow: "hidden", backgroundColor: COLORS.border }]}>
       <Animated.View
@@ -45,84 +70,78 @@ const ShimmerBlock = ({ style, animatedValue }: { style: any; animatedValue: Ani
   );
 };
 
-// User View Shimmer
 const UserShimmerLoader = () => {
   const animatedValue = useRef(new Animated.Value(0)).current;
-
   useEffect(() => {
-    const animation = Animated.loop(
+    const anim = Animated.loop(
       Animated.timing(animatedValue, {
         toValue: 1,
         duration: 1200,
         useNativeDriver: true,
       })
     );
-    animation.start();
-    return () => animation.stop();
+    anim.start();
+    return () => anim.stop();
   }, []);
 
   return (
     <View>
-      {/* Search Bar Shimmer */}
       <ShimmerBlock
-        style={{ height: 50, borderRadius: 12, marginBottom: 20 }}
+        style={{ height: 48, borderRadius: 12, marginBottom: 20 }}
         animatedValue={animatedValue}
       />
-
-      {/* Categories Shimmer */}
       <View style={{ marginBottom: 24 }}>
-        <ShimmerBlock
-          style={{ width: 150, height: 20, borderRadius: 10, marginBottom: 16 }}
-          animatedValue={animatedValue}
-        />
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {[1, 2, 3, 4, 5].map((item) => (
-            <View key={item} style={{ marginRight: 12, alignItems: "center" }}>
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <View key={i} style={{ marginRight: 16, alignItems: "center" }}>
               <ShimmerBlock
-                style={{ width: 60, height: 60, borderRadius: 30 }}
+                style={{ width: 52, height: 52, borderRadius: 14 }}
                 animatedValue={animatedValue}
               />
               <ShimmerBlock
-                style={{ width: 50, height: 12, borderRadius: 6, marginTop: 8 }}
+                style={{ width: 40, height: 10, borderRadius: 5, marginTop: 6 }}
                 animatedValue={animatedValue}
               />
             </View>
           ))}
         </ScrollView>
       </View>
-
-      {/* Listings Shimmer */}
+      <ShimmerBlock
+        style={{ height: 140, borderRadius: 14, marginBottom: 24 }}
+        animatedValue={animatedValue}
+      />
       <View style={{ marginBottom: 24 }}>
         <ShimmerBlock
-          style={{ width: 180, height: 20, borderRadius: 10, marginBottom: 16 }}
+          style={{ width: 160, height: 18, borderRadius: 9, marginBottom: 14 }}
           animatedValue={animatedValue}
         />
-        <View style={{ flexDirection: "row", flexWrap: "wrap",justifyContent: "space-between" }}>
-          {[1, 2, 3, 4].map((item) => (
-            <View
-              key={item}
-              style={{
-                width: CARD_WIDTH,
-                backgroundColor: COLORS.white,
-                borderRadius: 16,
-                padding: 10,
-              }}
-            >
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {[1, 2, 3].map((i) => (
+            <View key={i} style={{ marginRight: 12 }}>
               <ShimmerBlock
-                style={{ width: "100%", height: 120, borderRadius: 12 }}
-                animatedValue={animatedValue}
-              />
-              <ShimmerBlock
-                style={{ width: "60%", height: 18, borderRadius: 9, marginTop: 12 }}
-                animatedValue={animatedValue}
-              />
-              <ShimmerBlock
-                style={{ width: "90%", height: 14, borderRadius: 7, marginTop: 8 }}
+                style={{
+                  width: FEATURED_CARD_WIDTH,
+                  height: 180,
+                  borderRadius: 12,
+                }}
                 animatedValue={animatedValue}
               />
             </View>
           ))}
-        </View>
+        </ScrollView>
+      </View>
+      <ShimmerBlock
+        style={{ width: 200, height: 18, borderRadius: 9, marginBottom: 14 }}
+        animatedValue={animatedValue}
+      />
+      <View style={{ flexDirection: "row", gap: 12 }}>
+        {[1, 2].map((i) => (
+          <ShimmerBlock
+            key={i}
+            style={{ width: CARD_WIDTH, height: 200, borderRadius: 12 }}
+            animatedValue={animatedValue}
+          />
+        ))}
       </View>
     </View>
   );
@@ -131,18 +150,50 @@ const UserShimmerLoader = () => {
 export default function HomeScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { loader, cities, categories, products } = useSelector((state: any) => state.entities.userReducer) || {};
+  const { loader, cities, categories, products, banners } =
+    useSelector((state: any) => state.entities.userReducer) || {};
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
-  // Ensure arrays are defined
+  const [showCitySheet, setShowCitySheet] = useState(false);
+  const [selectedCity, setSelectedCity] = useState<any>(null);
+  const [bannerIndex, setBannerIndex] = useState(0);
+
   const safeProducts = products || [];
   const safeCategories = categories || [];
-  const safeCities = cities || [];
+  const safeCities = Array.isArray(cities) ? cities : [];
+  const safeBanners = Array.isArray(banners) ? banners : [];
 
-
-  // Filter products based on selected category
+  const featuredProducts = safeProducts.filter(
+    (p: any) => p.approve === "approved"
+  );
   const filteredProducts = selectedCategory
-    ? safeProducts.filter((product: any) => product.category_id === selectedCategory)
-    : safeProducts
+    ? safeProducts.filter((p: any) => p.category_id === selectedCategory)
+    : safeProducts;
+
+  useEffect(() => {
+    if (!selectedCity && safeCities.length > 0) {
+      setSelectedCity(safeCities[0]);
+    }
+  }, [safeCities, selectedCity]);
+
+  useEffect(() => {
+    dispatch(getCategoriesApi(getCategoriesUrl));
+    dispatch(getSubCategoriesApi(`${getSubCategoriesUrl}`));
+    dispatch(getStatesApi(getStatesUrl));
+    dispatch(getCitiesApi(getCitiesUrl));
+    dispatch(setClearData(null));
+    dispatch(getApprovedProductsApi(getApprovedProductsUrl));
+    dispatch(getBannersApi(getBannersUrl));
+  }, []);
+
+  useEffect(() => {
+    if (selectedCity?.id) {
+      dispatch(
+        getProductsApiwithcityId(
+          `${getProductsByLocationUrl}?city_id=${selectedCity.id}`
+        )
+      );
+    }
+  }, [selectedCity?.id]);
 
   const handleCategoryPress = (categoryId: number) => {
     setSelectedCategory(categoryId);
@@ -152,152 +203,273 @@ export default function HomeScreen() {
     });
   };
 
-  useEffect(() => {
-    dispatch(getCategoriesApi(getCategoriesUrl));
-    dispatch(getSubCategoriesApi(`${getSubCategoriesUrl}`));
-    dispatch(getProductsApi(getProductsUrl));
-    dispatch(getStatesApi(getStatesUrl));
-    dispatch(getCitiesApi(getCitiesUrl));
-    dispatch(setClearData(null));
-    dispatch(getApprovedProductsApi(getApprovedProductsUrl)); // keeps my listings in sync
-  }, []);
-
-  const formatPrice = (price: number, isMonthly?: boolean) => {
-    if (price >= 100000) {
-      return `₹${(price / 100000).toFixed(1)}L${isMonthly ? "/mo" : ""}`;
-    }
-    return `₹${price.toLocaleString("en-IN")}${isMonthly ? "/mo" : ""}`;
+  const formatPrice = (price: number) => {
+    if (price >= 100000) return `₹${(price / 100000).toFixed(1)}L`;
+    return `₹${price.toLocaleString("en-IN")}`;
   };
 
-  const renderHeader = () => (
-    <View style={[styles.header]}>
-      {/* Logo */}
-      <View style={styles.logoContainer}>
-        <Image source={require("@/assets/images/splashImage.png")} style={styles.logo} />
-      </View>
+  const timeAgo = (dateStr: string) => {
+    if (!dateStr) return "";
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `${mins} mins ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs} hour${hrs > 1 ? "s" : ""} ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days} day${days > 1 ? "s" : ""} ago`;
+  };
 
-      {/* Location Selector */}
-      <TouchableOpacity style={styles.locationSelector}>
+  // ── Header ──
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <View style={styles.logoContainer}>
+        <Image
+          source={require("@/assets/images/splashImage.png")}
+          style={styles.logo}
+        />
+      </View>
+      <TouchableOpacity
+        style={styles.locationSelector}
+        onPress={() => setShowCitySheet(true)}
+        activeOpacity={0.8}
+      >
         <View style={styles.locationIconBg}>
-          <Ionicons name="location" size={18} color={COLORS.white} />
+          <Ionicons name="location" size={16} color={COLORS.white} />
         </View>
-        <View style={styles.locationText}>
+        <View>
           <ThemedText style={styles.locationLabel}>Deliver to</ThemedText>
           <View style={styles.locationRow}>
             <ThemedText style={styles.locationCity} numberOfLines={1}>
-              {safeCities[0]?.name || "Select Location"}
+              {selectedCity?.name || safeCities[0]?.name || "Select City"}
             </ThemedText>
-            <Ionicons name="chevron-down" size={14} color={COLORS.primary} />
+            <Ionicons name="chevron-down" size={13} color={COLORS.text} />
           </View>
         </View>
       </TouchableOpacity>
     </View>
   );
 
+  // ── Search Bar ──
   const renderSearchBar = () => (
-    <TouchableOpacity
-      style={styles.searchContainer}
-      onPress={() => router.push("/stacks/search")}
-      activeOpacity={0.8}
-    >
-      <Ionicons name="search" size={20} color={COLORS.gray} />
-      <ThemedText style={styles.searchPlaceholder}>
-        Search cars, mobiles, properties...
-      </ThemedText>
-    </TouchableOpacity>
+    <View style={styles.searchRow}>
+      <TouchableOpacity
+        style={styles.searchContainer}
+        onPress={() => router.push("/stacks/search")}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="search" size={18} color={COLORS.gray} />
+        <ThemedText style={styles.searchPlaceholder}>
+          Search cars, mobiles, properties..
+        </ThemedText>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.whatsappBtn}
+        onPress={() => Linking.openURL("https://wa.me/919876543210")}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="logo-whatsapp" size={16} color={COLORS.white} />
+        <ThemedText style={styles.whatsappText}>WhatsApp Help</ThemedText>
+      </TouchableOpacity>
+    </View>
   );
 
+  // ── Categories Row ──
   const renderCategories = () => (
-    <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <ThemedText style={styles.sectionTitle}>Browse Categories</ThemedText>
-        <View style={styles.sectionHeaderRight}>
-          {selectedCategory && (
-            <TouchableOpacity onPress={() => setSelectedCategory(null)}>
-              <ThemedText style={styles.clearFilter}>Clear Filter</ThemedText>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            onPress={() => router.push("/stacks/categories")}
-            style={styles.seeAllBtn}
-          >
-            <ThemedText style={styles.seeAllText}>See All</ThemedText>
-            <Ionicons name="arrow-forward" size={16} color={COLORS.primary} />
-          </TouchableOpacity>
-        </View>
-      </View>
+    <View style={styles.categoriesSection}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.categoriesScroll}
       >
-        {/* All Categories Option */}
+        {/* "All" chip */}
         <TouchableOpacity
-          style={[
-            styles.categoryChip,
-            selectedCategory === null && styles.categoryChipSelected,
-          ]}
+          style={styles.categoryItem}
           activeOpacity={0.7}
           onPress={() => setSelectedCategory(null)}
         >
-          <View style={[
-            styles.categoryChipIcon,
-            selectedCategory === null && styles.categoryChipIconSelected,
-          ]}>
+          <View
+            style={[
+              styles.categoryIconBox,
+              selectedCategory === null && styles.categoryIconBoxActive,
+            ]}
+          >
             <Ionicons
               name="grid"
-              size={20}
-              color={selectedCategory === null ? COLORS.white : COLORS.primary}
+              size={22}
+              color={selectedCategory === null ? COLORS.white : "#1565C0"}
             />
           </View>
-          <ThemedText style={[
-            styles.categoryChipText,
-            selectedCategory === null && styles.categoryChipTextSelected,
-          ]}>
+          <ThemedText
+            style={[
+              styles.categoryLabel,
+              selectedCategory === null && styles.categoryLabelActive,
+            ]}
+          >
             All
           </ThemedText>
         </TouchableOpacity>
 
-        {safeCategories.map((category: any) => (
+        {safeCategories.map((cat: any) => (
           <TouchableOpacity
-            key={category.id}
-            style={[
-              styles.categoryChip,
-              selectedCategory === category.id && styles.categoryChipSelected,
-            ]}
+            key={cat.id}
+            style={styles.categoryItem}
             activeOpacity={0.7}
-            onPress={() => handleCategoryPress(category.id)}
+            onPress={() => handleCategoryPress(cat.id)}
           >
-            <Image
-              source={{ uri: category.image }}
+            <View
               style={[
-                styles.categoryChipImage,
-                selectedCategory === category.id && styles.categoryChipImageSelected,
+                styles.categoryIconBox,
+                selectedCategory === cat.id && styles.categoryIconBoxActive,
               ]}
-            />
-            <ThemedText style={[
-              styles.categoryChipText,
-              selectedCategory === category.id && styles.categoryChipTextSelected,
-            ]}>
-              {category.name}
+            >
+              {cat.image ? (
+                <Image source={{ uri: cat.image }} style={styles.categoryImg} />
+              ) : (
+                <Ionicons name="pricetag" size={22} color="#1565C0" />
+              )}
+            </View>
+            <ThemedText
+              style={[
+                styles.categoryLabel,
+                selectedCategory === cat.id && styles.categoryLabelActive,
+              ]}
+              numberOfLines={1}
+            >
+              {cat.name}
             </ThemedText>
           </TouchableOpacity>
         ))}
+
+        <TouchableOpacity
+          style={styles.categoryItem}
+          activeOpacity={0.7}
+          onPress={() => router.push("/stacks/categories")}
+        >
+          <View style={styles.categoryIconBox}>
+            <Ionicons name="ellipsis-horizontal" size={22} color="#1565C0" />
+          </View>
+          <ThemedText style={styles.categoryLabel}>More</ThemedText>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
 
+  const renderBannerAds = () => {
+    if (safeBanners.length === 0) return null;
+    return (
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <ThemedText style={styles.sectionTitle}>Banner Ads</ThemedText>
+        </View>
+        <ScrollView
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onScroll={(e) => {
+            const idx = Math.round(
+              e.nativeEvent.contentOffset.x / BANNER_WIDTH
+            );
+            setBannerIndex(idx);
+          }}
+          scrollEventThrottle={16}
+        >
+          {safeBanners.map((b: any) => (
+            <View key={b.id} style={styles.bannerCard}>
+              <Image
+                source={{ uri: b.banner_image }}
+                style={styles.bannerImage}
+                resizeMode="cover"
+              />
+            </View>
+          ))}
+        </ScrollView>
+        {safeBanners.length > 1 && (
+          <View style={styles.bannerDots}>
+            {safeBanners.map((_: any, i: number) => (
+              <View
+                key={i}
+                style={[
+                  styles.bannerDot,
+                  i === bannerIndex && styles.bannerDotActive,
+                ]}
+              />
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  // ── Featured Ads (horizontal scroll) ──
+  const renderFeaturedAds = () => {
+    if (featuredProducts.length === 0) return null;
+    return (
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionTitleRow}>
+            <ThemedText style={styles.featuredStar}>⭐</ThemedText>
+            <ThemedText style={styles.sectionTitle}>Featured Ads</ThemedText>
+          </View>
+        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 10 }}
+        >
+          {featuredProducts.slice(0, 8).map((item: any) => (
+            <TouchableOpacity
+              key={item.id}
+              style={styles.featuredCard}
+              activeOpacity={0.85}
+              onPress={() =>
+                router.push({
+                  pathname: "/stacks/productDetails",
+                  params: { productData: JSON.stringify(item) },
+                })
+              }
+            >
+              <View style={styles.featuredBadge}>
+                <ThemedText style={styles.featuredBadgeText}>Featured</ThemedText>
+              </View>
+              <Image
+                source={{ uri: item.images?.[0]?.image }}
+                style={styles.featuredImg}
+              />
+              <View style={styles.featuredInfo}>
+                <ThemedText style={styles.featuredPrice}>
+                  {formatPrice(item.price)}
+                </ThemedText>
+                <ThemedText style={styles.featuredLocation} numberOfLines={1}>
+                  {item.user?.city?.name || item.city || "India"}
+                </ThemedText>
+                <ThemedText style={styles.featuredTime}>
+                  {timeAgo(item.created_at)}
+                </ThemedText>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
+
+  // ── Fresh Recommendations (2-col grid) ──
   const renderListingCard = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={styles.listingCard}
       activeOpacity={0.9}
-      onPress={() => router.push({
-        pathname: "/stacks/productDetails",
-        params: { productData: JSON.stringify(item) }
-      })}
+      onPress={() =>
+        router.push({
+          pathname: "/stacks/productDetails",
+          params: { productData: JSON.stringify(item) },
+        })
+      }
     >
-      <View style={styles.listingImageContainer}>
-        <Image source={{ uri: item.images[0].image }} style={styles.listingImage} />
+      <View style={styles.listingImgWrap}>
+        <Image
+          source={{ uri: item.images?.[0]?.image }}
+          style={styles.listingImg}
+        />
         {item.approve === "approved" && (
           <View style={styles.verifiedBadge}>
             <Ionicons name="checkmark-circle" size={12} color={COLORS.white} />
@@ -307,75 +479,123 @@ export default function HomeScreen() {
       </View>
       <View style={styles.listingInfo}>
         <ThemedText style={styles.listingPrice}>
-          {formatPrice(item.price, item.isMonthly)}
+          {formatPrice(item.price)}
         </ThemedText>
-        <ThemedText style={styles.listingTitle} numberOfLines={2}>
+        <ThemedText style={styles.listingTitle} numberOfLines={1}>
           {item.name}
         </ThemedText>
       </View>
     </TouchableOpacity>
   );
 
-  const getSelectedCategoryName = () => {
-    if (!selectedCategory) return null;
-    const category = safeCategories.find((c: any) => c.id === selectedCategory);
-    return category?.name || null;
-  };
-
-  const renderFeaturedListings = () => (
+  const renderRecommendations = () => (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <View style={styles.sectionTitleRow}>
-          <ThemedText style={styles.sectionTitle}>
-            {selectedCategory ? getSelectedCategoryName() : "Fresh Recommendations"}
-          </ThemedText>
-          {selectedCategory && (
-            <View style={styles.filterBadge}>
-              <ThemedText style={styles.filterBadgeText}>
-                {filteredProducts.length} items
-              </ThemedText>
-            </View>
-          )}
-        </View>
+        <ThemedText style={styles.sectionTitle}>Fresh Recommendations</ThemedText>
         {filteredProducts.length > 4 && (
           <TouchableOpacity
-            onPress={() => router.push({
-              pathname: "/stacks/search",
-              params: selectedCategory ? { categoryId: selectedCategory } : {}
-            })}
             style={styles.seeAllBtn}
+            onPress={() =>
+              router.push({
+                pathname: "/stacks/search",
+                params: selectedCategory
+                  ? { categoryId: selectedCategory }
+                  : {},
+              })
+            }
           >
             <ThemedText style={styles.seeAllText}>See All</ThemedText>
-            <Ionicons name="arrow-forward" size={16} color={COLORS.primary} />
+            <Ionicons name="arrow-forward" size={15} color="#1565C0" />
           </TouchableOpacity>
         )}
       </View>
       {filteredProducts.length > 0 ? (
         <FlatList
-          data={filteredProducts.slice(0, 4)}
+          data={filteredProducts.slice(0, 6)}
           renderItem={renderListingCard}
           keyExtractor={(item) => item.id.toString()}
           numColumns={2}
           columnWrapperStyle={styles.listingsRow}
           scrollEnabled={false}
-          showsVerticalScrollIndicator={false}
         />
       ) : (
         <View style={styles.emptyState}>
-          <Ionicons name="search-outline" size={48} color={COLORS.gray} />
-          <ThemedText style={styles.emptyStateTitle}>No items found</ThemedText>
-          <ThemedText style={styles.emptyStateSubtitle}>
+          <Ionicons name="search-outline" size={44} color={COLORS.gray} />
+          <ThemedText style={styles.emptyTitle}>No items found</ThemedText>
+          <ThemedText style={styles.emptySub}>
             No products available in this category
           </ThemedText>
-          <TouchableOpacity
-            style={styles.emptyStateButton}
+          {/* <TouchableOpacity
+            style={styles.emptyBtn}
             onPress={() => setSelectedCategory(null)}
           >
-            <ThemedText style={styles.emptyStateButtonText}>View All Products</ThemedText>
-          </TouchableOpacity>
+            <ThemedText style={styles.emptyBtnText}>View All Products</ThemedText>
+          </TouchableOpacity> */}
         </View>
       )}
     </View>
+  );
+
+  // ── City Bottom Sheet ──
+  const renderCityBottomSheet = () => (
+    <Modal
+      visible={showCitySheet}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setShowCitySheet(false)}
+    >
+      <Pressable
+        style={styles.cityOverlay}
+        onPress={() => setShowCitySheet(false)}
+      />
+      <View style={styles.citySheet}>
+        <View style={styles.cityHandle} />
+        <View style={styles.citySheetHeader}>
+          <ThemedText style={styles.citySheetTitle}>Select City</ThemedText>
+          <TouchableOpacity onPress={() => setShowCitySheet(false)}>
+            <Ionicons name="close" size={22} color={COLORS.text} />
+          </TouchableOpacity>
+        </View>
+        <ScrollView
+          style={{ marginTop: 4 }}
+          contentContainerStyle={{ paddingBottom: 24 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {safeCities.map((city: any) => {
+            const selected = Number(selectedCity?.id) === Number(city?.id);
+            return (
+              <TouchableOpacity
+                key={String(city.id)}
+                style={[styles.cityItem, selected && styles.cityItemSel]}
+                activeOpacity={0.75}
+                onPress={() => {
+                  setSelectedCity(city);
+                  setShowCitySheet(false);
+                }}
+              >
+                <View>
+                  <ThemedText
+                    style={[styles.cityName, selected && styles.cityNameSel]}
+                  >
+                    {city?.name}
+                  </ThemedText>
+                  {!!city?.state?.name && (
+                    <ThemedText style={styles.cityState}>
+                      {city.state.name}
+                    </ThemedText>
+                  )}
+                </View>
+                <Ionicons
+                  name={selected ? "checkmark-circle" : "ellipse-outline"}
+                  size={selected ? 20 : 18}
+                  color={selected ? "#1565C0" : COLORS.gray}
+                />
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+    </Modal>
   );
 
   return (
@@ -392,346 +612,291 @@ export default function HomeScreen() {
           <>
             {renderSearchBar()}
             {renderCategories()}
-            {renderFeaturedListings()}
+            {renderBannerAds()}
+            {renderFeaturedAds()}
+            {renderRecommendations()}
           </>
         )}
-
         <View style={{ height: 100 }} />
       </ScrollView>
+      {renderCityBottomSheet()}
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: SIZES.padding,
-  },
+  container: { flex: 1, backgroundColor: "#F5F5F5" },
+  scrollView: { flex: 1 },
+  scrollContent: { paddingHorizontal: SIZES.padding },
 
-  /* Header */
+  /* ── Header ── */
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
     paddingVertical: 8,
+    marginBottom: 12,
   },
-  logoContainer: {
-    flex: 1,
-  },
-  logo: {
-    width: 50,
-    height: 40,
-    resizeMode: "contain",
-  },
+  logoContainer: { flex: 1 },
+  logo: { width: 56, height: 44, resizeMode: "contain" },
   locationSelector: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
     backgroundColor: COLORS.white,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 24,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
-    shadowRadius: 8,
+    shadowRadius: 4,
     elevation: 2,
   },
   locationIconBg: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: COLORS.primary,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "#1E8E3E",
     justifyContent: "center",
     alignItems: "center",
   },
-  locationText: {
-    gap: 2,
+  locationLabel: { fontSize: 10, color: COLORS.gray },
+  locationRow: { flexDirection: "row", alignItems: "center", gap: 3 },
+  locationCity: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: COLORS.text,
+    maxWidth: 90,
   },
-  locationLabel: {
-    fontSize: 11,
-    color: COLORS.gray,
+
+  /* ── Search ── */
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 14,
   },
-  locationRow: {
+  searchContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.white,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+  searchPlaceholder: { flex: 1, fontSize: 13, color: COLORS.gray },
+  whatsappBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-  },
-  locationCity: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: COLORS.text,
-    maxWidth: 100,
-  },
-
-  /* Search */
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 18,
-    marginBottom: 20,
-    gap: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  searchPlaceholder: {
-    flex: 1,
-    fontSize: 15,
-    color: COLORS.gray,
-  },
-  searchFilter: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: COLORS.primary + "10",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  /* Quick Actions */
-  quickActions: {
-    marginBottom: 24,
-  },
-  sellBanner: {
-    borderRadius: 20,
-    padding: 20,
-    gap: 16,
-  },
-  sellBannerContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-  },
-  sellBannerText: {
-    flex: 1,
-  },
-  sellBannerTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: COLORS.white,
-    marginBottom: 4,
-  },
-  sellBannerSubtitle: {
-    fontSize: 13,
-    color: "rgba(255,255,255,0.8)",
-  },
-  sellButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: COLORS.white,
+    backgroundColor: "#25D366",
+    paddingHorizontal: 10,
     paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    gap: 8,
+    borderRadius: 10,
   },
-  sellButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: COLORS.primary,
-  },
+  whatsappText: { fontSize: 10, fontWeight: "700", color: COLORS.white },
 
-  /* Sections */
-  section: {
-    marginBottom: 24,
+  /* ── Categories ── */
+  categoriesSection: { marginBottom: 16 },
+  categoriesScroll: { gap: 14, paddingRight: 8 },
+  categoryItem: { alignItems: "center", width: 60 },
+  categoryIconBox: {
+    width: 50,
+    height: 50,
+    borderRadius: 14,
+    backgroundColor: COLORS.white,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E8E8E8",
+    marginBottom: 5,
+    overflow: "hidden",
   },
+  categoryIconBoxActive: {
+    backgroundColor: "#1565C0",
+    borderColor: "#1565C0",
+  },
+  categoryImg: { width: 50, height: 50, borderRadius: 14 },
+  categoryLabel: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: COLORS.text,
+    textAlign: "center",
+  },
+  categoryLabelActive: { color: "#1565C0", fontWeight: "700" },
+
+  /* ── Sections ── */
+  section: { marginBottom: 20 },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
-  },
-  sectionHeaderRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: COLORS.text,
-  },
-  clearFilter: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.error,
-  },
-  sectionTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  filterBadge: {
-    backgroundColor: COLORS.primary + "15",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  filterBadgeText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: COLORS.primary,
-  },
-  seeAllBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  seeAllText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.primary,
-  },
-
-  /* Categories */
-  categoriesScroll: {
-    paddingRight: 16,
-    gap: 12,
-  },
-  categoryChip: {
-    alignItems: "center",
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: COLORS.border,
-    minWidth: 80,
-  },
-  categoryChipSelected: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  categoryChipIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary + "15",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  categoryChipIconSelected: {
-    backgroundColor: "rgba(255,255,255,0.2)",
-  },
-  categoryChipImage: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-  },
-  categoryChipImageSelected: {
-    borderWidth: 2,
-    borderColor: COLORS.white,
-  },
-  categoryChipText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: COLORS.text,
-    textAlign: "center",
-  },
-  categoryChipTextSelected: {
-    color: COLORS.white,
-  },
-
-  /* Empty State */
-  emptyState: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 48,
-    gap: 12,
-  },
-  emptyStateTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: COLORS.text,
-  },
-  emptyStateSubtitle: {
-    fontSize: 14,
-    color: COLORS.gray,
-    textAlign: "center",
-  },
-  emptyStateButton: {
-    marginTop: 8,
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  emptyStateButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.white,
-  },
-
-  /* Listings */
-  listingsRow: {
-    gap: 12,
     marginBottom: 12,
   },
+  sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  sectionTitle: { fontSize: 16, fontWeight: "700", color: COLORS.text },
+  featuredStar: { fontSize: 16 },
+  seeAllBtn: { flexDirection: "row", alignItems: "center", gap: 3 },
+  seeAllText: { fontSize: 13, fontWeight: "600", color: "#1565C0" },
+
+  /* ── Banner ── */
+  bannerCard: {
+    width: BANNER_WIDTH,
+    height: 150,
+    borderRadius: 14,
+    overflow: "hidden",
+    marginRight: 12,
+  },
+  bannerImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 14,
+  },
+  bannerDots: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 5,
+    marginTop: 10,
+  },
+  bannerDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#D0D0D0",
+  },
+  bannerDotActive: { backgroundColor: "#1565C0", width: 16, borderRadius: 3 },
+
+  /* ── Featured ── */
+  featuredCard: {
+    width: FEATURED_CARD_WIDTH,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    overflow: "hidden",
+    borderWidth: 2,
+    borderColor: "#FFD400",
+  },
+  featuredBadge: {
+    position: "absolute",
+    top: 6,
+    left: 6,
+    zIndex: 2,
+    backgroundColor: "#FF6B35",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  featuredBadgeText: { fontSize: 9, fontWeight: "700", color: COLORS.white },
+  featuredImg: {
+    width: "100%",
+    height: FEATURED_CARD_WIDTH * 0.75,
+    resizeMode: "cover",
+  },
+  featuredInfo: { padding: 8, gap: 2 },
+  featuredPrice: { fontSize: 14, fontWeight: "800", color: COLORS.text },
+  featuredLocation: { fontSize: 11, color: COLORS.gray },
+  featuredTime: { fontSize: 10, color: COLORS.gray },
+
+  /* ── Recommendations Grid ── */
+  listingsRow: { gap: 12, marginBottom: 12 },
   listingCard: {
     width: CARD_WIDTH,
     backgroundColor: COLORS.white,
-    borderRadius: 16,
+    borderRadius: 12,
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  listingImageContainer: {
+  listingImgWrap: {
     width: "100%",
     height: CARD_WIDTH * 0.85,
     position: "relative",
   },
-  listingImage: {
-    width: "100%",
-    height: "100%",
-    resizeMode: "cover",
-  },
+  listingImg: { width: "100%", height: "100%", resizeMode: "cover" },
   verifiedBadge: {
     position: "absolute",
-    top: 10,
-    left: 10,
+    top: 8,
+    left: 8,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.success,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    backgroundColor: "#1E8E3E",
+    paddingHorizontal: 7,
+    paddingVertical: 3,
     borderRadius: 6,
-    gap: 4,
+    gap: 3,
   },
-  verifiedText: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: COLORS.white,
-  },
-  listingInfo: {
-    padding: 12,
-    gap: 6,
-  },
-  listingPrice: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: COLORS.text,
-  },
-  listingTitle: {
-    fontSize: 13,
-    color: COLORS.text,
-    lineHeight: 18,
-  },
+  verifiedText: { fontSize: 9, fontWeight: "700", color: COLORS.white },
+  listingInfo: { padding: 10, gap: 4 },
+  listingPrice: { fontSize: 15, fontWeight: "800", color: COLORS.text },
+  listingTitle: { fontSize: 12, color: COLORS.gray, lineHeight: 16 },
 
+  /* ── Empty ── */
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 40,
+    gap: 10,
+  },
+  emptyTitle: { fontSize: 16, fontWeight: "700", color: COLORS.text },
+  emptySub: { fontSize: 13, color: COLORS.gray, textAlign: "center" },
+  emptyBtn: {
+    marginTop: 8,
+    backgroundColor: "#1565C0",
+    paddingHorizontal: 22,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  emptyBtnText: { fontSize: 13, fontWeight: "600", color: COLORS.white },
+
+  /* ── City Sheet ── */
+  cityOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)" },
+  citySheet: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: "62%",
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
+  cityHandle: {
+    width: 44,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: COLORS.border,
+    alignSelf: "center",
+    marginBottom: 12,
+  },
+  citySheetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  citySheetTitle: { fontSize: 16, fontWeight: "700", color: COLORS.text },
+  cityItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.white,
+  },
+  cityItemSel: {
+    borderColor: "#1565C0",
+    backgroundColor: "#1565C0" + "0D",
+  },
+  cityName: { fontSize: 14, fontWeight: "600", color: COLORS.text },
+  cityNameSel: { color: "#1565C0" },
+  cityState: { marginTop: 2, fontSize: 12, color: COLORS.gray },
 });

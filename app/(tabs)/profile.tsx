@@ -11,91 +11,33 @@ import Constants from "expo-constants";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import {  useState } from "react";
+import { useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 
-// Role-based configuration
-const ROLE_CONFIG = {
-  vendor: {
-    gradient: ["#11998e", "#38ef7d"] as [string, string],
-    icon: "storefront" as const,
-    badge: "Verified Seller",
-    stats: [
-      { key: "listings", label: "Listings", icon: "pricetag" },
-      { key: "sold", label: "Sold", icon: "checkmark-done" },
-      { key: "rating", label: "Rating", icon: "star", showStar: true },
-    ],
-  },
-  user: {
-    gradient: ["#667eea", "#764ba2"] as [string, string],
-    icon: "person" as const,
-    badge: "Member",
-    stats: [
-      { key: "orders", label: "Orders", icon: "bag-check" },
-      { key: "wishlist", label: "Wishlist", icon: "heart" },
-      { key: "reviews", label: "Reviews", icon: "star" },
-    ],
-  },
-};
-
-// Vendor-specific menu sections
-const VENDOR_MENU_SECTIONS = [
-  // {
-  //   title: "Seller Dashboard",
-  //   items: [
-  //     { id: "listings", icon: "pricetag", label: "My Listings", badge: null },
-  //     // { id: "orders-received", icon: "cube", label: "Orders Received", badge: null },
-  //   ],
-  // },
-  {
-    title: "Support",
-    items: [
-      { id: "help", icon: "help-circle", label: "Help Center", badge: null },
-      { id: "contact", icon: "chatbox", label: "Contact Us", badge: null },
-      { id: "terms", icon: "document-text", label: "Terms & Conditions", badge: null },
-    ],
-  },
-];
-
-// User-specific menu sections
-const USER_MENU_SECTIONS = [
-  // {
-  //   title: "My Activity",
-  //   items: [
-  //     { id: "orders", icon: "bag-check", label: "My Orders", badge: null },
-  //   ],
-  // },
-  {
-    title: "Support",
-    items: [
-      { id: "help", icon: "help-circle", label: "Help Center", badge: null },
-      { id: "contact", icon: "chatbox", label: "Contact Us", badge: null },
-      { id: "terms", icon: "document-text", label: "Terms & Conditions", badge: null },
-    ],
-  },
+const MENU_ITEMS = [
+  { id: "listings", icon: "📦", label: "My Ads" },
+  { id: "chat", icon: "💬", label: "Chats" },
+  { id: "help", icon: "❓", label: "Help Center" },
+  { id: "contact", icon: "📞", label: "Contact Us" },
+  { id: "terms", icon: "📄", label: "Terms & Conditions" },
 ];
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const dispatch = useDispatch()
+  const dispatch = useDispatch();
   const { user } = useSelector((state: any) => state.entities.authReducer);
-  const {states,cities} = useSelector((state: any) => state.entities.userReducer);
-  
-  const roleConfig = ROLE_CONFIG.user;
-  const menuSections = USER_MENU_SECTIONS;
-
+  const { states, cities } = useSelector((state: any) => state.entities.userReducer);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedState, setSelectedState] = useState<any>(null);
   const [selectedCity, setSelectedCity] = useState<any>(null);
@@ -108,37 +50,24 @@ export default function ProfileScreen() {
     pincode: user?.pincode || "",
   });
 
-  // Filter cities based on selected state
   const filteredCities = selectedState
     ? cities?.filter((city: any) => city.state_id === selectedState.id)
     : [];
 
+  const isVerified = user?.is_verify === 1;
+
+  const maskPhone = (phone: string) => {
+    if (!phone || phone.length < 4) return phone || "";
+    return `+91 ${phone.slice(0, 2)}XXXX${phone.slice(-2)}`;
+  };
+
   const handleMenuPress = (itemId: string) => {
     switch (itemId) {
       case "listings":
-        // Navigate to my listings
-        router.push("/stacks/myListing");
+        router.push("/stacks/myListing" as any);
         break;
-      case "favorites":
-        // Navigate to favorites
-        break;
-      case "orders":
-        // Navigate to orders
-        break;
-      case "reviews":
-        // Navigate to reviews
-        break;
-      case "edit-profile":
-        setShowEditModal(true);
-        break;
-      case "addresses":
-        // Navigate to addresses
-        break;
-      case "notifications":
-        // Toggle or navigate
-        break;
-      case "privacy":
-        router.push("/stacks/policy");
+      case "chat":
+        router.push("/(tabs)/chat");
         break;
       case "help":
         router.push("/stacks/faqScreen");
@@ -149,25 +78,19 @@ export default function ProfileScreen() {
       case "terms":
         router.push("/stacks/termsConditions");
         break;
-      default:
-        break;
     }
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      "Logout",
-      "Are you sure you want to logout?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Logout",
-          style: "destructive",
-          onPress: () => logoutUser(dispatch,router,"user"),
-        },
-      ]
-    );
-  }
+    Alert.alert("Logout", "Are you sure you want to logout?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: () => logoutUser(dispatch, router, "user"),
+      },
+    ]);
+  };
 
   const handleEditProfile = () => {
     setEditForm({
@@ -178,27 +101,14 @@ export default function ProfileScreen() {
       street: user?.street || "",
       pincode: user?.pincode || "",
     });
-    
-    // Set selected state and city from user data
     const userState = states?.find((s: any) => s.id === user?.state_id);
     const userCity = cities?.find((c: any) => c.id === user?.city_id);
     setSelectedState(userState || null);
     setSelectedCity(userCity || null);
-    
     setShowEditModal(true);
   };
 
-  const handleStateSelect = (state: any) => {
-    setSelectedState(state);
-    setSelectedCity(null); // Reset city when state changes
-  };
-
-  const handleCitySelect = (city: any) => {
-    setSelectedCity(city);
-  };
-
   const handleSaveProfile = () => {
-    // TODO: Implement API call to update profile
     const updatedProfile = {
       ...editForm,
       state_id: selectedState?.id || null,
@@ -208,227 +118,6 @@ export default function ProfileScreen() {
     setShowEditModal(false);
   };
 
-  const renderProfileHeader = () => (
-    <LinearGradient
-      colors={roleConfig.gradient}
-      style={[styles.profileHeader]}
-    >
-      {/* Role Badge */}
-      <View style={styles.roleBadgeHeader}>
-        <Ionicons name={roleConfig.icon} size={14} color={COLORS.white} />
-        <ThemedText style={styles.roleBadgeHeaderText}>User</ThemedText>
-      </View>
-
-      {/* Avatar & Info */}
-      <View style={styles.profileInfo}>
-        <View style={styles.avatarContainer}>
-          <View style={[styles.avatarPlaceholder, { backgroundColor: roleConfig.gradient[1] + "40" }]}>
-            <Image source={user?.AadharImage ? `${ImageUrl}/${user?.AadharImage}` : "https://i.pravatar.cc/150?img=11"} style={styles.avatar} />
-          </View>
-          {user?.is_verified && (
-            <View style={styles.verifiedBadge}>
-              <Ionicons name="checkmark-circle" size={24} color={COLORS.success} />
-            </View>
-          )}
-        </View>
-        <ThemedText style={styles.userName}>{user?.name}</ThemedText>
-        <View style={styles.locationRow}>
-          <Ionicons name="mail" size={14} color="rgba(255,255,255,0.8)" />
-          <ThemedText style={styles.userLocation}>{user?.email}</ThemedText>
-        </View>
-        {user?.address && (
-          <View style={styles.locationRow}>
-            <Ionicons name="location" size={14} color="rgba(255,255,255,0.8)" />
-            <ThemedText style={styles.userLocation}>{user?.address}</ThemedText>
-          </View>
-        )}
-      </View>
-    </LinearGradient>
-  );
-
-  const renderActionButtons = () => (
-    <View style={styles.actionButtons}>
-      <Pressable style={styles.actionBtn} onPress={handleEditProfile}>
-        <LinearGradient
-          colors={roleConfig.gradient}
-          style={styles.actionBtnGradient}
-        >
-          <Ionicons name="pencil" size={20} color={COLORS.white} />
-          <ThemedText style={styles.actionBtnText}>Edit Profile</ThemedText>
-        </LinearGradient>
-      </Pressable>
-    </View>
-  );
-
-  const renderMenuSection = (section: typeof USER_MENU_SECTIONS[0], index: number) => (
-    <View key={index} style={styles.menuSection}>
-      <ThemedText style={[styles.menuSectionTitle, { color: roleConfig.gradient[0] }]}>
-        {section.title}
-      </ThemedText>
-      <View style={styles.menuCard}>
-        {section.items.map((item, itemIndex) => (
-          <TouchableOpacity
-            key={item.id}
-            style={[
-              styles.menuItem,
-              itemIndex < section.items.length - 1 && styles.menuItemBorder,
-            ]}
-            onPress={() => handleMenuPress(item.id)}
-          >
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: roleConfig.gradient[0] + "15" }]}>
-                <Ionicons name={item.icon as any} size={20} color={roleConfig.gradient[0]} />
-              </View>
-              <ThemedText style={styles.menuItemLabel}>{item.label}</ThemedText>
-            </View>
-            <View style={styles.menuItemRight}>
-              {item.badge && (
-                <View style={[styles.menuBadge, { backgroundColor: roleConfig.gradient[0] }]}>
-                  <ThemedText style={styles.menuBadgeText}>{item.badge}</ThemedText>
-                </View>
-              )}
-              <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
-  );
-
-  const renderEditProfileModal = () => (
-    <Modal
-      visible={showEditModal}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={() => setShowEditModal(false)}
-    >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.modalContainer}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            {/* Header */}
-            <View style={styles.modalHeader}>
-              <ThemedText style={styles.modalTitle}>Edit Profile</ThemedText>
-              <TouchableOpacity
-                onPress={() => setShowEditModal(false)}
-                style={styles.modalCloseBtn}
-              >
-                <Ionicons name="close" size={24} color={COLORS.text} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Form */}
-            <ScrollView
-              style={styles.modalForm}
-              showsVerticalScrollIndicator={false}
-            >
-              <View style={styles.inputGroup}>
-                <ThemedText style={styles.inputLabel}>Name</ThemedText>
-                <TextInput
-                  style={styles.input}
-                  value={editForm.name}
-                  onChangeText={(text) => setEditForm({ ...editForm, name: text })}
-                  placeholder="Enter your name"
-                  placeholderTextColor={COLORS.gray}
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <ThemedText style={styles.inputLabel}>Email</ThemedText>
-                <TextInput
-                  style={styles.input}
-                  value={editForm.email}
-                  onChangeText={(text) => setEditForm({ ...editForm, email: text })}
-                  placeholder="Enter your email"
-                  placeholderTextColor={COLORS.gray}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  editable={false}
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <ThemedText style={styles.inputLabel}>Phone</ThemedText>
-                <TextInput
-                  style={styles.input}
-                  value={editForm.phone}
-                  onChangeText={(text) => setEditForm({ ...editForm, phone: text })}
-                  placeholder="Enter your phone number"
-                  placeholderTextColor={COLORS.gray}
-                  keyboardType="phone-pad"
-                  editable={false}
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <ThemedText style={styles.inputLabel}>Address</ThemedText>
-                <TextInput
-                  style={styles.input}
-                  value={editForm.address}
-                  onChangeText={(text) => setEditForm({ ...editForm, address: text })}
-                  placeholder="Enter your address"
-                  placeholderTextColor={COLORS.gray}
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <ThemeSelect
-                  label="State"
-                  placeholder="Select State"
-                  value={selectedState}
-                  items={states || []}
-                  onSelect={handleStateSelect}
-                  icon="map-outline"
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <ThemeSelect
-                  label="City"
-                  placeholder={selectedState ? "Select City" : "Select State First"}
-                  value={selectedCity}
-                  items={filteredCities}
-                  onSelect={handleCitySelect}
-                  disabled={!selectedState}
-                  icon="business-outline"
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <ThemedText style={styles.inputLabel}>Pincode</ThemedText>
-                <TextInput
-                  style={styles.input}
-                  value={editForm.pincode?.toString()}
-                  onChangeText={(text) => setEditForm({ ...editForm, pincode: text })}
-                  placeholder="Enter pincode"
-                  placeholderTextColor={COLORS.gray}
-                  keyboardType="numeric"
-                />
-              </View>
-            </ScrollView>
-
-            {/* Footer Buttons */}
-            <View style={styles.modalFooter}>
-              <ThemedButton
-                buttonText="Cancel"
-                onPress={() => setShowEditModal(false)}
-                style={styles.modalCancelBtn}
-                textStyle={styles.modalCancelBtnText}
-              />
-              <ThemedButton
-                buttonText="Save Changes"
-                onPress={handleSaveProfile}
-                style={styles.modalSaveBtn}
-              />
-            </View>
-          </View>
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
-  );
-
   return (
     <ThemedView style={styles.container}>
       <ScrollView
@@ -436,18 +125,106 @@ export default function ProfileScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {renderProfileHeader()}
-        {renderActionButtons()}
+        {/* Header */}
+        <LinearGradient colors={["#1565C0", "#1E88E5"]} style={styles.header}>
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={handleEditProfile}>
+              <Ionicons name="menu" size={26} color={COLORS.white} />
+            </TouchableOpacity>
+            <ThemedText style={styles.headerTitle}>My Profile</ThemedText>
+            <TouchableOpacity onPress={handleEditProfile}>
+              <Ionicons name="person-circle-outline" size={28} color={COLORS.white} />
+            </TouchableOpacity>
+          </View>
 
-        {menuSections.map((section, index) => renderMenuSection(section, index))}
+          {/* Profile Info */}
+          <View style={styles.profileRow}>
+            <View style={styles.avatarWrap}>
+              <Image
+                source={
+                  user?.AadharImage
+                    ? `${ImageUrl}/${user?.AadharImage}`
+                    : "https://i.pravatar.cc/150?img=11"
+                }
+                style={styles.avatar}
+              />
+              {isVerified && (
+                <View style={styles.verifiedDot}>
+                  <Ionicons name="checkmark-circle" size={22} color={COLORS.success} />
+                </View>
+              )}
+            </View>
+            <View style={styles.profileText}>
+              <ThemedText style={styles.greeting}>
+                Hello {user?.name || "User"} 👋
+              </ThemedText>
+              <ThemedText style={styles.phone}>{maskPhone(user?.phone)}</ThemedText>
+              <View
+                style={[
+                  styles.verifyBadge,
+                  { backgroundColor: isVerified ? "#E8F5E9" : "#FFF3E0" },
+                ]}
+              >
+                <ThemedText
+                  style={[
+                    styles.verifyBadgeText,
+                    { color: isVerified ? COLORS.success : "#E65100" },
+                  ]}
+                >
+                  {isVerified ? "Verified" : "Not Verified"}
+                </ThemedText>
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
 
-        {/* Logout Button */}
+        {/* Get Verified / Edit Profile */}
+        <View style={styles.actionSection}>
+          {!isVerified && (
+            <TouchableOpacity style={styles.getVerifiedBtn}>
+              <LinearGradient
+                colors={["#1E8E3E", "#2ECC71"]}
+                style={styles.getVerifiedGradient}
+              >
+                <ThemedText style={styles.getVerifiedText}>Get Verified</ThemedText>
+                <Ionicons name="checkmark-circle" size={20} color={COLORS.white} />
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={styles.editProfileBtn} onPress={handleEditProfile}>
+            <Ionicons name="pencil" size={18} color="#1565C0" />
+            <ThemedText style={styles.editProfileText}>Edit Profile</ThemedText>
+          </TouchableOpacity>
+        </View>
+
+        {/* Menu Items */}
+        <View style={styles.menuSection}>
+          {MENU_ITEMS.map((item, idx) => (
+            <TouchableOpacity
+              key={item.id}
+              style={[
+                styles.menuItem,
+                idx < MENU_ITEMS.length - 1 && styles.menuItemBorder,
+              ]}
+              onPress={() => handleMenuPress(item.id)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuItemLeft}>
+                <ThemedText style={styles.menuEmoji}>{item.icon}</ThemedText>
+                <ThemedText style={styles.menuLabel}>{item.label}</ThemedText>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Logout */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={22} color={COLORS.error} />
           <ThemedText style={styles.logoutText}>Logout</ThemedText>
         </TouchableOpacity>
 
-        {/* App Version */}
+        {/* Version */}
         <ThemedText style={styles.versionText}>
           Version {Constants.expoConfig?.version || "1.0.0"}
         </ThemedText>
@@ -456,7 +233,126 @@ export default function ProfileScreen() {
       </ScrollView>
 
       {/* Edit Profile Modal */}
-      {renderEditProfileModal()}
+      <Modal
+        visible={showEditModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowEditModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <ThemedText style={styles.modalTitle}>Edit Profile</ThemedText>
+                <TouchableOpacity
+                  onPress={() => setShowEditModal(false)}
+                  style={styles.modalCloseBtn}
+                >
+                  <Ionicons name="close" size={24} color={COLORS.text} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView
+                style={styles.modalForm}
+                showsVerticalScrollIndicator={false}
+              >
+                <View style={styles.inputGroup}>
+                  <ThemedText style={styles.inputLabel}>Name</ThemedText>
+                  <TextInput
+                    style={styles.input}
+                    value={editForm.name}
+                    onChangeText={(t) => setEditForm({ ...editForm, name: t })}
+                    placeholder="Enter your name"
+                    placeholderTextColor={COLORS.gray}
+                  />
+                </View>
+                <View style={styles.inputGroup}>
+                  <ThemedText style={styles.inputLabel}>Email</ThemedText>
+                  <TextInput
+                    style={[styles.input, { color: COLORS.gray }]}
+                    value={editForm.email}
+                    editable={false}
+                    placeholder="Email"
+                    placeholderTextColor={COLORS.gray}
+                  />
+                </View>
+                <View style={styles.inputGroup}>
+                  <ThemedText style={styles.inputLabel}>Phone</ThemedText>
+                  <TextInput
+                    style={[styles.input, { color: COLORS.gray }]}
+                    value={editForm.phone}
+                    editable={false}
+                    placeholder="Phone"
+                    placeholderTextColor={COLORS.gray}
+                  />
+                </View>
+                <View style={styles.inputGroup}>
+                  <ThemedText style={styles.inputLabel}>Address</ThemedText>
+                  <TextInput
+                    style={styles.input}
+                    value={editForm.address}
+                    onChangeText={(t) => setEditForm({ ...editForm, address: t })}
+                    placeholder="Enter your address"
+                    placeholderTextColor={COLORS.gray}
+                  />
+                </View>
+                <View style={styles.inputGroup}>
+                  <ThemeSelect
+                    label="State"
+                    placeholder="Select State"
+                    value={selectedState}
+                    items={states || []}
+                    onSelect={(s: any) => {
+                      setSelectedState(s);
+                      setSelectedCity(null);
+                    }}
+                    icon="map-outline"
+                  />
+                </View>
+                <View style={styles.inputGroup}>
+                  <ThemeSelect
+                    label="City"
+                    placeholder={selectedState ? "Select City" : "Select State First"}
+                    value={selectedCity}
+                    items={filteredCities}
+                    onSelect={setSelectedCity}
+                    disabled={!selectedState}
+                    icon="business-outline"
+                  />
+                </View>
+                <View style={styles.inputGroup}>
+                  <ThemedText style={styles.inputLabel}>Pincode</ThemedText>
+                  <TextInput
+                    style={styles.input}
+                    value={editForm.pincode?.toString()}
+                    onChangeText={(t) => setEditForm({ ...editForm, pincode: t })}
+                    placeholder="Enter pincode"
+                    placeholderTextColor={COLORS.gray}
+                    keyboardType="numeric"
+                  />
+                </View>
+              </ScrollView>
+
+              <View style={styles.modalFooter}>
+                <ThemedButton
+                  buttonText="Cancel"
+                  onPress={() => setShowEditModal(false)}
+                  style={styles.modalCancelBtn}
+                  textStyle={styles.modalCancelBtnText}
+                />
+                <ThemedButton
+                  buttonText="Save Changes"
+                  onPress={handleSaveProfile}
+                  style={styles.modalSaveBtn}
+                />
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </ThemedView>
   );
 }
@@ -464,7 +360,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: "#F5F5F5",
   },
   scrollView: {
     flex: 1,
@@ -473,194 +369,125 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
 
-  /* Profile Header */
-  profileHeader: {
+  /* Header */
+  header: {
     paddingHorizontal: SIZES.padding,
-    paddingBottom: 30,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
+    paddingBottom: 24,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
   },
-  roleBadgeHeader: {
+  headerRow: {
     flexDirection: "row",
     alignItems: "center",
-    alignSelf: "flex-end",
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 20,
-    top: 10,
+    justifyContent: "space-between",
+    paddingTop: 10,
+    paddingBottom: 16,
   },
-  roleBadgeHeaderText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: COLORS.white,
-  },
-  settingsBtn: {
-    alignSelf: "flex-end",
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  profileInfo: {
-    alignItems: "center",
-    marginTop: 10,
-  },
-  avatarContainer: {
-    position: "relative",
-    marginBottom: 16,
-  },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 4,
-    borderColor: "rgba(255,255,255,0.3)",
-  },
-  avatarPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 4,
-    borderColor: "rgba(255,255,255,0.3)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  verifiedBadge: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    backgroundColor: COLORS.white,
-    borderRadius: 14,
-    padding: 2,
-  },
-  userName: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: COLORS.white,
-  },
-  locationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginTop: 6,
-  },
-  userLocation: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.8)",
-  },
-  memberBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 10,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  memberText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: COLORS.white,
-  },
-
-  /* Stats */
-  statsContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.15)",
-    marginTop: 24,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 16,
-    gap: 20,
-  },
-  statItem: {
-    alignItems: "center",
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: COLORS.white,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.8)",
-    marginTop: 2,
-  },
-  statDivider: {
-    width: 1,
-    height: 30,
-    backgroundColor: "rgba(255,255,255,0.2)",
-  },
-  ratingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-
-  /* Action Buttons */
-  actionButtons: {
-    flexDirection: "row",
-    paddingHorizontal: SIZES.padding,
-    marginTop: -15,
-    gap: 12,
-  },
-  actionBtn: {
-    flex: 1,
-    borderRadius: 14,
-    overflow: "hidden",
-  },
-  actionBtnGradient: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 14,
-  },
-  actionBtnOutline: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 14,
-    backgroundColor: COLORS.white,
-    borderWidth: 1.5,
-    borderColor: COLORS.primary,
-  },
-  actionBtnText: {
-    fontSize: 14,
+  headerTitle: {
+    fontSize: 18,
     fontWeight: "700",
     color: COLORS.white,
+  },
+
+  /* Profile */
+  profileRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  avatarWrap: {
+    position: "relative",
+  },
+  avatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 3,
+    borderColor: "rgba(255,255,255,0.4)",
+  },
+  verifiedDot: {
+    position: "absolute",
+    bottom: -2,
+    left: -2,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    padding: 1,
+  },
+  profileText: {
+    flex: 1,
+  },
+  greeting: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: COLORS.white,
+  },
+  phone: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.85)",
+    marginTop: 2,
+  },
+  verifyBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginTop: 6,
+  },
+  verifyBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+
+  /* Actions */
+  actionSection: {
+    paddingHorizontal: SIZES.padding,
+    marginTop: 16,
+    gap: 10,
+  },
+  getVerifiedBtn: {
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  getVerifiedGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+  },
+  getVerifiedText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: COLORS.white,
+  },
+  editProfileBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: "#1565C0",
+    backgroundColor: COLORS.white,
+  },
+  editProfileText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1565C0",
   },
 
   /* Menu */
   menuSection: {
-    marginTop: 24,
-    paddingHorizontal: SIZES.padding,
-  },
-  menuSectionTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: COLORS.gray,
-    marginBottom: 12,
-    marginLeft: 4,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  menuCard: {
+    marginTop: 20,
+    marginHorizontal: SIZES.padding,
     backgroundColor: COLORS.white,
-    borderRadius: 16,
+    borderRadius: 14,
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
-    shadowRadius: 8,
+    shadowRadius: 6,
     elevation: 2,
   },
   menuItem: {
@@ -672,44 +499,20 @@ const styles = StyleSheet.create({
   },
   menuItemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: "#F0F0F0",
   },
   menuItemLeft: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
   },
-  menuIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary + "10",
-    justifyContent: "center",
-    alignItems: "center",
+  menuEmoji: {
+    fontSize: 20,
   },
-  menuItemLabel: {
+  menuLabel: {
     fontSize: 15,
     fontWeight: "500",
     color: COLORS.text,
-  },
-  menuItemRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  menuBadge: {
-    backgroundColor: COLORS.primary,
-    minWidth: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 8,
-  },
-  menuBadgeText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: COLORS.white,
   },
 
   /* Logout */
@@ -719,15 +522,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 10,
     marginHorizontal: SIZES.padding,
-    marginTop: 24,
-    paddingVertical: 16,
+    marginTop: 20,
+    paddingVertical: 14,
     backgroundColor: COLORS.error + "10",
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: COLORS.error + "30",
   },
   logoutText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
     color: COLORS.error,
   },
@@ -737,13 +540,10 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 12,
     color: COLORS.gray,
-    marginTop: 20,
+    marginTop: 16,
   },
 
   /* Modal */
-  modalContainer: {
-    flex: 1,
-  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
@@ -774,7 +574,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: COLORS.background,
+    backgroundColor: "#F5F5F5",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -792,7 +592,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    backgroundColor: COLORS.background,
+    backgroundColor: "#F5F5F5",
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -809,9 +609,9 @@ const styles = StyleSheet.create({
   },
   modalCancelBtn: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: "#F5F5F5",
     borderWidth: 1,
-    borderColor: COLORS.border
+    borderColor: COLORS.border,
   },
   modalCancelBtnText: {
     color: COLORS.text,

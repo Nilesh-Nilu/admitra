@@ -38,6 +38,8 @@ export const getCitiesUrl = "cities";
 //products
 export const getProductsUrl = "products/all"
 export const getApprovedProductsUrl ="vendor/products"
+export const getBannersUrl = "banner/list"
+export const getProductsByLocationUrl = "products/filter/location"
 //payment
 export const createOrderUrl = "payment/create-order";
 export const verifyAndStorePaymentUrl = "payment/verify-and-store";

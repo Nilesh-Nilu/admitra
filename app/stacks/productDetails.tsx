@@ -13,13 +13,16 @@ import {
   Image,
   Linking,
   ScrollView,
+  Share,
   StyleSheet,
   TouchableOpacity,
   View,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
+const { width: screenWidth } = Dimensions.get("window");
+const IMAGE_HEIGHT = screenWidth * 0.65;
 
 export default function ProductDetailsScreen() {
   const params = useLocalSearchParams();
@@ -27,6 +30,7 @@ export default function ProductDetailsScreen() {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [product, setProduct] = useState<any>(null);
   const scrollViewRef = useRef<ScrollView>(null);
+
   const initializeProduct = useCallback(() => {
     if (params.productData) {
       try {
@@ -52,40 +56,28 @@ export default function ProductDetailsScreen() {
     return () => backHandler.remove();
   }, []);
 
-  const handleBackPress = () => {
-    router.back();
-  };
-
   const handleScroll = (event: any) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
-    const index = Math.round(contentOffsetX / screenWidth);
+    const index = Math.round(contentOffsetX / (screenWidth - 32));
     setActiveImageIndex(index);
   };
 
-  const handleImageScrollTo = (index: number) => {
-    setActiveImageIndex(index);
-    scrollViewRef.current?.scrollTo({
-      x: index * screenWidth,
-      animated: true,
-    });
-  };
   const handleChat = async () => {
     try {
       const response = await createConversationApi({
-        "vendor_id": product?.user.id,
-        "subject": "Product inquiry"
+        vendor_id: product?.user.id,
+        subject: "Product inquiry",
       });
       if (response.id) {
-      router.push({
-        pathname: "/stacks/chatDetail",
-        params: {
-          conversation_id: response.id,
-          receiverId: response.vendor_id,
-          userName: product?.user.name
-        },
-      });
-      }
-      else {
+        router.push({
+          pathname: "/stacks/chatDetail",
+          params: {
+            conversation_id: response.id,
+            receiverId: response.vendor_id,
+            userName: product?.user.name,
+          },
+        });
+      } else {
         Alert.alert("Error", "Failed to create conversation");
       }
     } catch (error) {
@@ -98,8 +90,16 @@ export default function ProductDetailsScreen() {
     Linking.openURL(`tel:${phoneNumber}`);
   };
 
-  const productImages = product?.images;
-  const productTitle = product?.name || "Product";
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: `Check out ${product?.name} for ₹${product?.price} on Admitra!`,
+      });
+    } catch (_) {}
+  };
+
+  const productImages = product?.images || [];
+  const isVerifiedSeller = product?.user?.is_verify === 1;
 
   if (!product) {
     return (
@@ -112,18 +112,22 @@ export default function ProductDetailsScreen() {
   return (
     <ThemedView style={styles.container}>
       {/* Header */}
-      <View style={[styles.header]}>
-        <TouchableOpacity style={styles.headerButton} onPress={handleBackPress}>
-          <Ionicons name="arrow-back" size={22} color={COLORS.text} />
+      <LinearGradient colors={["#1565C0", "#1E88E5"]} style={[styles.header]}>
+        <TouchableOpacity style={styles.headerBtn} onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={24} color={COLORS.white} />
         </TouchableOpacity>
-      </View>
+        <ThemedText style={styles.headerTitle}>Ad Details</ThemedText>
+        <TouchableOpacity style={styles.headerBtn} onPress={handleShare}>
+          <Ionicons name="share-outline" size={22} color={COLORS.white} />
+        </TouchableOpacity>
+      </LinearGradient>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Image Gallery */}
-        <View style={styles.imageSection}>
+        {/* Image Card */}
+        <View style={styles.imageCard}>
           <ScrollView
             ref={scrollViewRef}
             horizontal
@@ -132,147 +136,136 @@ export default function ProductDetailsScreen() {
             onScroll={handleScroll}
             scrollEventThrottle={16}
           >
-            {productImages.map((image: any, index: number) => (
-              <View key={index} style={styles.imagePage}>
-                <Image
-                  source={{ uri: image.image }}
-                  style={styles.productImage}
-                  resizeMode="cover"
-                />
+            {productImages.length > 0 ? (
+              productImages.map((image: any, index: number) => (
+                <View key={index} style={styles.imagePage}>
+                  <Image
+                    source={{ uri: image.image }}
+                    style={styles.productImage}
+                    resizeMode="cover"
+                  />
+                </View>
+              ))
+            ) : (
+              <View style={styles.imagePage}>
+                <View style={styles.noImagePlaceholder}>
+                  <Ionicons name="image-outline" size={48} color={COLORS.gray} />
+                </View>
               </View>
-            ))}
+            )}
           </ScrollView>
 
-          {/* Image Counter */}
-          <View style={styles.imageCounter}>
-            <ThemedText style={styles.imageCounterText}>
-              {activeImageIndex + 1}/{productImages.length}
+          {productImages.length > 1 && (
+            <View style={styles.dotsRow}>
+              {productImages.map((_: any, i: number) => (
+                <View
+                  key={i}
+                  style={[styles.dot, i === activeImageIndex && styles.dotActive]}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Title + Price Row */}
+        <View style={styles.titleSection}>
+          <View style={styles.titleRow}>
+            <ThemedText style={styles.title} numberOfLines={2}>
+              {product?.name || "Product"}
             </ThemedText>
+            <ThemedText style={styles.price}>₹{product?.price}</ThemedText>
           </View>
         </View>
 
-        {/* Image Thumbnails */}
-        {productImages.length > 1 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.thumbnailContainer}
-            contentContainerStyle={styles.thumbnailContent}
-          >
-            {productImages.map((image: any, index: number) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.thumbnail,
-                  index === activeImageIndex && styles.thumbnailActive,
-                ]}
-                onPress={() => handleImageScrollTo(index)}
-              >
-                <Image source={{ uri: image.image }} style={styles.thumbnailImage} />
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        )}
-
-        {/* Product Info */}
-        <View style={styles.infoSection}>
-          <ThemedText style={styles.price}>
-            ₹{product?.price}
-          </ThemedText>
-
-          {/* Title */}
-          <ThemedText style={styles.title}>{productTitle}</ThemedText>
-        </View>
-
-        {/* Seller Info */}
-        <View style={styles.sellerSection}>
-          <View style={styles.sectionHeader}>
-            <ThemedText style={styles.sectionTitle}>Seller Information</ThemedText>
+        {/* Verified Seller Badge */}
+        <View style={styles.cardSection}>
+          <View style={styles.verifiedBadge}>
+            <View style={styles.verifiedIconCircle}>
+              <Ionicons name="shield-checkmark" size={14} color={COLORS.white} />
+            </View>
+            <ThemedText style={styles.verifiedLabel}>Verified Seller</ThemedText>
+            <Ionicons name="checkmark-circle" size={18} color={COLORS.success} />
           </View>
-          <TouchableOpacity style={styles.sellerCard}>
+
+          {/* Seller Row */}
+          <View style={styles.sellerRow}>
             <Image
               source={{ uri: "https://i.pravatar.cc/150?img=11" }}
               style={styles.sellerAvatar}
             />
-            <View style={styles.sellerInfo}>
-              <View style={styles.sellerNameRow}>
-                <ThemedText style={styles.sellerName}>{product.user.name}</ThemedText>
-                <View style={styles.verifiedBadge}>
-                  <Ionicons name="checkmark-circle" size={14} color={COLORS.success} />
-                  <ThemedText style={styles.verifiedText}>Verified</ThemedText>
-                </View>
-              </View>
-              <ThemedText style={styles.sellerMeta}>{""}</ThemedText>
+            <View>
+              <ThemedText style={styles.sellerName}>{product?.user?.name}</ThemedText>
+              <ThemedText style={styles.sellerLocation}>
+                {product?.user?.city?.name || product?.city || "India"}
+              </ThemedText>
             </View>
-          </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Description */}
-        <View style={styles.descriptionSection}>
-          <View style={styles.sectionHeader}>
-            <ThemedText style={styles.sectionTitle}>Description</ThemedText>
-          </View>
-          <ThemedText style={styles.description}>
-            {product?.description ||
-              "This item is in excellent condition. Well maintained and fully functional. Selling because upgrading to a new model. Price is slightly negotiable for serious buyers. Feel free to message for any questions."}
-          </ThemedText>
-        </View>
+        {/* Product Details */}
+        <View style={styles.cardSection}>
+          {product?.condition && (
+            <View style={styles.detailRow}>
+              <ThemedText style={styles.detailLabel}>Condition:</ThemedText>
+              <ThemedText style={styles.detailValue}>{product.condition}</ThemedText>
+            </View>
+          )}
+          {product?.model && (
+            <View style={styles.detailRow}>
+              <ThemedText style={styles.detailLabel}>Model:</ThemedText>
+              <ThemedText style={styles.detailValue}>{product.model}</ThemedText>
+            </View>
+          )}
+          {product?.category?.name && (
+            <View style={styles.detailRow}>
+              <ThemedText style={styles.detailLabel}>Category:</ThemedText>
+              <ThemedText style={styles.detailValue}>{product.category.name}</ThemedText>
+            </View>
+          )}
+          {product?.sub_category?.name && (
+            <View style={styles.detailRow}>
+              <ThemedText style={styles.detailLabel}>Sub-Category:</ThemedText>
+              <ThemedText style={styles.detailValue}>{product.sub_category.name}</ThemedText>
+            </View>
+          )}
+          {product?.created_at && (
+            <View style={styles.detailRow}>
+              <ThemedText style={styles.detailLabel}>Posted:</ThemedText>
+              <ThemedText style={styles.detailValue}>
+                {new Date(product.created_at).toLocaleDateString(undefined, {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                })}
+              </ThemedText>
+            </View>
+          )}
 
-        {/* Details */}
-        <View style={styles.detailsSection}>
-          <View style={styles.sectionHeader}>
-            <ThemedText style={styles.sectionTitle}>Details</ThemedText>
-          </View>
-          <View style={styles.detailsGrid}>
-            <View style={styles.detailItem}>
-              <ThemedText style={styles.detailLabel}>Category</ThemedText>
-              <ThemedText style={styles.detailValue}>
-                {product?.category.name}
+          {/* Description */}
+          {product?.description && (
+            <View style={styles.descriptionBlock}>
+              <ThemedText style={styles.detailLabel}>Description:</ThemedText>
+              <ThemedText style={styles.descriptionText}>
+                {product.description}
               </ThemedText>
             </View>
-            <View style={styles.detailItem}>
-              <ThemedText style={styles.detailLabel}>Sub-Category</ThemedText>
-              <ThemedText style={styles.detailValue}>
-                {product?.sub_category.name}
-              </ThemedText>
-            </View>
-            <View style={styles.detailItem}>
-              <ThemedText style={styles.detailLabel}>Posted</ThemedText>
-              <ThemedText style={styles.detailValue}>
-                {product?.created_at
-                  ? new Date(product.created_at).toLocaleDateString(undefined, {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                  })
-                  : "2 hours ago"}
-              </ThemedText>
-            </View>
-            <View style={styles.detailItem}>
-              <ThemedText style={styles.detailLabel}>Ad ID</ThemedText>
-              <ThemedText style={styles.detailValue}>
-                #{product?.id || "12345"}
-              </ThemedText>
-            </View>
-          </View>
+          )}
         </View>
 
         <View style={{ height: 120 }} />
       </ScrollView>
 
       {/* Bottom Action Bar */}
-      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
-        <View style={styles.bottomButtons}>
-          <TouchableOpacity style={styles.chatButton} onPress={handleChat}>
-            <Ionicons name="chatbubble-outline" size={20} color={COLORS.primary} />
-            <ThemedText style={styles.chatButtonText}>Chat</ThemedText>
-          </TouchableOpacity>
+      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
+        <TouchableOpacity style={styles.callButton} onPress={handleCall} activeOpacity={0.8}>
+          <Ionicons name="call" size={18} color={COLORS.white} />
+          <ThemedText style={styles.callBtnText}>Call</ThemedText>
+        </TouchableOpacity>
 
-          <TouchableOpacity style={styles.callButton} onPress={handleCall}>
-            <Ionicons name="call-outline" size={20} color={COLORS.success} />
-            <ThemedText style={styles.callButtonText}>Call</ThemedText>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={styles.chatButton} onPress={handleChat} activeOpacity={0.8}>
+          <Ionicons name="chatbubble-ellipses" size={18} color={COLORS.white} />
+          <ThemedText style={styles.chatBtnText}>Chat</ThemedText>
+        </TouchableOpacity>
       </View>
     </ThemedView>
   );
@@ -281,7 +274,7 @@ export default function ProductDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: "#F0F0F0",
   },
   loadingContainer: {
     flex: 1,
@@ -295,280 +288,169 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: SIZES.padding,
-    paddingBottom: 12,
-    backgroundColor: COLORS.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    padding: 12,
   },
-  headerButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.background,
+  headerBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
   },
-  headerActions: {
-    flexDirection: "row",
-    gap: 8,
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: COLORS.white,
   },
 
   scrollContent: {
-    paddingBottom: 20,
+    paddingHorizontal: SIZES.padding,
+    paddingTop: 16,
   },
 
-  /* Image Section */
-  imageSection: {
-    height: screenHeight * 0.4,
-    backgroundColor: COLORS.lightGray,
-    position: "relative",
+  /* Image Card */
+  imageCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 14,
+    overflow: "hidden",
+    marginBottom: 12,
   },
   imagePage: {
-    width: screenWidth,
-    height: screenHeight * 0.4,
+    width: screenWidth - 32,
+    height: IMAGE_HEIGHT,
   },
   productImage: {
     width: "100%",
     height: "100%",
   },
-  imageCounter: {
-    position: "absolute",
-    bottom: 16,
-    right: 16,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  imageCounterText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: COLORS.white,
-  },
-
-  /* Thumbnails */
-  thumbnailContainer: {
-    backgroundColor: COLORS.white,
-    paddingVertical: 12,
-  },
-  thumbnailContent: {
-    paddingHorizontal: SIZES.padding,
-    gap: 10,
-  },
-  thumbnail: {
-    width: 60,
-    height: 60,
-    borderRadius: 10,
-    overflow: "hidden",
-    borderWidth: 2,
-    borderColor: COLORS.border,
-  },
-  thumbnailActive: {
-    borderColor: COLORS.primary,
-  },
-  thumbnailImage: {
-    width: "100%",
-    height: "100%",
-  },
-
-  /* Info Section */
-  infoSection: {
-    backgroundColor: COLORS.white,
-    padding: SIZES.padding,
-    marginTop: 8,
-  },
-  price: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: COLORS.text,
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: COLORS.text,
-    lineHeight: 24,
-    marginBottom: 12,
-  },
-  metaRow: {
-    flexDirection: "row",
+  noImagePlaceholder: {
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
-    gap: 8,
-    marginBottom: 16,
+    backgroundColor: "#F5F5F5",
   },
-  metaItem: {
+  dotsRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  metaText: {
-    fontSize: 13,
-    color: COLORS.gray,
-  },
-  metaDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: COLORS.gray,
-  },
-  statsRow: {
-    flexDirection: "row",
-    gap: 20,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-  },
-  statItem: {
-    flexDirection: "row",
+    justifyContent: "center",
     alignItems: "center",
     gap: 6,
+    paddingVertical: 10,
   },
-  statText: {
-    fontSize: 13,
-    color: COLORS.gray,
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: "#D0D0D0",
+  },
+  dotActive: {
+    backgroundColor: "#1565C0",
+    width: 20,
+    borderRadius: 4,
   },
 
-  /* Seller Section */
-  sellerSection: {
+  /* Title */
+  titleSection: {
     backgroundColor: COLORS.white,
-    padding: SIZES.padding,
-    marginTop: 8,
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 12,
   },
-  sectionHeader: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: COLORS.text,
-  },
-  sellerCard: {
+  titleRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 12,
   },
-  sellerAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-  },
-  sellerInfo: {
+  title: {
     flex: 1,
-  },
-  sellerNameRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 4,
-  },
-  sellerName: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "700",
     color: COLORS.text,
+    lineHeight: 23,
+  },
+  price: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: COLORS.text,
+  },
+
+  /* Seller Card */
+  cardSection: {
+    backgroundColor: COLORS.white,
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 12,
   },
   verifiedBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    backgroundColor: COLORS.success + "15",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
+    gap: 6,
+    alignSelf: "flex-start",
+    backgroundColor: "#E8F5E9",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginBottom: 14,
   },
-  verifiedText: {
-    fontSize: 11,
-    fontWeight: "600",
+  verifiedIconCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: COLORS.success,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  verifiedLabel: {
+    fontSize: 13,
+    fontWeight: "700",
     color: COLORS.success,
   },
-  sellerMeta: {
-    fontSize: 12,
-    color: COLORS.gray,
-    marginBottom: 6,
-  },
-  sellerStats: {
+  sellerRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 12,
   },
-  sellerStatItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
+  sellerAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#EEE",
   },
-  sellerStatText: {
-    fontSize: 12,
-    color: COLORS.gray,
-  },
-  sellerStatDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: COLORS.gray,
-  },
-
-  /* Description Section */
-  descriptionSection: {
-    backgroundColor: COLORS.white,
-    padding: SIZES.padding,
-    marginTop: 8,
-  },
-  description: {
-    fontSize: 14,
+  sellerName: {
+    fontSize: 15,
+    fontWeight: "700",
     color: COLORS.text,
-    lineHeight: 22,
+  },
+  sellerLocation: {
+    fontSize: 13,
+    color: COLORS.gray,
+    marginTop: 2,
   },
 
-  /* Details Section */
-  detailsSection: {
-    backgroundColor: COLORS.white,
-    padding: SIZES.padding,
-    marginTop: 8,
-  },
-  detailsGrid: {
+  /* Details */
+  detailRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 16,
-  },
-  detailItem: {
-    width: "45%",
+    alignItems: "baseline",
+    marginBottom: 8,
   },
   detailLabel: {
-    fontSize: 12,
-    color: COLORS.gray,
-    marginBottom: 4,
+    fontSize: 14,
+    fontWeight: "700",
+    color: COLORS.text,
+    marginRight: 6,
   },
   detailValue: {
     fontSize: 14,
-    fontWeight: "600",
     color: COLORS.text,
   },
-
-  /* Safety Section */
-  safetySection: {
-    padding: SIZES.padding,
-    paddingTop: 8,
+  descriptionBlock: {
+    marginTop: 8,
   },
-  safetyCard: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 14,
-    padding: 16,
-    borderRadius: 16,
-  },
-  safetyContent: {
-    flex: 1,
-  },
-  safetyTitle: {
+  descriptionText: {
     fontSize: 14,
-    fontWeight: "700",
-    color: COLORS.orange,
-    marginBottom: 4,
-  },
-  safetyText: {
-    fontSize: 12,
     color: COLORS.text,
-    lineHeight: 18,
+    lineHeight: 22,
+    marginTop: 6,
   },
 
   /* Bottom Bar */
@@ -577,66 +459,46 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: COLORS.white,
-    paddingHorizontal: SIZES.padding,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 10,
-  },
-  bottomButtons: {
     flexDirection: "row",
     gap: 10,
-  },
-  chatButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: COLORS.primary,
     backgroundColor: COLORS.white,
-  },
-  chatButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: COLORS.primary,
+    paddingHorizontal: SIZES.padding,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: "#E8E8E8",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 8,
   },
   callButton: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
+    gap: 8,
     paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: COLORS.success,
-    backgroundColor: COLORS.white,
+    borderRadius: 10,
+    backgroundColor: "#1E8E3E",
   },
-  callButtonText: {
-    fontSize: 14,
+  callBtnText: {
+    fontSize: 15,
     fontWeight: "700",
-    color: COLORS.success,
+    color: COLORS.white,
   },
-  offerButton: {
-    flex: 1.5,
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  offerButtonGradient: {
-    paddingVertical: 14,
+  chatButton: {
+    flex: 1,
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 10,
+    backgroundColor: "#1565C0",
   },
-  offerButtonText: {
-    fontSize: 14,
+  chatBtnText: {
+    fontSize: 15,
     fontWeight: "700",
     color: COLORS.white,
   },

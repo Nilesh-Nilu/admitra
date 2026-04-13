@@ -10,6 +10,7 @@ const initialState = {
   approvedProducts: [],
   chatConversations: [],
   chatMessages: [],
+  banners:[]
 };
 
 const userReducer = createSlice({
@@ -40,7 +41,9 @@ const userReducer = createSlice({
     },
     setProductsRecieved: (userReducer, action) => {
       userReducer.loader = false;
-      userReducer.products = action.payload.data.filter((product) =>product.approve === "approved");
+      const raw = action.payload.data;
+      const list = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
+      userReducer.products = list.filter((product) => product.approve === "approved");
     },
     setSubCategoriesClear: (userReducer, action) => {
       userReducer.loader = false;
@@ -58,7 +61,11 @@ const userReducer = createSlice({
       userReducer.loader = false;
       userReducer.chatMessages = action.payload.data;
     },
+    setBannersRecieved: (userReducer, action) => {
+      userReducer.loader = false;
+      userReducer.banners = action.payload.data;
     },
+  }
 });
 
 export const {
@@ -76,6 +83,7 @@ const {
   setApprovedProductsRecieved,
   setChatConversationsRecieved,
   setChatMessagesRecieved,
+  setBannersRecieved,
 } = userReducer.actions;
 export const getStatesApi = (url) =>
   apiCallBegan({
@@ -109,7 +117,7 @@ export const getSubCategoriesApi = (url) =>
     onSuccess: setSubCategoriesRecieved.type,
     onError: userReducerDataRequestFailed.type,
   });
-export const getProductsApi = (url) =>
+export const getProductsApiwithcityId = (url) =>
   apiCallBegan({
     method: "get",
     url,
@@ -123,6 +131,14 @@ export const getApprovedProductsApi = (url) =>
     url,
     onStart: userReducerDataRequested.type,
     onSuccess: setApprovedProductsRecieved.type,
+    onError: userReducerDataRequestFailed.type,
+  });
+export const getBannersApi = (url) =>
+  apiCallBegan({
+    method: "get",
+    url,
+    onStart: userReducerDataRequested.type,
+    onSuccess: setBannersRecieved.type,
     onError: userReducerDataRequestFailed.type,
   });
 export default userReducer.reducer;
