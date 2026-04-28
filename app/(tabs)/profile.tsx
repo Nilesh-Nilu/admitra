@@ -1,12 +1,13 @@
-import ThemedButton from "@/components/buttons/ThemedButton";
-import ThemeSelect from "@/components/inputs/ThemeSelect";
+import EditProfileModal from "@/components/modals/EditProfileModal";
+import GetVerifiedProfileModal from "@/components/modals/GetVerifiedProfileModal";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
-import { ImageUrl, logoutUser, updateUserProfileUrl } from "@/constants/functions";
+import { getPolicyApi, getPrivacyPolicyUrl, getRefundPolicyUrl, getTermsAndConditionsUrl, ImageUrl, logoutUser, updateUserProfileUrl } from "@/constants/functions";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 import { updateUserProfile } from "@/store/reducers/authReducer";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -14,71 +15,93 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   Alert,
-  KeyboardAvoidingView,
-  Modal,
   Platform,
   ScrollView,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 
-const MENU_ITEMS = [
-  { id: "listings", icon: "📦", label: "My Ads" },
-  { id: "chat", icon: "💬", label: "Chats" },
-  { id: "help", icon: "❓", label: "Help Center" },
-  { id: "contact", icon: "📞", label: "Contact Us" },
-  { id: "terms", icon: "📄", label: "Terms & Conditions" },
-];
+interface User {
+  name?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  street?: string;
+  pincode?: string;
+  state_id?: number;
+  city_id?: number;
+  AadharImage?: string;
+  is_verify?: number;
+  created_at?: string;
+  selfieverificationImage?: string;
+}
 
 export default function ProfileScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { user } = useSelector((state: any) => state.entities.authReducer);
+  const { user }: { user: User } = useSelector((state: any) => state.entities.authReducer);
   const { states, cities } = useSelector((state: any) => state.entities.userReducer);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedState, setSelectedState] = useState<any>(null);
-  const [selectedCity, setSelectedCity] = useState<any>(null);
-  const [editForm, setEditForm] = useState({
-    name: user?.name || "",
-    email: user?.email || "",
-    phone: user?.phone || "",
-    address: user?.address || "",
-    street: user?.street || "",
-    pincode: user?.pincode || "",
-  });
-
-  const filteredCities = selectedState
-    ? cities?.filter((city: any) => city.state_id === selectedState.id)
-    : [];
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  console.log(user, "user");
+  const menuItems = [
+    {
+      icon: "document-text-outline",
+      title: "Terms & Conditions",
+      onPress: () => handleMenuPress("/stacks/policy", "Terms & Conditions", getTermsAndConditionsUrl),
+    },
+    {
+      icon: "shield-checkmark-outline",
+      title: "Privacy Policy",
+      onPress: () => handleMenuPress("/stacks/policy", "Privacy Policy", getPrivacyPolicyUrl),
+    },
+    {
+      icon: "refresh-outline",
+      title: "Refund Policy",
+      onPress: () => handleMenuPress("/stacks/policy", "Refund Policy", getRefundPolicyUrl),
+    },
+    {
+      icon: "call-outline",
+      title: "Help/Guide",
+      onPress: () => handleMenuPress("/stacks/policy", "Help/Guide"),
+    },
+  ];
 
   const isVerified = user?.is_verify === 1;
 
-  const maskPhone = (phone: string) => {
-    if (!phone || phone.length < 4) return phone || "";
-    return `+91 ${phone.slice(0, 2)}XXXX${phone.slice(-2)}`;
+  // Mock stats - replace with actual data from your API
+  const stats = {
+    ads: 12,
+    views: 256,
+    favorites: 18,
+    messages: 9,
   };
 
-  const handleMenuPress = (itemId: string) => {
-    switch (itemId) {
-      case "listings":
-        router.push("/stacks/myListing" as any);
-        break;
-      case "chat":
-        router.push("/(tabs)/chat");
-        break;
-      case "help":
-        router.push("/stacks/faqScreen");
-        break;
-      case "contact":
-        router.push("/stacks/contactUs");
-        break;
-      case "terms":
-        router.push("/stacks/termsConditions");
-        break;
+  const getMemberSince = () => {
+    if (!user?.created_at) return "May 2024";
+    const date = new Date(user.created_at);
+    return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  };
+
+  const handleMenuPress = async (route: string, title: string, url?: string) => {
+    let responseData = undefined;
+    if (url) {
+      try {
+        responseData = await getPolicyApi(url);
+        console.log(responseData, "response");
+      } catch (error) {
+        console.log(error, "Failed to fetch policy data");
+      }
     }
+    router.push({
+      pathname: route as any,
+      params: {
+        title: title,
+        ...(responseData ? { data: JSON.stringify(responseData) } : {}),
+      },
+    });
   };
 
   const handleLogout = () => {
@@ -93,29 +116,60 @@ export default function ProfileScreen() {
   };
 
   const handleEditProfile = () => {
-    setEditForm({
-      name: user?.name || "",
-      email: user?.email || "",
-      phone: user?.phone || "",
-      address: user?.address || "",
-      street: user?.street || "",
-      pincode: user?.pincode || "",
-    });
-    const userState = states?.find((s: any) => s.id === user?.state_id);
-    const userCity = cities?.find((c: any) => c.id === user?.city_id);
-    setSelectedState(userState || null);
-    setSelectedCity(userCity || null);
     setShowEditModal(true);
   };
 
-  const handleSaveProfile = () => {
-    const updatedProfile = {
-      ...editForm,
-      state_id: selectedState?.id || null,
-      city_id: selectedCity?.id || null,
-    };
-    dispatch(updateUserProfile(updateUserProfileUrl, updatedProfile));
-    setShowEditModal(false);
+  const handleSaveProfile = async (data: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    street: string;
+    pincode: string;
+    state_id: number | null;
+    city_id: number | null;
+  }) => {
+    try {
+      await dispatch(updateUserProfile(updateUserProfileUrl, data));
+      setShowEditModal(false);
+      await AsyncStorage.setItem("user", JSON.stringify({...user, ...data}));
+    } catch (error: any) {
+      console.log(error, "error");
+      Alert.alert(
+        "Update Failed",
+        error?.response?.data?.message || "Failed to update profile. Please try again."
+      );
+    }
+  };
+
+  const handlePostAd = () => {
+    router.push("/(tabs)/post");
+  };
+
+  const handleOpenVerificationModal = () => {
+    setShowVerificationModal(true);
+  };
+
+  const handleCloseVerificationModal = () => {
+    setShowVerificationModal(false);
+  };
+
+  const handleVerificationSubmit = async (data: any) => {
+    try {
+      await dispatch(updateUserProfile(updateUserProfileUrl, data));
+      await AsyncStorage.setItem("user", JSON.stringify({...user, ...data}));
+      Alert.alert(
+        "Verification Submitted",
+        "Your verification request has been submitted. Our team will review your documents and verify your profile shortly.",
+        [{ text: "OK", onPress: () => setShowVerificationModal(false) }]
+      );
+    } catch (error: any) {
+      console.log(error, "error");
+      Alert.alert(
+        "Verification Failed",
+        error?.response?.data?.message || "Failed to submit verification. Please try again."
+      );
+    }
   };
 
   return (
@@ -125,93 +179,225 @@ export default function ProfileScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
+        {/* Blue Header */}
         <LinearGradient colors={["#1565C0", "#1E88E5"]} style={styles.header}>
-          <View style={styles.headerRow}>
-            <TouchableOpacity onPress={handleEditProfile}>
-              <Ionicons name="menu" size={26} color={COLORS.white} />
-            </TouchableOpacity>
+          <View style={styles.headerTop}>
             <ThemedText style={styles.headerTitle}>My Profile</ThemedText>
-            <TouchableOpacity onPress={handleEditProfile}>
-              <Ionicons name="person-circle-outline" size={28} color={COLORS.white} />
-            </TouchableOpacity>
           </View>
 
-          {/* Profile Info */}
-          <View style={styles.profileRow}>
-            <View style={styles.avatarWrap}>
-              <Image
-                source={
-                  user?.AadharImage
-                    ? `${ImageUrl}/${user?.AadharImage}`
-                    : "https://i.pravatar.cc/150?img=11"
-                }
-                style={styles.avatar}
-              />
-              {isVerified && (
-                <View style={styles.verifiedDot}>
-                  <Ionicons name="checkmark-circle" size={22} color={COLORS.success} />
+          {/* Profile Card in Header */}
+          <View style={styles.profileCard}>
+            <View style={styles.profileLeft}>
+              <View style={styles.avatarWrap}>
+                <Image
+                  source={
+                    user?.AadharImage
+                      ? `${ImageUrl}/${user?.AadharImage}`
+                      : "https://i.pravatar.cc/150?img=11"
+                  }
+                  style={styles.avatar}
+                />
+                {isVerified && (
+                  <View style={styles.verifiedBadge}>
+                    <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                  </View>
+                )}
+              </View>
+              <View style={styles.profileInfo}>
+                <ThemedText style={styles.userName}>{user?.name || "User"}</ThemedText>
+                {isVerified && (
+                  <View style={styles.verifiedSellerBadge}>
+                    <Ionicons name="checkmark-circle" size={12} color="#4CAF50" />
+                    <ThemedText style={styles.verifiedSellerText}>Verified Seller</ThemedText>
+                  </View>
+                )}
+                <ThemedText style={styles.memberSince}>Member since {getMemberSince()}</ThemedText>
+                <View style={styles.locationRow}>
+                  <Ionicons name="location-outline" size={12} color="rgba(255,255,255,0.8)" />
+                  <ThemedText style={styles.locationText}>
+                    {user?.address || "Ranchi, Jharkhand"}
+                  </ThemedText>
                 </View>
-              )}
-            </View>
-            <View style={styles.profileText}>
-              <ThemedText style={styles.greeting}>
-                Hello {user?.name || "User"} 👋
-              </ThemedText>
-              <ThemedText style={styles.phone}>{maskPhone(user?.phone)}</ThemedText>
-              <View
-                style={[
-                  styles.verifyBadge,
-                  { backgroundColor: isVerified ? "#E8F5E9" : "#FFF3E0" },
-                ]}
-              >
-                <ThemedText
-                  style={[
-                    styles.verifyBadgeText,
-                    { color: isVerified ? COLORS.success : "#E65100" },
-                  ]}
-                >
-                  {isVerified ? "Verified" : "Not Verified"}
-                </ThemedText>
               </View>
             </View>
+            <Ionicons name="chevron-forward" size={24} color={COLORS.white} />
           </View>
         </LinearGradient>
 
-        {/* Get Verified / Edit Profile */}
-        <View style={styles.actionSection}>
-          {!isVerified && (
-            <TouchableOpacity style={styles.getVerifiedBtn}>
-              <LinearGradient
-                colors={["#1E8E3E", "#2ECC71"]}
-                style={styles.getVerifiedGradient}
-              >
-                <ThemedText style={styles.getVerifiedText}>Get Verified</ThemedText>
-                <Ionicons name="checkmark-circle" size={20} color={COLORS.white} />
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity style={styles.editProfileBtn} onPress={handleEditProfile}>
-            <Ionicons name="pencil" size={18} color="#1565C0" />
-            <ThemedText style={styles.editProfileText}>Edit Profile</ThemedText>
+        {/* Verification Success Banner */}
+        {isVerified ? (
+          <View style={styles.verificationBanner}>
+            <View style={styles.verificationIcon}>
+              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+            </View>
+            <View style={styles.verificationText}>
+              <ThemedText style={styles.verificationTitle}>Your profile is verified!</ThemedText>
+              <ThemedText style={styles.verificationSubtitle}>
+                You can now post ads and build trust.
+              </ThemedText>
+            </View>
+          </View>
+        ) : (
+          <TouchableOpacity style={styles.verificationBanner} onPress={handleOpenVerificationModal}>
+            <Ionicons name="checkmark-circle" size={20} color={COLORS.red} />
+            <View style={styles.verificationText}>
+              <ThemedText style={styles.verificationTitle}>Get Verified!</ThemedText>
+            </View>
           </TouchableOpacity>
+        )}
+        {/* Profile Overview Stats */}
+        <View style={styles.statsCard}>
+          <ThemedText style={styles.sectionTitle}>Profile Overview</ThemedText>
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <View style={[styles.statIcon, { backgroundColor: "#E3F2FD" }]}>
+                <Ionicons name="document-text-outline" size={20} color="#1565C0" />
+              </View>
+              <ThemedText style={styles.statNumber}>{stats.ads}</ThemedText>
+              <ThemedText style={styles.statLabel}>My Ads</ThemedText>
+            </View>
+            <View style={styles.statItem}>
+              <View style={[styles.statIcon, { backgroundColor: "#F3E5F5" }]}>
+                <Ionicons name="chatbubble-outline" size={20} color="#9C27B0" />
+              </View>
+              <ThemedText style={styles.statNumber}>{stats.messages}</ThemedText>
+              <ThemedText style={styles.statLabel}>Chat</ThemedText>
+            </View>
+          </View>
         </View>
 
+        {/* My Information Section */}
+        <View style={styles.infoCard}>
+          <View style={styles.infoHeader}>
+            <ThemedText style={styles.sectionTitle}>My Information</ThemedText>
+            <TouchableOpacity onPress={handleEditProfile}>
+              <ThemedText style={styles.editLink}>Edit</ThemedText>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.infoItem}>
+            <View style={styles.infoItemLeft}>
+              <Ionicons name="person-outline" size={18} color={COLORS.gray} />
+              <ThemedText style={styles.infoLabel}>Full Name</ThemedText>
+            </View>
+            <View style={styles.infoItemRight}>
+              <ThemedText style={styles.infoValue}>{user?.name || "Amit Kumar"}</ThemedText>
+              <Ionicons name="chevron-forward" size={18} color={COLORS.lightGray} />
+            </View>
+          </View>
+
+          <View style={styles.infoItem}>
+            <View style={styles.infoItemLeft}>
+              <Ionicons name="call-outline" size={18} color={COLORS.gray} />
+              <ThemedText style={styles.infoLabel}>Mobile Number</ThemedText>
+            </View>
+            <View style={styles.infoItemRight}>
+              <ThemedText style={styles.infoValue}>{(user?.phone || "")}</ThemedText>
+              <Ionicons name="chevron-forward" size={18} color={COLORS.lightGray} />
+            </View>
+          </View>
+
+          <View style={styles.infoItem}>
+            <View style={styles.infoItemLeft}>
+              <Ionicons name="mail-outline" size={18} color={COLORS.gray} />
+              <ThemedText style={styles.infoLabel}>Email</ThemedText>
+            </View>
+            <View style={styles.infoItemRight}>
+              <ThemedText style={styles.infoValue}>{user?.email || "amitkumar@gmail.com"}</ThemedText>
+              <Ionicons name="chevron-forward" size={18} color={COLORS.lightGray} />
+            </View>
+          </View>
+
+          <View style={[styles.infoItem, styles.infoItemLast]}>
+            <View style={styles.infoItemLeft}>
+              <Ionicons name="location-outline" size={18} color={COLORS.gray} />
+              <ThemedText style={styles.infoLabel}>Location</ThemedText>
+            </View>
+            <View style={styles.infoItemRight}>
+              <ThemedText style={styles.infoValue}>
+                {user?.address || "Ranchi, Jharkhand"}
+              </ThemedText>
+              <Ionicons name="chevron-forward" size={18} color={COLORS.lightGray} />
+            </View>
+          </View>
+        </View>
+
+        {/* Verification Details Section */}
+        <View style={styles.infoCard}>
+          <View style={styles.infoHeader}>
+            <ThemedText style={styles.sectionTitle}>Verification Details</ThemedText>
+            {isVerified && (
+              <View style={styles.verifiedTag}>
+                <ThemedText style={styles.verifiedTagText}>Verified</ThemedText>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.infoItem}>
+            <View style={styles.infoItemLeft}>
+              <Ionicons name="id-card-outline" size={18} color={COLORS.gray} />
+              <View>
+                <ThemedText style={styles.infoLabel}>ID Proof</ThemedText>
+                <ThemedText style={styles.infoSubLabel}>Aadhaar Card</ThemedText>
+              </View>
+            </View>
+            {user?.AadharImage ? (
+              <Ionicons name="checkmark-circle" size={22} color="#4CAF50" />
+            ) : (
+              <Ionicons name="ellipse-outline" size={22} color={COLORS.lightGray} />
+            )}
+          </View>
+
+          <View style={[styles.infoItem, styles.infoItemLast]}>
+            <View style={styles.infoItemLeft}>
+              <Ionicons name="person-outline" size={18} color={COLORS.gray} />
+              <View>
+                <ThemedText style={styles.infoLabel}>Selfie</ThemedText>
+                <ThemedText style={styles.infoSubLabel}>{user?.selfieverificationImage==="1" ? "Verified" : "Not Verified"}</ThemedText>
+              </View>
+            </View>
+            {user?.selfieverificationImage==="1" ? (
+              <Ionicons name="checkmark-circle" size={22} color="#4CAF50" />
+            ) : (
+              <Ionicons name="ellipse-outline" size={22} color={COLORS.lightGray} />
+            )}
+          </View>
+        </View>
+
+        {/* Verified Seller Banner */}
+        {isVerified && (
+          <View style={styles.sellerBanner}>
+            <View style={styles.sellerBannerLeft}>
+              <View style={styles.shieldIcon}>
+                <Ionicons name="shield-checkmark" size={24} color="#1565C0" />
+              </View>
+              <View>
+                <ThemedText style={styles.sellerBannerTitle}>You are a Verified Seller</ThemedText>
+                <ThemedText style={styles.sellerBannerSubtitle}>
+                  Your ads get more trust and visibility.
+                </ThemedText>
+              </View>
+            </View>
+            <TouchableOpacity style={styles.postAdBtn} onPress={handlePostAd}>
+              <ThemedText style={styles.postAdBtnText}>Post Ad</ThemedText>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Menu Items */}
-        <View style={styles.menuSection}>
-          {MENU_ITEMS.map((item, idx) => (
+        <View style={styles.menuCard}>
+          {menuItems.map((item, index) => (
             <TouchableOpacity
-              key={item.id}
-              style={[
-                styles.menuItem,
-                idx < MENU_ITEMS.length - 1 && styles.menuItemBorder,
-              ]}
-              onPress={() => handleMenuPress(item.id)}
+              key={index}
+              style={styles.menuItem}
+              onPress={item.onPress}
               activeOpacity={0.7}
             >
               <View style={styles.menuItemLeft}>
-                <ThemedText style={styles.menuEmoji}>{item.icon}</ThemedText>
-                <ThemedText style={styles.menuLabel}>{item.label}</ThemedText>
+                <View style={[styles.menuIcon, { backgroundColor: COLORS.primary }]}>
+                  <Ionicons name={item.icon as any} size={20} color={COLORS.white} />
+                </View>
+                <ThemedText style={styles.menuLabel}>{item.title}</ThemedText>
               </View>
               <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
             </TouchableOpacity>
@@ -233,126 +419,24 @@ export default function ProfileScreen() {
       </ScrollView>
 
       {/* Edit Profile Modal */}
-      <Modal
-        visible={showEditModal}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setShowEditModal(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={{ flex: 1 }}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <ThemedText style={styles.modalTitle}>Edit Profile</ThemedText>
-                <TouchableOpacity
-                  onPress={() => setShowEditModal(false)}
-                  style={styles.modalCloseBtn}
-                >
-                  <Ionicons name="close" size={24} color={COLORS.text} />
-                </TouchableOpacity>
-              </View>
+      <EditProfileModal
+        isVisible={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSave={handleSaveProfile}
+        userData={user}
+        states={states || []}
+        cities={cities || []}
+      />
 
-              <ScrollView
-                style={styles.modalForm}
-                showsVerticalScrollIndicator={false}
-              >
-                <View style={styles.inputGroup}>
-                  <ThemedText style={styles.inputLabel}>Name</ThemedText>
-                  <TextInput
-                    style={styles.input}
-                    value={editForm.name}
-                    onChangeText={(t) => setEditForm({ ...editForm, name: t })}
-                    placeholder="Enter your name"
-                    placeholderTextColor={COLORS.gray}
-                  />
-                </View>
-                <View style={styles.inputGroup}>
-                  <ThemedText style={styles.inputLabel}>Email</ThemedText>
-                  <TextInput
-                    style={[styles.input, { color: COLORS.gray }]}
-                    value={editForm.email}
-                    editable={false}
-                    placeholder="Email"
-                    placeholderTextColor={COLORS.gray}
-                  />
-                </View>
-                <View style={styles.inputGroup}>
-                  <ThemedText style={styles.inputLabel}>Phone</ThemedText>
-                  <TextInput
-                    style={[styles.input, { color: COLORS.gray }]}
-                    value={editForm.phone}
-                    editable={false}
-                    placeholder="Phone"
-                    placeholderTextColor={COLORS.gray}
-                  />
-                </View>
-                <View style={styles.inputGroup}>
-                  <ThemedText style={styles.inputLabel}>Address</ThemedText>
-                  <TextInput
-                    style={styles.input}
-                    value={editForm.address}
-                    onChangeText={(t) => setEditForm({ ...editForm, address: t })}
-                    placeholder="Enter your address"
-                    placeholderTextColor={COLORS.gray}
-                  />
-                </View>
-                <View style={styles.inputGroup}>
-                  <ThemeSelect
-                    label="State"
-                    placeholder="Select State"
-                    value={selectedState}
-                    items={states || []}
-                    onSelect={(s: any) => {
-                      setSelectedState(s);
-                      setSelectedCity(null);
-                    }}
-                    icon="map-outline"
-                  />
-                </View>
-                <View style={styles.inputGroup}>
-                  <ThemeSelect
-                    label="City"
-                    placeholder={selectedState ? "Select City" : "Select State First"}
-                    value={selectedCity}
-                    items={filteredCities}
-                    onSelect={setSelectedCity}
-                    disabled={!selectedState}
-                    icon="business-outline"
-                  />
-                </View>
-                <View style={styles.inputGroup}>
-                  <ThemedText style={styles.inputLabel}>Pincode</ThemedText>
-                  <TextInput
-                    style={styles.input}
-                    value={editForm.pincode?.toString()}
-                    onChangeText={(t) => setEditForm({ ...editForm, pincode: t })}
-                    placeholder="Enter pincode"
-                    placeholderTextColor={COLORS.gray}
-                    keyboardType="numeric"
-                  />
-                </View>
-              </ScrollView>
-
-              <View style={styles.modalFooter}>
-                <ThemedButton
-                  buttonText="Cancel"
-                  onPress={() => setShowEditModal(false)}
-                  style={styles.modalCancelBtn}
-                  textStyle={styles.modalCancelBtnText}
-                />
-                <ThemedButton
-                  buttonText="Save Changes"
-                  onPress={handleSaveProfile}
-                  style={styles.modalSaveBtn}
-                />
-              </View>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+      {/* Get Verified Profile Modal */}
+      <GetVerifiedProfileModal
+        isVisible={showVerificationModal}
+        onClose={handleCloseVerificationModal}
+        onSubmit={handleVerificationSubmit}
+        userData={user}
+        states={states || []}
+        cities={cities || []}
+      />
     </ThemedView>
   );
 }
@@ -371,143 +455,326 @@ const styles = StyleSheet.create({
 
   /* Header */
   header: {
+    paddingTop: Platform.OS === "ios" ? 50 : 20,
     paddingHorizontal: SIZES.padding,
-    paddingBottom: 24,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
+    paddingBottom: 20,
   },
-  headerRow: {
+  headerTop: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingTop: 10,
-    paddingBottom: 16,
+    justifyContent: "center",
+    marginBottom: 16,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "700",
     color: COLORS.white,
   },
 
-  /* Profile */
-  profileRow: {
+  /* Profile Card in Header */
+  profileCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    justifyContent: "space-between",
+  },
+  profileLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
   },
   avatarWrap: {
     position: "relative",
   },
   avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     borderWidth: 3,
     borderColor: "rgba(255,255,255,0.4)",
   },
-  verifiedDot: {
+  verifiedBadge: {
     position: "absolute",
     bottom: -2,
-    left: -2,
+    right: -2,
     backgroundColor: COLORS.white,
     borderRadius: 12,
-    padding: 1,
+    padding: 2,
   },
-  profileText: {
+  profileInfo: {
     flex: 1,
   },
-  greeting: {
+  userName: {
     fontSize: 18,
     fontWeight: "700",
     color: COLORS.white,
   },
-  phone: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.85)",
+  verifiedSellerBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
     marginTop: 2,
   },
-  verifyBadge: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 6,
-    marginTop: 6,
+  verifiedSellerText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#81C784",
   },
-  verifyBadgeText: {
-    fontSize: 11,
-    fontWeight: "700",
+  memberSince: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.7)",
+    marginTop: 2,
+  },
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 2,
+  },
+  locationText: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.8)",
   },
 
-  /* Actions */
-  actionSection: {
-    paddingHorizontal: SIZES.padding,
+  /* Verification Banner */
+  verificationBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#E8F5E9",
+    marginHorizontal: SIZES.padding,
     marginTop: 16,
+    padding: 12,
+    borderRadius: 12,
     gap: 10,
   },
-  getVerifiedBtn: {
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  getVerifiedGradient: {
-    flexDirection: "row",
-    alignItems: "center",
+  verificationIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.white,
     justifyContent: "center",
-    gap: 8,
-    paddingVertical: 14,
+    alignItems: "center",
   },
-  getVerifiedText: {
+  verificationText: {
+    flex: 1,
+  },
+  verificationTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#2E7D32",
+  },
+  verificationSubtitle: {
+    fontSize: 12,
+    color: "#4CAF50",
+    marginTop: 2,
+  },
+
+  /* Stats Card */
+  statsCard: {
+    marginHorizontal: SIZES.padding,
+    marginTop: 16,
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  sectionTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: COLORS.white,
+    color: COLORS.text,
+    marginBottom: 16,
   },
-  editProfileBtn: {
+  statsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  statItem: {
+    alignItems: "center",
+    flex: 1,
+  },
+  statIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  statNumber: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: COLORS.text,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: COLORS.gray,
+    marginTop: 2,
+  },
+
+  /* Info Card */
+  infoCard: {
+    marginHorizontal: SIZES.padding,
+    marginTop: 16,
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  infoHeader: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: "#1565C0",
-    backgroundColor: COLORS.white,
+    justifyContent: "space-between",
+    marginBottom: 12,
   },
-  editProfileText: {
+  editLink: {
     fontSize: 14,
     fontWeight: "600",
     color: "#1565C0",
   },
+  verifiedTag: {
+    backgroundColor: "#E8F5E9",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  verifiedTagText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#2E7D32",
+  },
+  infoItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  infoItemLast: {
+    borderBottomWidth: 0,
+  },
+  infoItemLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  infoItemRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  infoLabel: {
+    fontSize: 14,
+    color: COLORS.black,
+    fontWeight: "700",
+  },
+  infoSubLabel: {
+    fontSize: 12,
+    color: COLORS.gray,
+    marginTop: 2,
+  },
+  infoValue: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: COLORS.text,
+  },
 
-  /* Menu */
-  menuSection: {
-    marginTop: 20,
-    marginHorizontal: SIZES.padding,
+  /* Seller Banner */
+  sellerBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     backgroundColor: COLORS.white,
-    borderRadius: 14,
-    overflow: "hidden",
+    marginHorizontal: SIZES.padding,
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  sellerBannerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+  },
+  shieldIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#E3F2FD",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  sellerBannerTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: COLORS.text,
+  },
+  sellerBannerSubtitle: {
+    fontSize: 12,
+    color: COLORS.gray,
+    marginTop: 2,
+  },
+  postAdBtn: {
+    backgroundColor: "#1565C0",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  postAdBtnText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.white,
+  },
+
+  /* Menu Card */
+  menuCard: {
+    marginHorizontal: SIZES.padding,
+    marginTop: 16,
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
     elevation: 2,
   },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-  },
-  menuItemBorder: {
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: "#F0F0F0",
+  },
+  menuItemLast: {
+    borderBottomWidth: 0,
   },
   menuItemLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
+    gap: 12,
   },
-  menuEmoji: {
-    fontSize: 20,
+  menuIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
   },
   menuLabel: {
     fontSize: 15,
@@ -524,10 +791,10 @@ const styles = StyleSheet.create({
     marginHorizontal: SIZES.padding,
     marginTop: 20,
     paddingVertical: 14,
-    backgroundColor: COLORS.error + "10",
+    backgroundColor: "#FFEBEE",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.error + "30",
+    borderColor: "#FFCDD2",
   },
   logoutText: {
     fontSize: 15,
@@ -541,82 +808,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.gray,
     marginTop: 16,
-  },
-
-  /* Modal */
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
-  },
-  modalContent: {
-    backgroundColor: COLORS.white,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: "90%",
-    paddingBottom: 20,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: SIZES.padding,
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: COLORS.text,
-  },
-  modalCloseBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#F5F5F5",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalForm: {
-    paddingHorizontal: SIZES.padding,
-    paddingTop: 20,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.text,
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: "#F5F5F5",
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 15,
-    color: COLORS.text,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  modalFooter: {
-    flexDirection: "row",
-    paddingHorizontal: SIZES.padding,
-    paddingTop: 20,
-    gap: 12,
-  },
-  modalCancelBtn: {
-    flex: 1,
-    backgroundColor: "#F5F5F5",
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  modalCancelBtnText: {
-    color: COLORS.text,
-  },
-  modalSaveBtn: {
-    flex: 1,
   },
 });

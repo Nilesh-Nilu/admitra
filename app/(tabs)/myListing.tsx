@@ -1,3 +1,4 @@
+import ThemeHeader from "@/components/headers/ThemeHeader";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
@@ -87,16 +88,6 @@ export default function MyListingsScreen() {
       year: "numeric",
     });
   };
-
-  const renderHeader = () => (
-    <View style={[styles.header]}>
-      <TouchableOpacity style={styles.backButton} onPress={() => router.push("/(tabs)/profile")}>
-        <Ionicons name="arrow-back" size={24} color={COLORS.text} />
-      </TouchableOpacity>
-      <ThemedText style={styles.headerTitle}>My Listings</ThemedText>
-      <View style={{ width: 44 }} />
-    </View>
-  );
 
   const renderStats = () => {
     const approved = safeProducts.filter((p: any) => p.approve === "approved").length;
@@ -326,8 +317,7 @@ export default function MyListingsScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      {renderHeader()}
-
+      <ThemeHeader onBackPress={() => router.back()} title="My Listings" />
       <FlatList
         data={safeProducts}
         renderItem={renderListingCard}

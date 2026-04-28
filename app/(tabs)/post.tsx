@@ -1,3 +1,4 @@
+import ThemeHeader from "@/components/headers/ThemeHeader";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import AppToast from "@/components/toasts/AppToast";
@@ -35,8 +36,55 @@ export default function PostScreen() {
   const [price, setPrice] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [selectedSubCategory, setSelectedSubCategory] = useState<number | null>(null);
+  const [adType, setAdType] = useState<"normal" | "featured" | "banner">("banner");
+  const [websiteLink, setWebsiteLink] = useState("");
+  const [videoLink, setVideoLink] = useState("");
+  const [duration, setDuration] = useState("7");
   const [isLoading, setIsLoading] = useState(false);
   const dispatch = useDispatch();
+
+  type AdType = {
+    id: "normal" | "featured" | "banner";
+    title: string;
+    subtitle: string;
+    price: number;
+    recommended?: boolean;
+  };
+
+  const adTypes: AdType[] = [
+    {
+      id: "normal",
+      title: "Normal (Free)",
+      subtitle: "Basic listing",
+      price: 0,
+    },
+    {
+      id: "featured",
+      title: "Featured",
+      price: 29,
+      subtitle: "Top placement\nMore visibility",
+      recommended: true,
+    },
+    {
+      id: "banner",
+      title: "Banner",
+      price: 79,
+      subtitle: "Homepage banner\nMaximum reach",
+    },
+  ];
+
+  const durations = ["3 Days", "7 Days", "15 Days", "30 Days"];
+
+  // Filter sub-categories based on selected category
+  const filteredSubCategories = selectedCategory
+    ? subCategories.filter((subCat: any) => subCat.category_id === selectedCategory)
+    : [];
+
+  // Handle category selection - also clears sub-category
+  const handleCategorySelect = (categoryId: number) => {
+    setSelectedCategory(categoryId);
+    setSelectedSubCategory(null); // Reset sub-category when category changes
+  };
   const pickImage = async () => {
     if (images.length >= 8) {
       Alert.alert("Maximum Images", "You can only upload up to 8 images");
@@ -224,15 +272,7 @@ export default function PostScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
       >
-        {/* Header */}
-        <View style={[styles.header]}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="close" size={28} color={COLORS.text} />
-          </TouchableOpacity>
-          <ThemedText style={styles.headerTitle}>Post Your Ad</ThemedText>
-          <View style={{ width: 40 }} />
-        </View>
-
+        <ThemeHeader onBackPress={() => router.back()} title="Post Your Ad" />
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -241,7 +281,7 @@ export default function PostScreen() {
         >
           {/* Image Upload Section */}
           <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Add Photos</ThemedText>
+            <ThemedText style={styles.sectionTitle}>Upload Images</ThemedText>
             <ThemedText style={styles.sectionSubtitle}>
               Add up to 8 photos. First image will be the cover.
             </ThemedText>
@@ -300,59 +340,6 @@ export default function PostScreen() {
             />
             <ThemedText style={styles.charCount}>{title.length}/70</ThemedText>
           </View>
-
-          {/* Category */}
-          <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Category *</ThemedText>
-            <View style={styles.categoriesGrid}>
-              {categories.map((cat: any) => (
-                <TouchableOpacity
-                  key={cat.id}
-                  style={[
-                    styles.categoryChip,
-                    selectedCategory === cat.id && styles.categoryChipActive,
-                  ]}
-                  onPress={() => setSelectedCategory(cat.id)}
-                >
-                  <ThemedText
-                    style={[
-                      styles.categoryChipText,
-                      selectedCategory === cat.id && styles.categoryChipTextActive,
-                    ]}
-                  >
-                    {cat.name}
-                  </ThemedText>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Sub Category */}
-          <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Sub Category *</ThemedText>
-            <View style={styles.categoriesGrid}>
-              {subCategories.map((subCat: any) => (
-                <TouchableOpacity
-                  key={subCat.id}
-                  style={[
-                      styles.categoryChip,
-                    selectedSubCategory === subCat.id && styles.categoryChipActive,
-                  ]}
-                  onPress={() => setSelectedSubCategory(subCat.id)}
-                >
-                  <ThemedText
-                    style={[
-                      styles.categoryChipText,
-                      selectedSubCategory === subCat.id && styles.categoryChipTextActive,
-                    ]}
-                  >
-                    {subCat.name}
-                  </ThemedText>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
           {/* Description */}
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Description</ThemedText>
@@ -368,6 +355,183 @@ export default function PostScreen() {
               maxLength={4000}
             />
             <ThemedText style={styles.charCount}>{description.length}/4000</ThemedText>
+          </View>
+          {/* Category */}
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Category *</ThemedText>
+            <View style={styles.categoriesGrid}>
+              {categories.map((cat: any) => (
+                <TouchableOpacity
+                  key={cat.id}
+                  style={[
+                    styles.categoryChip,
+                    selectedCategory === cat.id && styles.categoryChipActive,
+                  ]}
+                  onPress={() => handleCategorySelect(cat.id)}
+                >
+                  <ThemedText
+                    style={[
+                      styles.categoryChipText,
+                      selectedCategory === cat.id && styles.categoryChipTextActive,
+                    ]}
+                  >
+                    {cat.name}
+                  </ThemedText>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Sub Category - Only shown when category is selected */}
+          {selectedCategory && (
+            <View style={styles.section}>
+              <ThemedText style={styles.sectionTitle}>Sub Category *</ThemedText>
+              {filteredSubCategories.length > 0 ? (
+                <View style={styles.categoriesGrid}>
+                  {filteredSubCategories.map((subCat: any) => (
+                    <TouchableOpacity
+                      key={subCat.id}
+                      style={[
+                        styles.categoryChip,
+                        selectedSubCategory === subCat.id && styles.categoryChipActive,
+                      ]}
+                      onPress={() => setSelectedSubCategory(subCat.id)}
+                    >
+                      <ThemedText
+                        style={[
+                          styles.categoryChipText,
+                          selectedSubCategory === subCat.id && styles.categoryChipTextActive,
+                        ]}
+                      >
+                        {subCat.name}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : (
+                <ThemedText style={styles.noSubCategoriesText}>
+                  No sub-categories available for this category
+                </ThemedText>
+              )}
+            </View>
+          )}
+
+          {/* Ad Type */}
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Ad Type</ThemedText>
+            <View style={styles.adTypeContainer}>
+              {adTypes.map((type) => (
+                <TouchableOpacity
+                  key={type.id}
+                  style={[
+                    styles.adTypeCard,
+                    adType === type.id && styles.adTypeCardActive,
+                    type.id === "banner" && styles.adTypeCardBanner,
+                  ]}
+                  onPress={() => setAdType(type.id as any)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.adTypeHeader}>
+                    <View style={styles.adTypeLeft}>
+                      <Ionicons
+                        name={adType === type.id ? "radio-button-on" : "radio-button-off"}
+                        size={22}
+                        color={adType === type.id ? COLORS.primary : COLORS.gray}
+                      />
+                      <View style={styles.adTypeTitleWrap}>
+                        <View style={styles.adTypeTitleRow}>
+                          <ThemedText
+                            style={[
+                              styles.adTypeTitle,
+                              adType === type.id && styles.adTypeTitleActive,
+                            ]}
+                          >
+                            {type.title}
+                          </ThemedText>
+                          {type.price > 0 && (
+                            <ThemedText style={styles.adTypePrice}>₹{type.price}</ThemedText>
+                          )}
+                        </View>
+                        <ThemedText style={styles.adTypeSubtitle}>
+                          {type.subtitle}
+                        </ThemedText>
+                      </View>
+                    </View>
+                    {type.recommended && (
+                      <View style={styles.recommendedBadge}>
+                        <ThemedText style={styles.recommendedText}>Recommended</ThemedText>
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              ))}
+
+              {/* Banner Alert */}
+              {adType === "banner" && (
+                <View style={styles.bannerAlert}>
+                  <Ionicons name="alert-circle" size={16} color="#E53935" />
+                  <ThemedText style={styles.bannerAlertText}>
+                    Banner ad will show on homepage for more visibility
+                  </ThemedText>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* Website Link - Required for Banner */}
+          {adType === "banner" && (
+            <View style={styles.section}>
+              <View style={styles.linkLabelRow}>
+                <Ionicons name="globe-outline" size={18} color={COLORS.primary} />
+                <ThemedText style={styles.linkLabel}>Website Link (Required)</ThemedText>
+              </View>
+              <TextInput
+                style={styles.input}
+                placeholder="https://yourwebsite.com"
+                placeholderTextColor={COLORS.gray}
+                value={websiteLink}
+                onChangeText={setWebsiteLink}
+                keyboardType="url"
+                autoCapitalize="none"
+              />
+              <ThemedText style={styles.linkHint}>
+                Add your website link (will show as Visit Website button)
+              </ThemedText>
+            </View>
+          )}
+
+          {/* Video Link - Optional for Banner */}
+          {adType === "banner" && (
+            <View style={styles.section}>
+              <View style={styles.linkLabelRow}>
+                <Ionicons name="videocam" size={18} color="#4CAF50" />
+                <ThemedText style={styles.linkLabel}>Video Link (Optional)</ThemedText>
+              </View>
+              <View style={[styles.input, styles.videoInput]}>
+                <Ionicons name="logo-youtube" size={20} color="#FF0000" style={styles.youtubeIcon} />
+                <TextInput
+                  style={styles.videoTextInput}
+                  placeholder="https://youtube.com/..."
+                  placeholderTextColor={COLORS.gray}
+                  value={videoLink}
+                  onChangeText={setVideoLink}
+                  keyboardType="url"
+                  autoCapitalize="none"
+                />
+              </View>
+              <ThemedText style={styles.linkHint}>
+                Add video link (will show as Watch Video button)
+              </ThemedText>
+            </View>
+          )}
+
+          {/* Duration */}
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Duration</ThemedText>
+            <TouchableOpacity style={styles.durationSelector} activeOpacity={0.8}>
+              <ThemedText style={styles.durationText}>{duration} Days</ThemedText>
+              <Ionicons name="chevron-down" size={20} color={COLORS.gray} />
+            </TouchableOpacity>
           </View>
 
           {/* Price */}
@@ -387,22 +551,6 @@ export default function PostScreen() {
               </View>
             </View>
           </View>
-
-          {/* Location */}
-          {/* <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Location *</ThemedText>
-            <TouchableOpacity style={styles.locationInput}>
-              <Ionicons name="location-outline" size={20} color={COLORS.gray} />
-              <TextInput
-                style={styles.locationText}
-                placeholder="Enter your city or area"
-                placeholderTextColor={COLORS.gray}
-                value={location}
-                onChangeText={setLocation}
-              />
-              <Ionicons name="locate" size={20} color={COLORS.primary} />
-            </TouchableOpacity>
-          </View> */}
 
         <View style={[styles.footer]}>
           <TouchableOpacity 
@@ -474,7 +622,7 @@ const styles = StyleSheet.create({
 
   /* Sections */
   section: {
-    marginBottom: 24,
+    marginBottom: 8,
   },
   sectionTitle: {
     fontSize: 16,
@@ -609,6 +757,151 @@ const styles = StyleSheet.create({
   categoryChipTextActive: {
     color: COLORS.white,
   },
+  noSubCategoriesText: {
+    fontSize: 14,
+    color: COLORS.gray,
+    fontStyle: "italic",
+    paddingVertical: 8,
+  },
+
+  /* Ad Type */
+  adTypeContainer: {
+    gap: 12,
+  },
+  adTypeCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  adTypeCardActive: {
+    borderColor: COLORS.primary,
+    borderWidth: 1,
+  },
+  adTypeCardBanner: {
+    borderColor: "#E53935",
+    backgroundColor: "#FFEBEE",
+  },
+  adTypeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  adTypeLeft: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    flex: 1,
+  },
+  adTypeTitleWrap: {
+    flex: 1,
+  },
+  adTypeTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  adTypeTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: COLORS.text,
+  },
+  adTypeTitleActive: {
+    color: COLORS.primary,
+    fontWeight: "700",
+  },
+  adTypePrice: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: COLORS.text,
+  },
+  adTypeSubtitle: {
+    fontSize: 13,
+    color: COLORS.gray,
+    marginTop: 4,
+    lineHeight: 18,
+  },
+  recommendedBadge: {
+    backgroundColor: "#FFF8E1",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#FFECB3",
+  },
+  recommendedText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#FF8F00",
+  },
+  bannerAlert: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#FFEBEE",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 4,
+  },
+  bannerAlertText: {
+    fontSize: 13,
+    color: "#C62828",
+    flex: 1,
+  },
+
+  /* Link Inputs */
+  linkLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
+  },
+  linkLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.text,
+  },
+  linkHint: {
+    fontSize: 12,
+    color: COLORS.gray,
+    marginTop: 6,
+  },
+  videoInput: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 0,
+    paddingHorizontal: 12,
+  },
+  youtubeIcon: {
+    marginRight: 8,
+  },
+  videoTextInput: {
+    flex: 1,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: COLORS.text,
+  },
+
+  /* Duration */
+  durationSelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  durationText: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: COLORS.text,
+  },
+
   /* Price */
   priceContainer: {
     flexDirection: "row",

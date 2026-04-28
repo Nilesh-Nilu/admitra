@@ -62,7 +62,7 @@ export default function SearchScreen() {
     const backAction = () => {
       dispatch(getCategoriesApi(getCategoriesUrl));
       dispatch(getSubCategoriesApi(`${getSubCategoriesUrl}`));
-      router.replace("/stacks/categories");
+      router.back();
       return true;
     };
     const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);

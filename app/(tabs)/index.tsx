@@ -7,7 +7,6 @@ import {
   getCategoriesUrl,
   getCitiesUrl,
   getProductsByLocationUrl,
-  getProductsUrl,
   getStatesUrl,
   getSubCategoriesUrl
 } from "@/constants/functions";
@@ -30,6 +29,7 @@ import {
   Dimensions,
   FlatList,
   Image,
+  ImageBackground,
   Linking,
   Modal,
   Pressable,
@@ -156,6 +156,8 @@ export default function HomeScreen() {
   const [showCitySheet, setShowCitySheet] = useState(false);
   const [selectedCity, setSelectedCity] = useState<any>(null);
   const [bannerIndex, setBannerIndex] = useState(0);
+  const bannerScrollRef = useRef<ScrollView>(null);
+  const autoPlayRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const safeProducts = products || [];
   const safeCategories = categories || [];
@@ -194,6 +196,55 @@ export default function HomeScreen() {
       );
     }
   }, [selectedCity?.id]);
+
+  // Banner auto-play
+  useEffect(() => {
+    if (safeBanners.length <= 1) return;
+
+    const startAutoPlay = () => {
+      autoPlayRef.current = setInterval(() => {
+        setBannerIndex((prev) => {
+          const nextIndex = (prev + 1) % safeBanners.length;
+          bannerScrollRef.current?.scrollTo({
+            x: nextIndex * BANNER_WIDTH,
+            animated: true,
+          });
+          return nextIndex;
+        });
+      }, 3000);
+    };
+
+    const stopAutoPlay = () => {
+      if (autoPlayRef.current) {
+        clearInterval(autoPlayRef.current);
+        autoPlayRef.current = null;
+      }
+    };
+
+    startAutoPlay();
+    return stopAutoPlay;
+  }, [safeBanners.length]);
+
+  const handleBannerTouchStart = () => {
+    if (autoPlayRef.current) {
+      clearInterval(autoPlayRef.current);
+      autoPlayRef.current = null;
+    }
+  };
+
+  const handleBannerTouchEnd = () => {
+    if (safeBanners.length <= 1) return;
+    autoPlayRef.current = setInterval(() => {
+      setBannerIndex((prev) => {
+        const nextIndex = (prev + 1) % safeBanners.length;
+        bannerScrollRef.current?.scrollTo({
+          x: nextIndex * BANNER_WIDTH,
+          animated: true,
+        });
+        return nextIndex;
+      });
+    }, 3000);
+  };
 
   const handleCategoryPress = (categoryId: number) => {
     setSelectedCategory(categoryId);
@@ -360,8 +411,25 @@ export default function HomeScreen() {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <ThemedText style={styles.sectionTitle}>Banner Ads</ThemedText>
+          {filteredProducts.length > 2 && (
+          <TouchableOpacity
+            style={styles.seeAllBtn}
+            onPress={() =>
+              router.push({
+                pathname: "/stacks/search",
+                params: selectedCategory
+                  ? { categoryId: selectedCategory }
+                  : {},
+              })
+            }
+          >
+            <ThemedText style={styles.seeAllText}>See All</ThemedText>
+            <Ionicons name="arrow-forward" size={15} color="#1565C0" />
+          </TouchableOpacity>
+        )}
         </View>
         <ScrollView
+          ref={bannerScrollRef}
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
@@ -372,15 +440,29 @@ export default function HomeScreen() {
             setBannerIndex(idx);
           }}
           scrollEventThrottle={16}
+          onTouchStart={handleBannerTouchStart}
+          onTouchEnd={handleBannerTouchEnd}
+          onScrollBeginDrag={handleBannerTouchStart}
+          onScrollEndDrag={handleBannerTouchEnd}
         >
           {safeBanners.map((b: any) => (
-            <View key={b.id} style={styles.bannerCard}>
-              <Image
+            <TouchableOpacity
+              key={b.id}
+              style={styles.bannerCard}
+              activeOpacity={0.9}
+              onPress={() =>
+                router.push({
+                  pathname: "/stacks/bannerDetails",
+                  params: { bannerData: JSON.stringify(b) },
+                })
+              }
+            >
+              <ImageBackground
                 source={{ uri: b.banner_image }}
                 style={styles.bannerImage}
                 resizeMode="cover"
               />
-            </View>
+            </TouchableOpacity>
           ))}
         </ScrollView>
         {safeBanners.length > 1 && (
@@ -410,6 +492,22 @@ export default function HomeScreen() {
             <ThemedText style={styles.featuredStar}>⭐</ThemedText>
             <ThemedText style={styles.sectionTitle}>Featured Ads</ThemedText>
           </View>
+          {filteredProducts.length > 2 && (
+          <TouchableOpacity
+            style={styles.seeAllBtn}
+            onPress={() =>
+              router.push({
+                pathname: "/stacks/search",
+                params: selectedCategory
+                  ? { categoryId: selectedCategory }
+                  : {},
+              })
+            }
+          >
+            <ThemedText style={styles.seeAllText}>See All</ThemedText>
+            <Ionicons name="arrow-forward" size={15} color="#1565C0" />
+          </TouchableOpacity>
+        )}
         </View>
         <ScrollView
           horizontal
@@ -492,7 +590,7 @@ export default function HomeScreen() {
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <ThemedText style={styles.sectionTitle}>Fresh Recommendations</ThemedText>
-        {filteredProducts.length > 4 && (
+        {filteredProducts.length > 2 && (
           <TouchableOpacity
             style={styles.seeAllBtn}
             onPress={() =>
@@ -571,6 +669,7 @@ export default function HomeScreen() {
                 onPress={() => {
                   setSelectedCity(city);
                   setShowCitySheet(false);
+                  
                 }}
               >
                 <View>
@@ -625,7 +724,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F5F5F5" },
+  container: { flex: 1, backgroundColor: "#F5F5F5",top:-8 },
   scrollView: { flex: 1 },
   scrollContent: { paddingHorizontal: SIZES.padding },
 
@@ -756,6 +855,8 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     borderRadius: 14,
+    justifyContent: "flex-end",
+    alignItems: "center",
   },
   bannerDots: {
     flexDirection: "row",

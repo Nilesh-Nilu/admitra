@@ -40,6 +40,7 @@ export const getProductsUrl = "products/all"
 export const getApprovedProductsUrl ="vendor/products"
 export const getBannersUrl = "banner/list"
 export const getProductsByLocationUrl = "products/filter/location"
+export const reportProductUrl = "product/report"
 //payment
 export const createOrderUrl = "payment/create-order";
 export const verifyAndStorePaymentUrl = "payment/verify-and-store";
@@ -48,6 +49,11 @@ export const createChatUrl ="chat/conversation"
 export const getAllconversationsUrl ="chat/conversations"
 export const getChatMessagesUrl ="chat/conversation/"
 export const sendChatMessageUrl ="chat/message"
+
+//profile
+export const getPrivacyPolicyUrl = "pages?page_type=privacy_policy"
+export const getTermsAndConditionsUrl = "pages?page_type=terms_and_conditions"
+export const getRefundPolicyUrl = "pages?page_type=refund_policy"
 
 export const ImageUrl = "https://admastermarketplace.in/storage"
 export const RAZORPAY_KEY = "rzp_test_RmeHXdBQXDWzp9"
@@ -268,4 +274,29 @@ export const markConversationAsReadApi = async (conversationId) => {
   }
 };
 
+export const getPolicyApi = async (url) => {
+  try {
+    const response = await axios.get(
+      `${baseUrl}/${url}`,
+      await getAuthToken()
+    );
+    return response.data.data;
+  } catch (error) {
+    console.log(error?.response?.data || error, "error");
+    throw error;
+  }
+}
 
+export const reportProductApi = async (data) => {
+  try {
+    const response = await axios.post(
+      `${baseUrl}/${reportProductUrl}`,
+      data,
+      await getAuthToken()
+    );
+    return response.data;
+  } catch (error) {
+    console.log(error?.response?.data || error, "error");
+    throw error;
+  }
+}

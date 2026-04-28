@@ -4,17 +4,50 @@ import ThemeHeader from "@/components/headers/ThemeHeader";
 import { COLORS } from "@/constants/Colors";
 import { SIZES } from "@/constants/Sizes";
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
-import { useCallback, useEffect } from "react";
-import { BackHandler, ScrollView, StyleSheet, View } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo } from "react";
+import { BackHandler, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
+import RenderHtml from "react-native-render-html";
 
 export default function PolicyScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const { title = "Privacy Policy", data: policyData } = useLocalSearchParams();
+
+  // Parse the policy data from params
+  const parsedData = useMemo(() => {
+    if (!policyData) return null;
+    try {
+      // Handle both string and object formats
+      if (typeof policyData === "string") {
+        return JSON.parse(policyData);
+      }
+      return policyData;
+    } catch (error) {
+      console.error("Error parsing policy data:", error);
+      return null;
+    }
+  }, [policyData]);
+
+  const htmlContent = useMemo(() => {
+    // Handle different data structures from API
+    if (parsedData?.data && Array.isArray(parsedData.data) && parsedData.data.length > 0) {
+      // Paginated API response: { data: [{ content: "..." }] }
+      return parsedData.data[0].content || "";
+    }
+    if (parsedData?.content) {
+      // Direct content: { content: "..." }
+      return parsedData.content;
+    }
+    // Fallback static content
+    return `<h1>${title}</h1><p>Content not available.</p>`;
+  }, [parsedData, title]);
 
   const handleBackPress = useCallback(() => {
     router.replace("/(tabs)/profile");
     return true;
   }, [router]);
+
   useEffect(() => {
     const backHandler = BackHandler.addEventListener(
       "hardwareBackPress",
@@ -23,67 +56,76 @@ export default function PolicyScreen() {
     return () => backHandler.remove();
   }, [handleBackPress]);
 
-  const privacyPolicyContent = [
-    {
-      title: "Data We Collect",
-      content: [
-        "Personal Information: Name, email, phone number, and payment details.",
-        "Device Data: IP address, device type, and app usage data.",
-        "Cookies and Analytics: Tracking user preferences and app performance.",
-      ],
+  // Custom HTML rendering styles
+  const htmlStyles = {
+    body: {
+      color: COLORS.text,
+      fontSize: SIZES.fontSize14,
+      lineHeight: SIZES.lineHeight14,
     },
-    {
-      title: "How We Use Data",
-      content: [
-        "Service Delivery: To provide access to courses and app features.",
-        "Marketing: Sending promotional emails and offers (users can opt-out).",
-        "Analytics: Improving app performance and user experience.",
-      ],
+    h1: {
+      fontSize: SIZES.fontSize20,
+      fontWeight: "700" as const,
+      color: COLORS.text,
+      marginBottom: SIZES.padding,
+      marginTop: SIZES.padding,
     },
-    {
-      title: "Data Sharing",
-      content: [
-        "Data is shared with third-party service providers, such as Razorpay, for payment processing.",
-        "No data is sold to unauthorized third parties.",
-      ],
+    h2: {
+      fontSize: SIZES.fontSize18,
+      fontWeight: "600" as const,
+      color: COLORS.text,
+      marginBottom: SIZES.padding * 0.6,
+      marginTop: SIZES.padding * 0.8,
     },
-    {
-      title: "Storage and Security",
-      content: [
-        "User data is stored in encrypted formats on secure servers.",
-        "Regular audits are conducted to ensure data protection.",
-      ],
+    h3: {
+      fontSize: SIZES.fontSize16,
+      fontWeight: "600" as const,
+      color: COLORS.text,
+      marginBottom: SIZES.padding * 0.4,
+      marginTop: SIZES.padding * 0.6,
     },
-    {
-      title: "User Rights",
-      content: [
-        "Users can access, modify, or delete their data by contacting seekojielectric@gmail.com.",
-        "Users may request a copy of their personal data as per applicable laws.",
-      ],
+    p: {
+      fontSize: SIZES.fontSize14,
+      color: COLORS.text,
+      marginBottom: SIZES.padding * 0.4,
+      lineHeight: SIZES.lineHeight14,
     },
-    {
-      title: "Compliance",
-      content: [
-        "This policy complies with the Indian IT Act 2000 and its amendments.",
-      ],
+    ul: {
+      marginLeft: SIZES.padding,
+      marginBottom: SIZES.padding * 0.6,
     },
-    {
-      title: "Third-Party Services",
-      content: [
-        "The app uses third-party tools like Google Analytics and Razorpay. These services may collect additional data as per their policies.",
-      ],
+    ol: {
+      marginLeft: SIZES.padding,
+      marginBottom: SIZES.padding * 0.6,
     },
-    {
-      title: "Policy Updates",
-      content: [
-        "Privacy Policy changes will be updated on the app, with notifications sent to users.",
-      ],
+    li: {
+      fontSize: SIZES.fontSize14,
+      color: COLORS.text,
+      marginBottom: SIZES.padding * 0.2,
+      lineHeight: SIZES.lineHeight14,
     },
-  ];
+    strong: {
+      fontWeight: "700" as const,
+      color: COLORS.text,
+    },
+    a: {
+      color: COLORS.primary,
+      textDecorationLine: "underline" as const,
+    },
+  };
+
+  const renderersProps = {
+    a: {
+      onPress: (_: any, url: string) => {
+        // Handle link presses if needed
+        console.log("Link pressed:", url);
+      },
+    },
+  };
 
   return (
-    <ThemedView>
-      <ThemeHeader onBackPress={handleBackPress} title="Privacy Policy" />
+    <ThemedView style={styles.container}>
+      <ThemeHeader onBackPress={handleBackPress} title={(title as string) || "Policy"} />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.contentContainer}
@@ -97,47 +139,33 @@ export default function PolicyScreen() {
             />
           </View>
         </View>
-        {privacyPolicyContent.map((section, index) => (
-          <View key={index} style={styles.section}>
-            <ThemedText style={styles.subtitle}>{section.title}</ThemedText>
-            <View style={styles.bulletList}>
-              {section.content.map((item, itemIndex) => (
-                <ThemedText key={itemIndex} style={styles.bulletItem}>
-                  {"•"} {item}
-                </ThemedText>
-              ))}
-            </View>
-          </View>
-        ))}
+
+        {/* Render HTML Content */}
+        <View style={styles.htmlContainer}>
+          <RenderHtml
+            contentWidth={width - SIZES.padding * 2}
+            source={{ html: htmlContent }}
+            tagsStyles={htmlStyles}
+            renderersProps={renderersProps}
+          />
+        </View>
       </ScrollView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
   scrollView: {
     flex: 1,
   },
   contentContainer: {
     paddingVertical: SIZES.padding16,
+    paddingHorizontal: SIZES.padding,
     paddingBottom: SIZES.padding2 * 1.4,
-  },
-  section: {
-    marginBottom: SIZES.padding * 0.9,
-  },
-  subtitle: {
-    fontSize: SIZES.fontSize16,
-    fontWeight: "600",
-    color: COLORS.text,
-    marginBottom: SIZES.padding * 0.3,
-  },
-  bulletList: {
-    gap: SIZES.padding * 0.3,
-  },
-  bulletItem: {
-    fontSize: SIZES.fontSize14,
-    color: COLORS.text,
-    lineHeight: SIZES.lineHeight14,
   },
   logoContainer: {
     alignItems: "center",
@@ -146,5 +174,9 @@ const styles = StyleSheet.create({
   logo: {
     width: 100,
     height: 100,
+  },
+  htmlContainer: {
+    flex: 1,
+    paddingHorizontal: SIZES.padding*5,
   },
 });

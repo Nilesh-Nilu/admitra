@@ -29,7 +29,7 @@ export const Colors = {
 export const COLORS = {
   white: '#FFFFFF',
   black: '#1A1A2E',
-  primary:  '#1E8E3E'   ,
+  primary:  "#1565C0"  ,
   secondary: '#3F37C9',
   secondaryBlue: '#1F3C88',
   accentOrange: '#F2994A',
@@ -48,4 +48,5 @@ export const COLORS = {
   card: '#FFFFFF',
   border: '#E9ECEF',
   shadow: '#000000',
+  blue: "#1565C0"
 };

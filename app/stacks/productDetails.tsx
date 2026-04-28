@@ -1,25 +1,30 @@
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
-import { createConversationApi } from "@/constants/functions";
+import { createConversationApi, reportProductApi } from "@/constants/functions";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   BackHandler,
   Dimensions,
   Image,
   Linking,
+  Modal,
   ScrollView,
   Share,
   StyleSheet,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import ImageViewer from "react-native-image-zoom-viewer";
+import AppToast from "@/components/toasts/AppToast";
 
 const { width: screenWidth } = Dimensions.get("window");
 const IMAGE_HEIGHT = screenWidth * 0.65;
@@ -29,6 +34,11 @@ export default function ProductDetailsScreen() {
   const insets = useSafeAreaInsets();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [product, setProduct] = useState<any>(null);
+  const [zoomModalVisible, setZoomModalVisible] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [isReporting, setIsReporting] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   const initializeProduct = useCallback(() => {
@@ -101,6 +111,64 @@ export default function ProductDetailsScreen() {
   const productImages = product?.images || [];
   const isVerifiedSeller = product?.user?.is_verify === 1;
 
+  const handleImagePress = (index: number) => {
+    setSelectedImageIndex(index);
+    setZoomModalVisible(true);
+  };
+
+  const handleZoomModalClose = () => {
+    setZoomModalVisible(false);
+  };
+
+  const handleOpenReportModal = () => {
+    setReportReason("");
+    setReportModalVisible(true);
+  };
+
+  const handleCloseReportModal = () => {
+    if (!isReporting) {
+      setReportModalVisible(false);
+    }
+  };
+
+  const handleReportProduct = async () => {
+    const reason = reportReason.trim();
+
+    if (!reason) {
+      Alert.alert("Reason required", "Please enter a reason to report this ad.");
+      return;
+    }
+
+    if (!product?.id) {
+      Alert.alert("Error", "Unable to report this ad right now.");
+      return;
+    }
+
+    try {
+      setIsReporting(true);
+
+        const response = await reportProductApi({
+          product_id: Number(product.id),
+          reason,
+        });
+      if (response.status === false) {
+        AppToast("Failed to report this ad. Please try again.");
+      } else {
+        AppToast(response.message);
+        setReportModalVisible(false);
+        setReportReason("");
+      }
+    } catch (error) {
+      console.log(error, "error");
+      AppToast("Failed to report this ad. Please try again.");
+    }
+  };
+
+  // Prepare images for the zoom viewer
+  const zoomImages = productImages.map((img: any) => ({
+    url: img.image,
+  }));
+
   if (!product) {
     return (
       <View style={styles.loadingContainer}>
@@ -138,13 +206,21 @@ export default function ProductDetailsScreen() {
           >
             {productImages.length > 0 ? (
               productImages.map((image: any, index: number) => (
-                <View key={index} style={styles.imagePage}>
+                <TouchableOpacity
+                  key={index}
+                  style={styles.imagePage}
+                  onPress={() => handleImagePress(index)}
+                  activeOpacity={0.9}
+                >
                   <Image
                     source={{ uri: image.image }}
                     style={styles.productImage}
                     resizeMode="cover"
                   />
-                </View>
+                  <View style={styles.zoomHint}>
+                    <Ionicons name="expand-outline" size={20} color="rgba(255,255,255,0.8)" />
+                  </View>
+                </TouchableOpacity>
               ))
             ) : (
               <View style={styles.imagePage}>
@@ -179,6 +255,7 @@ export default function ProductDetailsScreen() {
 
         {/* Verified Seller Badge */}
         <View style={styles.cardSection}>
+        {isVerifiedSeller && (
           <View style={styles.verifiedBadge}>
             <View style={styles.verifiedIconCircle}>
               <Ionicons name="shield-checkmark" size={14} color={COLORS.white} />
@@ -186,7 +263,7 @@ export default function ProductDetailsScreen() {
             <ThemedText style={styles.verifiedLabel}>Verified Seller</ThemedText>
             <Ionicons name="checkmark-circle" size={18} color={COLORS.success} />
           </View>
-
+        )}
           {/* Seller Row */}
           <View style={styles.sellerRow}>
             <Image
@@ -251,8 +328,10 @@ export default function ProductDetailsScreen() {
             </View>
           )}
         </View>
-
-        <View style={{ height: 120 }} />
+        <TouchableOpacity onPress={handleOpenReportModal} activeOpacity={0.8}>
+          <ThemedText style={styles.reportAdText}>Report Ad</ThemedText>
+        </TouchableOpacity>
+        {/* <View style={{ height: 120 }} /> */}
       </ScrollView>
 
       {/* Bottom Action Bar */}
@@ -267,6 +346,122 @@ export default function ProductDetailsScreen() {
           <ThemedText style={styles.chatBtnText}>Chat</ThemedText>
         </TouchableOpacity>
       </View>
+
+      {/* Zoom Modal */}
+      <Modal
+        visible={zoomModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleZoomModalClose}
+      >
+        <View style={styles.zoomModalContainer}>
+          {/* Close Button */}
+          <TouchableOpacity
+            style={styles.zoomCloseButton}
+            onPress={handleZoomModalClose}
+          >
+            <Ionicons name="close" size={28} color={COLORS.white} />
+          </TouchableOpacity>
+
+          {/* Image Counter */}
+          {productImages.length > 1 && (
+            <View style={styles.zoomImageCounter}>
+              <ThemedText style={styles.zoomCounterText}>
+                {selectedImageIndex + 1} / {productImages.length}
+              </ThemedText>
+            </View>
+          )}
+
+          {/* Zoomable Image Viewer */}
+          <ImageViewer
+            imageUrls={zoomImages}
+            index={selectedImageIndex}
+            onChange={(index) => setSelectedImageIndex(index || 0)}
+            onCancel={handleZoomModalClose}
+            enableSwipeDown={true}
+            onSwipeDown={handleZoomModalClose}
+            saveToLocalByLongPress={false}
+            renderIndicator={() => <></>}
+            backgroundColor="transparent"
+            style={styles.zoomViewer}
+          />
+
+          {/* Zoom Hint */}
+          <View style={styles.zoomHintContainer}>
+            <ThemedText style={styles.zoomHintText}>
+              Pinch to zoom • Swipe to navigate • Swipe down to close
+            </ThemedText>
+          </View>
+
+          {/* Dots Indicator */}
+          {productImages.length > 1 && (
+            <View style={styles.zoomDotsRow}>
+              {productImages.map((_: any, i: number) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.zoomDot,
+                    i === selectedImageIndex && styles.zoomDotActive,
+                  ]}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+      </Modal>
+
+      {/* Report Modal */}
+      <Modal
+        visible={reportModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleCloseReportModal}
+      >
+        <View style={styles.reportModalOverlay}>
+          <View style={styles.reportModalCard}>
+            <ThemedText style={styles.reportModalTitle}>Report Ad</ThemedText>
+            <ThemedText style={styles.reportModalSubtitle}>
+              Tell us why you are reporting this listing.
+            </ThemedText>
+
+            <TextInput
+              style={styles.reportInput}
+              placeholder="Enter reason"
+              placeholderTextColor={COLORS.gray}
+              value={reportReason}
+              onChangeText={setReportReason}
+              editable={!isReporting}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+
+            <View style={styles.reportActionsRow}>
+              <TouchableOpacity
+                style={styles.reportCancelBtn}
+                onPress={handleCloseReportModal}
+                disabled={isReporting}
+                activeOpacity={0.8}
+              >
+                <ThemedText style={styles.reportCancelText}>Cancel</ThemedText>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.reportSubmitBtn, isReporting && styles.reportSubmitBtnDisabled]}
+                onPress={handleReportProduct}
+                disabled={isReporting}
+                activeOpacity={0.8}
+              >
+                {isReporting ? (
+                  <ActivityIndicator size="small" color={COLORS.white} />
+                ) : (
+                  <ThemedText style={styles.reportSubmitText}>Submit</ThemedText>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ThemedView>
   );
 }
@@ -452,7 +647,78 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginTop: 6,
   },
-
+  reportAdText: {
+    fontSize: 16,
+    color: COLORS.error,
+    textAlign: "center",
+    fontWeight: "700",
+  },
+  reportModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+  reportModalCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 14,
+    padding: 18,
+  },
+  reportModalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: COLORS.text,
+  },
+  reportModalSubtitle: {
+    marginTop: 6,
+    fontSize: 14,
+    color: COLORS.gray,
+    lineHeight: 20,
+  },
+  reportInput: {
+    marginTop: 14,
+    minHeight: 100,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: COLORS.text,
+    backgroundColor: "#FAFAFA",
+  },
+  reportActionsRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 10,
+    marginTop: 16,
+  },
+  reportCancelBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  reportCancelText: {
+    color: COLORS.gray,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  reportSubmitBtn: {
+    backgroundColor: COLORS.error,
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    minWidth: 88,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  reportSubmitBtnDisabled: {
+    opacity: 0.75,
+  },
+  reportSubmitText: {
+    color: COLORS.white,
+    fontSize: 14,
+    fontWeight: "700",
+  },
   /* Bottom Bar */
   bottomBar: {
     position: "absolute",
@@ -501,5 +767,87 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     color: COLORS.white,
+  },
+
+  /* Zoom Feature Styles */
+  zoomHint: {
+    position: "absolute",
+    bottom: 10,
+    right: 10,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    borderRadius: 20,
+    padding: 8,
+  },
+
+  /* Zoom Modal */
+  zoomModalContainer: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.95)",
+  },
+  zoomCloseButton: {
+    position: "absolute",
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  zoomImageCounter: {
+    position: "absolute",
+    top: 50,
+    left: 20,
+    zIndex: 10,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  zoomCounterText: {
+    color: COLORS.white,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  zoomViewer: {
+    flex: 1,
+  },
+  zoomHintContainer: {
+    position: "absolute",
+    bottom: 100,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+  },
+  zoomHintText: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 12,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  zoomDotsRow: {
+    position: "absolute",
+    bottom: 60,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+  },
+  zoomDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "rgba(255,255,255,0.4)",
+  },
+  zoomDotActive: {
+    backgroundColor: COLORS.white,
+    width: 20,
+    borderRadius: 4,
   },
 });

@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
-  const bottomPosition = Math.max(insets.bottom, 10) + 12;
+  const bottomPosition = Math.max(insets.bottom, 10) ;
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const animateIcon = () => {
@@ -29,7 +29,7 @@ export default function TabLayout() {
       <Ionicons
         name={name}
         size={22}
-        color={focused ? COLORS.secondaryBlue : '#404040'}
+        color={focused ? COLORS.blue : '#404040'}
       />
     </Animated.View>
   );
@@ -39,7 +39,7 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarButton: HapticTab,
-        tabBarActiveTintColor: COLORS.secondaryBlue,
+        tabBarActiveTintColor: COLORS.blue,
         tabBarInactiveTintColor: '#404040',
         tabBarShowLabel: true,
         tabBarLabelStyle: styles.tabLabel,
@@ -87,7 +87,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="myListing"
         options={{
-          title: 'My ads',
+          title: 'My Ads',
           tabBarIcon: ({ focused }) => {
             if (focused) animateIcon();
             return <AnimatedIcon focused={focused} name={focused ? "briefcase" : "briefcase-outline"} />;

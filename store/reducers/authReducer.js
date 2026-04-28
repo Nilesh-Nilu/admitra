@@ -18,9 +18,15 @@ const authReducer = createSlice({
     },
     authReducerDataRequestFailed: (authReducer, action) => {
         authReducer.loader = false;
-      if (action.payload.response.status === 401) {
-        authReducer.loader = false;
-      }
+        console.log(action.payload, "action authReducerDataRequestFailed.");
+        // Handle 401 unauthorized
+        if (action.payload?.response?.status === 401) {
+            authReducer.user = null;
+        }
+        // Handle 500 server errors
+        if (action.payload?.response?.status >= 500) {
+            console.error("Server error:", action.payload?.response?.data?.message || "Unknown server error");
+        }
     },
     setUser: (reducer, action) => {
       reducer.user = action.payload;
@@ -31,6 +37,7 @@ const authReducer = createSlice({
     },
     updateProfileSuccess: (authReducer, action) => {
       authReducer.loader = false;
+      console.log(action.payload.data, "action.payload.data");
       authReducer.user = action.payload.data;
     },
     setLoadingfalse: (authReducer) => {

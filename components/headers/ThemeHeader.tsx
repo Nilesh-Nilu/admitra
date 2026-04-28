@@ -5,6 +5,7 @@ import {
   Pressable,
   StyleProp,
   StyleSheet,
+  TouchableOpacity,
   View,
   ViewStyle,
 } from "react-native";
@@ -24,12 +25,10 @@ const ThemeHeader = ({
   };
   return (
     <View style={[styles.header, containerStyle]}>
-      <View style={styles.headerContent}>
-        <Pressable style={styles.backButton} onPress={handleBackPress}>
-        <Ionicons name="arrow-back" size={22} color={COLORS.text} />
-        </Pressable>
-        <ThemedText style={styles.headerTitle}>{title}</ThemedText>
-      </View>
+      <TouchableOpacity style={styles.backBtn} onPress={handleBackPress}>
+        <Ionicons name="chevron-back" size={24} color="#fff" />
+      </TouchableOpacity>
+      <ThemedText style={styles.headerTitle}>{title}</ThemedText>
       <View style={styles.placeholder} />
     </View>
   );
@@ -41,24 +40,24 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: SIZES.padding12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
     justifyContent: "space-between",
+    paddingHorizontal: SIZES.padding * 2,
+    paddingVertical: 15,
+    backgroundColor: COLORS.blue,
   },
-  headerContent: {
-    flexDirection: "row",
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.2)",
     alignItems: "center",
-    paddingLeft: SIZES.height * 0.01,
-  },
-  backButton: {
-    marginRight: SIZES.padding * 0.3,
+    justifyContent: "center",
+    left:10
   },
   headerTitle: {
-    fontSize: SIZES.fontSize18,
-    fontWeight: "600",
-    color: COLORS.black,
-    paddingLeft: SIZES.height * 0.01,
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#fff",
   },
   placeholder: {
     width: 34,

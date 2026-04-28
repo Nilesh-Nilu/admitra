@@ -52,6 +52,29 @@ const ROLE_CONFIG = {
   },
 };
 
+const PASSWORD_RULES = [
+  {
+    key: "length",
+    label: "At least 8 characters",
+    test: (value: string) => value.length >= 8,
+  },
+  {
+    key: "letter",
+    label: "At least 1 letter",
+    test: (value: string) => /[A-Za-z]/.test(value),
+  },
+  {
+    key: "number",
+    label: "At least 1 number",
+    test: (value: string) => /\d/.test(value),
+  },
+  {
+    key: "special",
+    label: "At least 1 special character",
+    test: (value: string) => /[^A-Za-z0-9]/.test(value),
+  },
+] as const;
+
 const SignupScreen = () => {
   const insets = useSafeAreaInsets();
   const {states,cities} = useSelector((state: any) => state.entities.userReducer);
@@ -188,9 +211,15 @@ const SignupScreen = () => {
     );
   };
 
+  const passwordRuleStatus = PASSWORD_RULES.map((rule) => ({
+    ...rule,
+    passed: rule.test(password),
+  }));
+  const passwordRulesPassed = passwordRuleStatus.every((rule) => rule.passed);
+
   const handleSignup = async () => {
     try {
-      if (name.trim() && mobile.trim()) {
+      if (name.trim() && mobile.trim() && passwordRulesPassed) {
         setLoading(true);
         
         const payload = {
@@ -206,7 +235,8 @@ const SignupScreen = () => {
           selfieverificationImage: selfiePhoto || "",
           Isagreeprivacy: true
         };
-        
+
+        console.log(payload, "payload");
         const response = await axios.post(
           `${baseUrl}/${signupUrl}`,
           payload,
@@ -234,7 +264,7 @@ const SignupScreen = () => {
     name.trim().length > 0 &&
     mobile.trim().length === 10 &&
     email.trim().length > 0 &&
-    password.trim().length >= 6 &&
+    passwordRulesPassed &&
     confirmPassword.trim().length >= 6 &&
     password === confirmPassword &&
     address.trim().length > 0 &&
@@ -250,7 +280,7 @@ const SignupScreen = () => {
     name.trim().length > 0,
     mobile.trim().length === 10,
     email.trim().length > 0,
-    password.trim().length >= 6,
+    passwordRulesPassed,
     confirmPassword.trim().length >= 6 && password === confirmPassword,
     address.trim().length > 0,
     selectedState !== null,
@@ -437,6 +467,25 @@ const SignupScreen = () => {
                       color={COLORS.gray}
                     />
                   </Pressable>
+                </View>
+                <View style={styles.passwordHintContainer}>
+                  {passwordRuleStatus.map((rule) => (
+                    <View key={rule.key} style={styles.passwordHintRow}>
+                      <Ionicons
+                        name={rule.passed ? "checkmark-circle" : "ellipse-outline"}
+                        size={14}
+                        color={rule.passed ? COLORS.success : COLORS.gray}
+                      />
+                      <ThemedText
+                        style={[
+                          styles.passwordHintText,
+                          rule.passed && styles.passwordHintTextPassed,
+                        ]}
+                      >
+                        {rule.label}
+                      </ThemedText>
+                    </View>
+                  ))}
                 </View>
               </View>
 
@@ -883,6 +932,23 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 12,
     color: COLORS.error,
+  },
+  passwordHintContainer: {
+    gap: 6,
+    marginTop: 4,
+    paddingHorizontal: 4,
+  },
+  passwordHintRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  passwordHintText: {
+    fontSize: 12,
+    color: COLORS.gray,
+  },
+  passwordHintTextPassed: {
+    color: COLORS.success,
   },
   bottomSection: {
     position: "absolute",

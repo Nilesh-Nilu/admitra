@@ -1,3 +1,4 @@
+import ThemeHeader from "@/components/headers/ThemeHeader";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
@@ -230,9 +231,8 @@ export default function ChatScreen() {
   return (
     <ThemedView style={styles.container}>
       {/* Header */}
-      <View style={[styles.header]}>
-        <ThemedText style={styles.headerTitle}>Messages</ThemedText>
-      </View>
+      <ThemeHeader onBackPress={() => router.back()} title="Chats" />
+    
 
       {/* Chat List */}
       {loading ? (

@@ -47,6 +47,7 @@
     "react-native-image-zoom-viewer": "^3.0.1",
     "react-native-razorpay": "^2.3.0",
     "react-native-reanimated": "~3.17.4",
+    "react-native-render-html": "^6.3.4",
     "react-native-responsive-fontsize": "^0.5.1",
     "react-native-responsive-screen": "^1.4.2",
     "react-native-safe-area-context": "5.4.0",
