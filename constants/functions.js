@@ -41,6 +41,7 @@ export const getApprovedProductsUrl ="vendor/products"
 export const getBannersUrl = "banner/list"
 export const getProductsByLocationUrl = "products/filter/location"
 export const reportProductUrl = "product/report"
+export const getPlansListUrl = "admin/plans"
 //payment
 export const createOrderUrl = "payment/create-order";
 export const verifyAndStorePaymentUrl = "payment/verify-and-store";
@@ -155,12 +156,12 @@ export const getLocationListApi = async (setLocations) => {
   }
 };
 
-export const createOrderApi = async () => {
+export const createOrderApi = async (plan_id) => {
   try {
     const authConfig = await getAuthToken();
     const response = await axios.post(
       `${baseUrl}/${createOrderUrl}`,
-      {}, // empty body for POST
+      plan_id, // empty body for POST
       authConfig // config with headers goes as third parameter
     );
     return response.data;

@@ -3,13 +3,14 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import AppToast from "@/components/toasts/AppToast";
 import { COLORS } from "@/constants/Colors";
-import { createOrderApi, handleVerifyandAddProductApi, RAZORPAY_KEY } from "@/constants/functions";
+import { createOrderApi, getPlansListUrl, handleVerifyandAddProductApi, RAZORPAY_KEY } from "@/constants/functions";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 import { setClearData } from "@/store/reducers/paymentReducer";
+import { getPlansListApi } from "@/store/reducers/userReducer";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -29,52 +30,19 @@ import { useDispatch, useSelector } from "react-redux";
 export default function PostScreen() {
   const router = useRouter();
   const user = useSelector((state: any) => state.entities.authReducer?.user);
-  const { categories, subCategories } = useSelector((state: any) => state.entities.userReducer) || {};
+  const { categories, subCategories,plans } = useSelector((state: any) => state.entities.userReducer) || {};
   const [images, setImages] = useState<any[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [selectedSubCategory, setSelectedSubCategory] = useState<number | null>(null);
-  const [adType, setAdType] = useState<"normal" | "featured" | "banner">("banner");
+  const [adType, setAdType] = useState<any>(1);
   const [websiteLink, setWebsiteLink] = useState("");
   const [videoLink, setVideoLink] = useState("");
-  const [duration, setDuration] = useState("7");
   const [isLoading, setIsLoading] = useState(false);
   const dispatch = useDispatch();
-
-  type AdType = {
-    id: "normal" | "featured" | "banner";
-    title: string;
-    subtitle: string;
-    price: number;
-    recommended?: boolean;
-  };
-
-  const adTypes: AdType[] = [
-    {
-      id: "normal",
-      title: "Normal (Free)",
-      subtitle: "Basic listing",
-      price: 0,
-    },
-    {
-      id: "featured",
-      title: "Featured",
-      price: 29,
-      subtitle: "Top placement\nMore visibility",
-      recommended: true,
-    },
-    {
-      id: "banner",
-      title: "Banner",
-      price: 79,
-      subtitle: "Homepage banner\nMaximum reach",
-    },
-  ];
-
-  const durations = ["3 Days", "7 Days", "15 Days", "30 Days"];
-
+  console.log(adType, "adType");
   // Filter sub-categories based on selected category
   const filteredSubCategories = selectedCategory
     ? subCategories.filter((subCat: any) => subCat.category_id === selectedCategory)
@@ -112,6 +80,9 @@ export default function PostScreen() {
       setImages([...images, ...newImages]);
     }
   };
+  useEffect(()=>{
+    dispatch(getPlansListApi(getPlansListUrl))
+  },[])
 
   const takePhoto = async () => {
     if (images.length >= 8) {
@@ -213,8 +184,9 @@ export default function PostScreen() {
     
     try {
       // Create order for payment
-      const order = await createOrderApi();
-      
+      const order = await createOrderApi(adType.id);
+      console.log(adType, "adType");
+      console.log(order, "order");
       if (!order) {
         AppToast("Failed to create order. Please try again.");
         setIsLoading(false);
@@ -420,44 +392,44 @@ export default function PostScreen() {
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Ad Type</ThemedText>
             <View style={styles.adTypeContainer}>
-              {adTypes.map((type) => (
+              {plans.map((plan: any) => (
                 <TouchableOpacity
-                  key={type.id}
+                  key={plan.id}
                   style={[
                     styles.adTypeCard,
-                    adType === type.id && styles.adTypeCardActive,
-                    type.id === "banner" && styles.adTypeCardBanner,
+                    adType.id === plan.id && styles.adTypeCardActive,
+                    // plan.type === "banner" && styles.adTypeCardBanner,
                   ]}
-                  onPress={() => setAdType(type.id as any)}
+                  onPress={() => setAdType(plan)}
                   activeOpacity={0.8}
                 >
                   <View style={styles.adTypeHeader}>
                     <View style={styles.adTypeLeft}>
                       <Ionicons
-                        name={adType === type.id ? "radio-button-on" : "radio-button-off"}
+                        name={adType === plan.type ? "radio-button-on" : "radio-button-off"}
                         size={22}
-                        color={adType === type.id ? COLORS.primary : COLORS.gray}
+                        color={adType === plan.type ? COLORS.primary : COLORS.gray}
                       />
                       <View style={styles.adTypeTitleWrap}>
                         <View style={styles.adTypeTitleRow}>
                           <ThemedText
                             style={[
                               styles.adTypeTitle,
-                              adType === type.id && styles.adTypeTitleActive,
+                              adType === plan.type && styles.adTypeTitleActive,
                             ]}
                           >
-                            {type.title}
+                            {plan.name}
                           </ThemedText>
-                          {type.price > 0 && (
-                            <ThemedText style={styles.adTypePrice}>₹{type.price}</ThemedText>
+                          {parseFloat(plan.price) > 0 && (
+                            <ThemedText style={styles.adTypePrice}>₹{plan.price}</ThemedText>
                           )}
                         </View>
                         <ThemedText style={styles.adTypeSubtitle}>
-                          {type.subtitle}
+                          Duration: {plan.duration_days} days
                         </ThemedText>
                       </View>
                     </View>
-                    {type.recommended && (
+                    {plan.type === "featured" && (
                       <View style={styles.recommendedBadge}>
                         <ThemedText style={styles.recommendedText}>Recommended</ThemedText>
                       </View>
@@ -479,7 +451,7 @@ export default function PostScreen() {
           </View>
 
           {/* Website Link - Required for Banner */}
-          {adType === "banner" && (
+          {adType.id === 3 && (
             <View style={styles.section}>
               <View style={styles.linkLabelRow}>
                 <Ionicons name="globe-outline" size={18} color={COLORS.primary} />
@@ -524,15 +496,6 @@ export default function PostScreen() {
               </ThemedText>
             </View>
           )}
-
-          {/* Duration */}
-          <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Duration</ThemedText>
-            <TouchableOpacity style={styles.durationSelector} activeOpacity={0.8}>
-              <ThemedText style={styles.durationText}>{duration} Days</ThemedText>
-              <Ionicons name="chevron-down" size={20} color={COLORS.gray} />
-            </TouchableOpacity>
-          </View>
 
           {/* Price */}
           <View style={styles.section}>

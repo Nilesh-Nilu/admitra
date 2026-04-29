@@ -45,7 +45,7 @@ export default function ProfileScreen() {
   const { states, cities } = useSelector((state: any) => state.entities.userReducer);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
-  console.log(user, "user");
+  console.log(user, "userf");
   const menuItems = [
     {
       icon: "document-text-outline",
@@ -62,11 +62,11 @@ export default function ProfileScreen() {
       title: "Refund Policy",
       onPress: () => handleMenuPress("/stacks/policy", "Refund Policy", getRefundPolicyUrl),
     },
-    {
-      icon: "call-outline",
-      title: "Help/Guide",
-      onPress: () => handleMenuPress("/stacks/policy", "Help/Guide"),
-    },
+    // {
+    //   icon: "call-outline",
+    //   title: "Help/Guide",
+    //   onPress: () => handleMenuPress("/stacks/policy", "Help/Guide"),
+    // },
   ];
 
   const isVerified = user?.is_verify === 1;
@@ -156,8 +156,20 @@ export default function ProfileScreen() {
 
   const handleVerificationSubmit = async (data: any) => {
     try {
-      await dispatch(updateUserProfile(updateUserProfileUrl, data));
-      await AsyncStorage.setItem("user", JSON.stringify({...user, ...data}));
+      // Transform data to match the API structure
+      const updateData = {
+        name: data.fullName,
+        email: data.email,
+        phone: data.mobileNumber,
+        address: data.address,
+        state_id: data.state?.id,
+        city_id: data.city?.id,
+        AadharImage: data.AadharImage,
+        selfieverificationImage: data.selfieverificationImage,
+      };
+
+      await dispatch(updateUserProfile(updateUserProfileUrl, updateData));
+      await AsyncStorage.setItem("user", JSON.stringify({...user, ...updateData}));
       Alert.alert(
         "Verification Submitted",
         "Your verification request has been submitted. Our team will review your documents and verify your profile shortly.",
@@ -239,10 +251,10 @@ export default function ProfileScreen() {
           </View>
         ) : (
           <TouchableOpacity style={styles.verificationBanner} onPress={handleOpenVerificationModal}>
-            <Ionicons name="checkmark-circle" size={20} color={COLORS.red} />
             <View style={styles.verificationText}>
               <ThemedText style={styles.verificationTitle}>Get Verified!</ThemedText>
             </View>
+            <Ionicons name="checkmark-circle" size={20} color={COLORS.white} />
           </TouchableOpacity>
         )}
         {/* Profile Overview Stats */}
@@ -356,7 +368,7 @@ export default function ProfileScreen() {
                 <ThemedText style={styles.infoSubLabel}>{user?.selfieverificationImage==="1" ? "Verified" : "Not Verified"}</ThemedText>
               </View>
             </View>
-            {user?.selfieverificationImage==="1" ? (
+            {user?.selfieverificationImage ? (
               <Ionicons name="checkmark-circle" size={22} color="#4CAF50" />
             ) : (
               <Ionicons name="ellipse-outline" size={22} color={COLORS.lightGray} />
@@ -540,13 +552,13 @@ const styles = StyleSheet.create({
   verificationBanner: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#E8F5E9",
+    justifyContent: "space-between",
+    backgroundColor: COLORS.success,
     marginHorizontal: SIZES.padding,
     marginTop: 16,
     padding: 12,
     borderRadius: 12,
-    gap: 10,
+    // gap: 10,
   },
   verificationIcon: {
     width: 32,
@@ -561,8 +573,8 @@ const styles = StyleSheet.create({
   },
   verificationTitle: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#2E7D32",
+    fontWeight: "700",
+    color: COLORS.white,
   },
   verificationSubtitle: {
     fontSize: 12,

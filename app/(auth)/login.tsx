@@ -53,7 +53,7 @@ export default function LoginScreen() {
   const config = ROLE_CONFIG[currentRole];
   // const [email, setEmail] = useState("");
   // const [password, setPassword] = useState("");
-  const [email, setEmail] = useState("a@gmail.com");
+  const [email, setEmail] = useState("rahulll@gmail.com");
   const [password, setPassword] = useState("password123");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -70,6 +70,7 @@ export default function LoginScreen() {
         if (response.data.success) {
           AppToast("Login successful!");
           dispatch(setUser(response.data.user));
+          console.log(response.data, "response.data.user");
           await AsyncStorage.setItem("user", JSON.stringify(response.data.user));
           await AsyncStorage.setItem("authToken", response.data.access_token);
           router.replace("/(tabs)");

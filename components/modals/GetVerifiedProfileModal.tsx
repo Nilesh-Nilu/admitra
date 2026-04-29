@@ -36,6 +36,7 @@ interface VerificationForm {
   email: string;
   address: string;
   AadharImage: string | null;
+  AadharImageBack: string | null;
   selfieverificationImage: string | null;
 }
 
@@ -49,6 +50,7 @@ type GetVerifiedProfileModalProps = {
     email?: string;
     address?: string;
     AadharImage?: string;
+    AadharImageBack?: string;
     selfieverificationImage?: string;
     state_id?: number;
     city_id?: number;
@@ -71,12 +73,11 @@ const GetVerifiedProfileModal: React.FC<GetVerifiedProfileModalProps> = ({
     email: "",
     address: "",
     AadharImage: "",
+    AadharImageBack: "",
     selfieverificationImage: "",
   });
-  console.log(form, "form");
   const [selectedState, setSelectedState] = useState<State | null>(null);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
-
   // Filter cities based on selected state
   const filteredCities = selectedState
     ? cities.filter((city) => city.state_id === selectedState.id)
@@ -91,7 +92,8 @@ const GetVerifiedProfileModal: React.FC<GetVerifiedProfileModalProps> = ({
         email: userData.email || "",
         address: userData.address || "",
         AadharImage: userData.AadharImage || "",
-        selfieverificationImage: userData.selfieverificationImage || null,
+        AadharImageBack: userData.AadharImageBack || "",
+        selfieverificationImage: userData.selfieverificationImage || "",
       });
 
       const userState = states.find((s) => s.id === userData.state_id) || null;
@@ -106,10 +108,9 @@ const GetVerifiedProfileModal: React.FC<GetVerifiedProfileModalProps> = ({
     setSelectedCity(null); // Reset city when state changes
   };
 
-  const pickImage = async (type: "aadhar" | "selfie") => {
+  const pickImage = async (type: "aadhar" | "selfie" | "aadharBack") => {
     try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
       if (permissionResult.granted === false) {
         Alert.alert("Permission Required", "Please allow access to your photo library");
         return;
@@ -128,9 +129,15 @@ const GetVerifiedProfileModal: React.FC<GetVerifiedProfileModalProps> = ({
           const mimeType = asset.mimeType || "image/jpeg";
           if (type === "aadhar") {
             setForm((prev) => ({ ...prev, AadharImage: `data:${mimeType};base64,${asset.base64}` }));
+          } else if (type === "aadharBack") {
+            setForm((prev) => ({
+              ...prev,
+             AadharImageBack: `data:${mimeType};base64,${asset.base64}`
+            }));
           } else {
             setForm((prev) => ({ ...prev, selfieverificationImage: `data:${mimeType};base64,${asset.base64}` }));
           }
+
         } else {
           Alert.alert("Error", "Failed to get image data. Please try again.");
         }
@@ -140,10 +147,10 @@ const GetVerifiedProfileModal: React.FC<GetVerifiedProfileModalProps> = ({
     }
   };
 
-  const takePhoto = async (type: "aadhar" | "selfie") => {
+  const takePhoto = async (type: "aadhar" | "selfie" | "aadharBack") => {
     try {
       const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-      
+
       if (permissionResult.granted === false) {
         Alert.alert("Permission Required", "Please allow access to your camera");
         return;
@@ -161,6 +168,8 @@ const GetVerifiedProfileModal: React.FC<GetVerifiedProfileModalProps> = ({
           const mimeType = asset.mimeType || "image/jpeg";
           if (type === "aadhar") {
             setForm((prev) => ({ ...prev, AadharImage: `data:${mimeType};base64,${asset.base64}` }));
+          } else if (type === "aadharBack") {
+            setForm((prev) => ({ ...prev, AadharImageBack: `data:${mimeType};base64,${asset.base64}` }));
           } else {
             setForm((prev) => ({ ...prev, selfieverificationImage: `data:${mimeType};base64,${asset.base64}` }));
           }
@@ -174,7 +183,7 @@ const GetVerifiedProfileModal: React.FC<GetVerifiedProfileModalProps> = ({
   };
 
 
-  const showImageOptions = (type: "aadhar" | "selfie") => {
+  const showImageOptions = (type: "aadhar" | "selfie" | "aadharBack") => {
     Alert.alert(
       "Select Image",
       "Choose an option",
@@ -222,7 +231,15 @@ const GetVerifiedProfileModal: React.FC<GetVerifiedProfileModalProps> = ({
       Alert.alert("Required", "Please enter your address");
       return;
     }
-
+    if (!form.AadharImage) {
+      Alert.alert("Required", "Please upload your Aadhar card");
+      return;
+    }
+    if (!form.selfieverificationImage) {
+      Alert.alert("Required", "Please upload your selfie");
+      return;
+    }
+   console.log(form.selfieverificationImage, "form.selfieverificationImage");
     onSubmit({
       ...form,
       state: selectedState,
@@ -374,10 +391,64 @@ const GetVerifiedProfileModal: React.FC<GetVerifiedProfileModalProps> = ({
             >
               {form.AadharImage ? (
                 <View style={styles.imagePreviewContainer}>
-                  <Image source={{ uri: `${ImageUrl}/${form?.AadharImage}` || form.AadharImage }} style={styles.imagePreview} />
+                  <Image
+                    source={{
+                      uri: form.AadharImage.startsWith("data:")
+                        ? form.AadharImage
+                        : `${ImageUrl}/${form.AadharImage}`
+                    }}
+                    style={styles.imagePreview}
+                  />
                   <View style={styles.imageOverlay}>
-                    <Ionicons name="cloud-upload-outline" size={24} color={COLORS.success} />
-                    <ThemedText style={styles.imageSuccessText}>Upload</ThemedText>
+                    <Ionicons name="checkmark-circle" size={24} color={COLORS.success} />
+                    <ThemedText style={styles.imageSuccessText}>Uploaded</ThemedText>
+                    <Pressable
+                      style={styles.changeImageButton}
+                      onPress={() => showImageOptions("aadhar")}
+                    >
+                      <Ionicons name="camera-outline" size={16} color={COLORS.white} />
+                      <ThemedText style={styles.changeImageText}>Change</ThemedText>
+                    </Pressable>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.uploadPlaceholder}>
+                  <Ionicons name="cloud-upload-outline" size={32} color={COLORS.gray} />
+                  <ThemedText style={styles.uploadText}>Upload ID Card</ThemedText>
+                  <ThemedText style={styles.uploadSubtext}>Tap to select or take photo</ThemedText>
+                </View>
+              )}
+            </Pressable>
+          </View>
+          {/* Upload ID Proof Back */}
+          <View style={styles.fieldContainer}>
+            <ThemedText style={styles.label}>
+              Upload ID Proof <ThemedText style={styles.subLabel}>(Aadhaar / PAN / Voter ID)</ThemedText>
+            </ThemedText>
+            <Pressable
+              style={styles.imageUploadButton}
+              onPress={() => showImageOptions("aadharBack")}
+            >
+              {form.AadharImageBack ? (
+                <View style={styles.imagePreviewContainer}>
+                  <Image
+                    source={{
+                      uri: form.AadharImageBack.startsWith("data:")
+                        ? form.AadharImageBack
+                        : `${ImageUrl}/${form.AadharImageBack}`
+                    }}
+                    style={styles.imagePreview}
+                  />
+                  <View style={styles.imageOverlay}>
+                    <Ionicons name="checkmark-circle" size={24} color={COLORS.success} />
+                    <ThemedText style={styles.imageSuccessText}>Uploaded</ThemedText>
+                    <Pressable
+                      style={styles.changeImageButton}
+                      onPress={() => showImageOptions("aadharBack")}
+                    >
+                      <Ionicons name="camera-outline" size={16} color={COLORS.white} />
+                      <ThemedText style={styles.changeImageText}>Change</ThemedText>
+                    </Pressable>
                   </View>
                 </View>
               ) : (
@@ -401,10 +472,24 @@ const GetVerifiedProfileModal: React.FC<GetVerifiedProfileModalProps> = ({
             >
               {form.selfieverificationImage ? (
                 <View style={styles.imagePreviewContainer}>
-                  <Image source={{ uri: `${ImageUrl}/${form?.selfieverificationImage}` || form.selfieverificationImage }} style={styles.imagePreview} />
+                  <Image
+                    source={{
+                      uri: form.selfieverificationImage.startsWith("data:")
+                        ? form.selfieverificationImage
+                        : `${ImageUrl}/${form.selfieverificationImage}`
+                    }}
+                    style={styles.imagePreview}
+                  />
                   <View style={styles.imageOverlay}>
-                    <Ionicons name="cloud-upload-outline" size={24} color={COLORS.success} />
-                    <ThemedText style={styles.imageSuccessText}>Upload</ThemedText>
+                    <Ionicons name="checkmark-circle" size={24} color={COLORS.success} />
+                    <ThemedText style={styles.imageSuccessText}>Uploaded</ThemedText>
+                    <Pressable
+                      style={styles.changeImageButton}
+                      onPress={() => showImageOptions("selfie")}
+                    >
+                      <Ionicons name="camera-outline" size={16} color={COLORS.white} />
+                      <ThemedText style={styles.changeImageText}>Change</ThemedText>
+                    </Pressable>
                   </View>
                 </View>
               ) : (

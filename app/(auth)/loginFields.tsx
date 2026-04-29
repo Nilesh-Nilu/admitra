@@ -236,7 +236,6 @@ const SignupScreen = () => {
           Isagreeprivacy: true
         };
 
-        console.log(payload, "payload");
         const response = await axios.post(
           `${baseUrl}/${signupUrl}`,
           payload,
