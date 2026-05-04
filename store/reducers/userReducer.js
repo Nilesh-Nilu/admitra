@@ -7,6 +7,7 @@ const initialState = {
   categories: [],
   subCategories: [],
   products: [],
+  featuredAds: [],
   approvedProducts: [],
   chatConversations: [],
   chatMessages: [],
@@ -70,6 +71,10 @@ const userReducer = createSlice({
       userReducer.loader = false;
       userReducer.plans = action.payload.data;
     },
+    setFeaturedAdsRecieved: (userReducer, action) => {
+      userReducer.loader = false;
+      userReducer.featuredAds = action.payload.data;
+    },
   }
 });
 
@@ -88,6 +93,7 @@ const {
   setApprovedProductsRecieved,
   setPlansRecieved,
   setBannersRecieved,
+  setFeaturedAdsRecieved,
 } = userReducer.actions;
 export const getStatesApi = (url) =>
   apiCallBegan({
@@ -151,6 +157,14 @@ export const getPlansListApi = (url) =>
     url,
     onStart: userReducerDataRequested.type,
     onSuccess: setPlansRecieved.type,
+    onError: userReducerDataRequestFailed.type,
+  });
+export const getFeaturedAdsApi = (url) =>
+  apiCallBegan({
+    method: "get",
+    url,
+    onStart: userReducerDataRequested.type,
+    onSuccess: setFeaturedAdsRecieved.type,
     onError: userReducerDataRequestFailed.type,
   });
 export default userReducer.reducer;

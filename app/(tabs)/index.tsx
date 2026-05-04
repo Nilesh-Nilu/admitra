@@ -3,9 +3,10 @@ import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
 import {
   getApprovedProductsUrl,
-  getBannersUrl,
+  getBannerAdsUrl,
   getCategoriesUrl,
   getCitiesUrl,
+  getFeaturedAdsUrl,
   getProductsByLocationUrl,
   getStatesUrl,
   getSubCategoriesUrl
@@ -17,6 +18,7 @@ import {
   getBannersApi,
   getCategoriesApi,
   getCitiesApi,
+  getFeaturedAdsApi,
   getProductsApiwithcityId,
   getStatesApi,
   getSubCategoriesApi,
@@ -25,6 +27,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
+  Alert,
   Animated,
   Dimensions,
   FlatList,
@@ -150,7 +153,7 @@ const UserShimmerLoader = () => {
 export default function HomeScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { loader, cities, categories, products, banners } =
+  const { loader, cities, categories, products, banners, featuredAds } =
     useSelector((state: any) => state.entities.userReducer) || {};
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [showCitySheet, setShowCitySheet] = useState(false);
@@ -164,9 +167,6 @@ export default function HomeScreen() {
   const safeCities = Array.isArray(cities) ? cities : [];
   const safeBanners = Array.isArray(banners) ? banners : [];
 
-  const featuredProducts = safeProducts.filter(
-    (p: any) => p.approve === "approved"
-  );
   const filteredProducts = selectedCategory
     ? safeProducts.filter((p: any) => p.category_id === selectedCategory)
     : safeProducts;
@@ -184,7 +184,8 @@ export default function HomeScreen() {
     dispatch(getCitiesApi(getCitiesUrl));
     dispatch(setClearData(null));
     dispatch(getApprovedProductsApi(getApprovedProductsUrl));
-    dispatch(getBannersApi(getBannersUrl));
+    dispatch(getBannersApi(getBannerAdsUrl));
+    dispatch(getFeaturedAdsApi(getFeaturedAdsUrl));
   }, []);
 
   useEffect(() => {
@@ -244,6 +245,38 @@ export default function HomeScreen() {
         return nextIndex;
       });
     }, 3000);
+  };
+
+  const handleVisitWebsite = async (websiteLink?: string) => {
+    if (websiteLink) {
+      try {
+        const url = websiteLink.startsWith("http")
+          ? websiteLink
+          : `https://${websiteLink}`;
+        const supported = await Linking.canOpenURL(url);
+        if (supported) {
+          await Linking.openURL(url);
+        }
+      } catch (error) {
+        console.log("Error opening website:", error);
+      }
+    }
+  };
+
+  const handleWatchVideo = async (videoUrl?: string) => {
+    if (videoUrl) {
+      try {
+        const url = videoUrl.startsWith("http")
+          ? videoUrl
+          : `https://${videoUrl}`;
+        const supported = await Linking.canOpenURL(url);
+        if (supported) {
+          await Linking.openURL(url);
+        }
+      } catch (error) {
+        console.log("Error opening video:", error);
+      }
+    }
   };
 
   const handleCategoryPress = (categoryId: number) => {
@@ -336,7 +369,10 @@ export default function HomeScreen() {
         <TouchableOpacity
           style={styles.categoryItem}
           activeOpacity={0.7}
-          onPress={() => setSelectedCategory(null)}
+          onPress={() => router.push({
+            pathname: "/stacks/categories",
+            params: { selectedCategory: null }
+          })}
         >
           <View
             style={[
@@ -411,22 +447,19 @@ export default function HomeScreen() {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <ThemedText style={styles.sectionTitle}>Banner Ads</ThemedText>
-          {filteredProducts.length > 2 && (
-          <TouchableOpacity
-            style={styles.seeAllBtn}
-            onPress={() =>
-              router.push({
-                pathname: "/stacks/search",
-                params: selectedCategory
-                  ? { categoryId: selectedCategory }
-                  : {},
-              })
-            }
-          >
-            <ThemedText style={styles.seeAllText}>See All</ThemedText>
-            <Ionicons name="arrow-forward" size={15} color="#1565C0" />
-          </TouchableOpacity>
-        )}
+          {safeBanners.length > 0 && (
+            <TouchableOpacity
+              style={styles.seeAllBtn}
+              onPress={() =>
+                router.push({
+                  pathname: "/stacks/seeAllBanners",
+                })
+              }
+            >
+              <ThemedText style={styles.seeAllText}>See All</ThemedText>
+              <Ionicons name="arrow-forward" size={15} color="#1565C0" />
+            </TouchableOpacity>
+          )}
         </View>
         <ScrollView
           ref={bannerScrollRef}
@@ -461,7 +494,32 @@ export default function HomeScreen() {
                 source={{ uri: b.banner_image }}
                 style={styles.bannerImage}
                 resizeMode="cover"
-              />
+              >
+                <View style={styles.bannerActions}>
+                  <TouchableOpacity
+                    style={styles.bannerBtnLeft}
+                    activeOpacity={0.8}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleVisitWebsite(b.website_link);
+                    }}
+                  >
+                    <Ionicons name="globe-outline" size={16} color="#1565C0" />
+                    <ThemedText style={styles.bannerBtnLeftText}>Visit Website</ThemedText>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.bannerBtnRight}
+                    activeOpacity={0.8}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleWatchVideo(b.banner_video_url);
+                    }}
+                  >
+                    <Ionicons name="play-circle" size={16} color={COLORS.white} />
+                    <ThemedText style={styles.bannerBtnRightText}>Watch Video</ThemedText>
+                  </TouchableOpacity>
+                </View>
+              </ImageBackground>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -484,7 +542,7 @@ export default function HomeScreen() {
 
   // ── Featured Ads (horizontal scroll) ──
   const renderFeaturedAds = () => {
-    if (featuredProducts.length === 0) return null;
+    if (featuredAds.length === 0) return null;
     return (
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
@@ -492,29 +550,26 @@ export default function HomeScreen() {
             <ThemedText style={styles.featuredStar}>⭐</ThemedText>
             <ThemedText style={styles.sectionTitle}>Featured Ads</ThemedText>
           </View>
-          {filteredProducts.length > 2 && (
-          <TouchableOpacity
-            style={styles.seeAllBtn}
-            onPress={() =>
-              router.push({
-                pathname: "/stacks/search",
-                params: selectedCategory
-                  ? { categoryId: selectedCategory }
-                  : {},
-              })
-            }
-          >
-            <ThemedText style={styles.seeAllText}>See All</ThemedText>
-            <Ionicons name="arrow-forward" size={15} color="#1565C0" />
-          </TouchableOpacity>
-        )}
+          {featuredAds.length > 1 && (
+            <TouchableOpacity
+              style={styles.seeAllBtn}
+              onPress={() =>
+                router.push({
+                  pathname: "/stacks/seeAllFeatured",
+                })
+              }
+            >
+              <ThemedText style={styles.seeAllText}>See All</ThemedText>
+              <Ionicons name="arrow-forward" size={15} color="#1565C0" />
+            </TouchableOpacity>
+          )}
         </View>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ gap: 10 }}
         >
-          {featuredProducts.slice(0, 8).map((item: any) => (
+          {featuredAds.slice(0, 8).map((item: any) => (
             <TouchableOpacity
               key={item.id}
               style={styles.featuredCard}
@@ -530,7 +585,7 @@ export default function HomeScreen() {
                 <ThemedText style={styles.featuredBadgeText}>Featured</ThemedText>
               </View>
               <Image
-                source={{ uri: item.images?.[0]?.image }}
+                source={{ uri: item.images?.[0]?.image_path || item.images?.[0]?.image }}
                 style={styles.featuredImg}
               />
               <View style={styles.featuredInfo}>
@@ -565,7 +620,7 @@ export default function HomeScreen() {
     >
       <View style={styles.listingImgWrap}>
         <Image
-          source={{ uri: item.images?.[0]?.image }}
+          source={{ uri: item.images?.[0]?.image_path || item.images?.[0]?.image }}
           style={styles.listingImg}
         />
         {item.approve === "approved" && (
@@ -595,10 +650,7 @@ export default function HomeScreen() {
             style={styles.seeAllBtn}
             onPress={() =>
               router.push({
-                pathname: "/stacks/search",
-                params: selectedCategory
-                  ? { categoryId: selectedCategory }
-                  : {},
+                pathname: "/stacks/seeAllFresh",
               })
             }
           >
@@ -669,7 +721,7 @@ export default function HomeScreen() {
                 onPress={() => {
                   setSelectedCity(city);
                   setShowCitySheet(false);
-                  
+
                 }}
               >
                 <View>
@@ -724,7 +776,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F5F5F5",top:-8 },
+  container: { flex: 1, backgroundColor: "#F5F5F5", top: -8 },
   scrollView: { flex: 1 },
   scrollContent: { paddingHorizontal: SIZES.padding },
 
@@ -846,7 +898,7 @@ const styles = StyleSheet.create({
   /* ── Banner ── */
   bannerCard: {
     width: BANNER_WIDTH,
-    height: 150,
+    height: 180,
     borderRadius: 14,
     overflow: "hidden",
     marginRight: 12,
@@ -857,6 +909,57 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: "flex-end",
     alignItems: "center",
+  },
+  bannerActions: {
+    flexDirection: "row",
+    width: "100%",
+    backgroundColor: COLORS.white,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  bannerBtnLeft: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
+  },
+  bannerBtnLeftText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#1565C0",
+  },
+  bannerBtnRight: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: "#E53935",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
+  },
+  bannerBtnRightText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: COLORS.white,
+  },
+  bannerVideoContainer: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 14,
+    overflow: "hidden",
+    backgroundColor: COLORS.black,
+  },
+  bannerVideo: {
+    width: "100%",
+    height: "100%",
   },
   bannerDots: {
     flexDirection: "row",

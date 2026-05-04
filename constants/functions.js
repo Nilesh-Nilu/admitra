@@ -38,7 +38,8 @@ export const getCitiesUrl = "cities";
 //products
 export const getProductsUrl = "products/all"
 export const getApprovedProductsUrl ="vendor/products"
-export const getBannersUrl = "banner/list"
+export const getFeaturedAdsUrl = "ads/featured"
+export const getBannerAdsUrl = "ads/banner"
 export const getProductsByLocationUrl = "products/filter/location"
 export const reportProductUrl = "product/report"
 export const getPlansListUrl = "admin/plans"
@@ -159,10 +160,20 @@ export const getLocationListApi = async (setLocations) => {
 export const createOrderApi = async (plan_id) => {
   try {
     const authConfig = await getAuthToken();
+
+    const config = {
+      ...authConfig,
+      headers: {
+        ...(authConfig.headers || {}),
+        'accept': '*/*',
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': '', 
+      },
+    };
     const response = await axios.post(
       `${baseUrl}/${createOrderUrl}`,
-      plan_id, // empty body for POST
-      authConfig // config with headers goes as third parameter
+      { plan_id: plan_id }, // explicit property for clarity
+      config
     );
     return response.data;
   } catch (error) {

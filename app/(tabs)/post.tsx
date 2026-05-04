@@ -3,10 +3,10 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import AppToast from "@/components/toasts/AppToast";
 import { COLORS } from "@/constants/Colors";
-import { createOrderApi, getPlansListUrl, handleVerifyandAddProductApi, RAZORPAY_KEY } from "@/constants/functions";
+import { createOrderApi, getApprovedProductsUrl, getPlansListUrl, handleVerifyandAddProductApi, RAZORPAY_KEY } from "@/constants/functions";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 import { setClearData } from "@/store/reducers/paymentReducer";
-import { getPlansListApi } from "@/store/reducers/userReducer";
+import { getApprovedProductsApi, getPlansListApi } from "@/store/reducers/userReducer";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -42,7 +42,6 @@ export default function PostScreen() {
   const [videoLink, setVideoLink] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const dispatch = useDispatch();
-  console.log(adType, "adType");
   // Filter sub-categories based on selected category
   const filteredSubCategories = selectedCategory
     ? subCategories.filter((subCat: any) => subCat.category_id === selectedCategory)
@@ -144,11 +143,13 @@ export default function PostScreen() {
         description: description,
         price: price,
         images: [...images],
-        video: null
+        plan_id: adType.id,
+        banner_image: adType.id === 3 ? images[0] : null,
+        banner_video_url: adType.id === 3 ? videoLink : null,
+        website_link: adType.id === 3 ? websiteLink : null,
       };
       
       const response = await handleVerifyandAddProductApi(payload);
-      console.log(response, "response");
       
       Alert.alert(
         "Listing Submitted!",
@@ -156,6 +157,7 @@ export default function PostScreen() {
         [{ text: "OK", onPress: () => router.push("/(tabs)") }]
       );
       
+     dispatch(getApprovedProductsApi(getApprovedProductsUrl));
       // Clear form
       clearForm();
     } catch (error) {
@@ -185,7 +187,6 @@ export default function PostScreen() {
     try {
       // Create order for payment
       const order = await createOrderApi(adType.id);
-      console.log(adType, "adType");
       console.log(order, "order");
       if (!order) {
         AppToast("Failed to create order. Please try again.");
@@ -196,9 +197,9 @@ export default function PostScreen() {
       // Open Razorpay checkout
       const options = {
         key: RAZORPAY_KEY,
-        amount: order.amount * 100,
+        amount: order.total_amount * 100,
         currency: "INR",
-        name: "AdMaster Marketplace",
+        name: "Gaxa Marketplace",
         description: "Post Ad Fee",
         order_id: order.order_id,
         handler: async (response: any) => {
@@ -398,7 +399,7 @@ export default function PostScreen() {
                   style={[
                     styles.adTypeCard,
                     adType.id === plan.id && styles.adTypeCardActive,
-                    // plan.type === "banner" && styles.adTypeCardBanner,
+                    plan.id === 3 && styles.adTypeCardBanner,
                   ]}
                   onPress={() => setAdType(plan)}
                   activeOpacity={0.8}
@@ -406,9 +407,9 @@ export default function PostScreen() {
                   <View style={styles.adTypeHeader}>
                     <View style={styles.adTypeLeft}>
                       <Ionicons
-                        name={adType === plan.type ? "radio-button-on" : "radio-button-off"}
+                        name={adType.id === plan.id? "radio-button-on" : "radio-button-off"}
                         size={22}
-                        color={adType === plan.type ? COLORS.primary : COLORS.gray}
+                        color={adType.id === plan.id ? COLORS.blue : COLORS.gray}
                       />
                       <View style={styles.adTypeTitleWrap}>
                         <View style={styles.adTypeTitleRow}>
@@ -439,7 +440,7 @@ export default function PostScreen() {
               ))}
 
               {/* Banner Alert */}
-              {adType === "banner" && (
+              {adType.id === 3 && (
                 <View style={styles.bannerAlert}>
                   <Ionicons name="alert-circle" size={16} color="#E53935" />
                   <ThemedText style={styles.bannerAlertText}>
@@ -473,14 +474,14 @@ export default function PostScreen() {
           )}
 
           {/* Video Link - Optional for Banner */}
-          {adType === "banner" && (
+          {adType.id === 3 && (
             <View style={styles.section}>
               <View style={styles.linkLabelRow}>
                 <Ionicons name="videocam" size={18} color="#4CAF50" />
-                <ThemedText style={styles.linkLabel}>Video Link (Optional)</ThemedText>
+                <ThemedText style={styles.linkLabel}>Video Link (Required)</ThemedText>
               </View>
               <View style={[styles.input, styles.videoInput]}>
-                <Ionicons name="logo-youtube" size={20} color="#FF0000" style={styles.youtubeIcon} />
+                {/* <Ionicons name="logo-youtube" size={20} color="#FF0000" style={styles.youtubeIcon} /> */}
                 <TextInput
                   style={styles.videoTextInput}
                   placeholder="https://youtube.com/..."
@@ -806,7 +807,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 8,
-    marginTop: 4,
   },
   bannerAlertText: {
     fontSize: 13,

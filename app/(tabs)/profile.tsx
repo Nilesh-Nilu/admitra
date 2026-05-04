@@ -45,7 +45,6 @@ export default function ProfileScreen() {
   const { states, cities } = useSelector((state: any) => state.entities.userReducer);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
-  console.log(user, "userf");
   const menuItems = [
     {
       icon: "document-text-outline",
@@ -232,7 +231,6 @@ export default function ProfileScreen() {
                 </View>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={24} color={COLORS.white} />
           </View>
         </LinearGradient>
 

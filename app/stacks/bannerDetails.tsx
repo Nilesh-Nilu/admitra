@@ -1,3 +1,4 @@
+import ReportModal from "@/components/modals/ReportModal";
 import ThemeHeader from "@/components/headers/ThemeHeader";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -16,7 +17,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import WebView from "react-native-webview";
+import { reportProductApi } from "@/constants/functions";
+import AppToast from "@/components/toasts/AppToast";
+import { COLORS } from "@/constants/Colors";
 
 const { width: screenWidth } = Dimensions.get("window");
 const BANNER_HEIGHT = screenWidth * 0.5;
@@ -24,18 +28,26 @@ const BANNER_HEIGHT = screenWidth * 0.5;
 interface BannerData {
   id: number;
   banner_image: string;
-  title?: string;
+  banner_video_url?: string;
+  product?: {
+    name?: string;
+    description?: string;
+    price?: number;
+    [key: string]: any;
+  };
+  name?: string;
   description?: string;
   rating?: number;
   reviews?: number;
-  website_url?: string;
-  video_url?: string;
+  website_link?: string;
 }
 
 export default function BannerDetailsScreen() {
   const params = useLocalSearchParams();
-  const insets = useSafeAreaInsets();
   const [banner, setBanner] = useState<BannerData | null>(null);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [isReporting, setIsReporting] = useState(false);
 
   const initializeBanner = useCallback(() => {
     if (params.bannerData) {
@@ -48,7 +60,7 @@ export default function BannerDetailsScreen() {
       }
     }
   }, [params.bannerData]);
-
+  console.log(banner, "banner");
   useEffect(() => {
     initializeBanner();
   }, [initializeBanner]);
@@ -63,11 +75,11 @@ export default function BannerDetailsScreen() {
   }, []);
 
   const handleVisitWebsite = async () => {
-    if (banner?.website_url) {
+    if (banner?.website_link) {
       try {
-        const url = banner.website_url.startsWith("http")
-          ? banner.website_url
-          : `https://${banner.website_url}`;
+        const url = banner.website_link.startsWith("http")
+          ? banner.website_link
+          : `https://${banner.website_link}`;
         const supported = await Linking.canOpenURL(url);
         if (supported) {
           await Linking.openURL(url);
@@ -83,11 +95,11 @@ export default function BannerDetailsScreen() {
   };
 
   const handleWatchVideo = async () => {
-    if (banner?.video_url) {
+    if (banner?.banner_video_url) {
       try {
-        const url = banner.video_url.startsWith("http")
-          ? banner.video_url
-          : `https://${banner.video_url}`;
+        const url = banner.banner_video_url.startsWith("http")
+          ? banner.banner_video_url
+          : `https://${banner.banner_video_url}`;
         const supported = await Linking.canOpenURL(url);
         if (supported) {
           await Linking.openURL(url);
@@ -102,53 +114,73 @@ export default function BannerDetailsScreen() {
     }
   };
 
-  const renderStars = (rating: number) => {
-    const stars = [];
-    for (let i = 1; i <= 5; i++) {
-      stars.push(
-        <Ionicons
-          key={i}
-          name={i <= Math.round(rating) ? "star" : "star-outline"}
-          size={16}
-          color="#FFB800"
-        />
-      );
-    }
-    return stars;
+  const handleOpenReportModal = () => {
+    setReportReason("");
+    setReportModalVisible(true);
   };
+
+  const handleCloseReportModal = () => {
+    if (!isReporting) {
+      setReportModalVisible(false);
+    }
+  };
+
+  const handleReportProduct = async () => {
+    const reason = reportReason.trim();
+
+    if (!reason) {
+      Alert.alert("Reason required", "Please enter a reason to report this ad.");
+      return;
+    }
+
+    if (!banner?.product?.id) {
+      Alert.alert("Error", "Unable to report this ad right now.");
+      return;
+    }
+
+    try {
+      setIsReporting(true);
+
+        const response = await reportProductApi({
+          product_id: Number(banner.product.id),
+          reason,
+        });
+      if (response.status === false) {
+        AppToast("Failed to report this ad. Please try again.");
+      } else {
+        AppToast(response.message);
+        setReportModalVisible(false);
+        setReportReason("");
+      }
+    } catch (error) {
+      console.log(error, "error");
+      AppToast("Failed to report this ad. Please try again.");
+    }
+  };
+
 
   return (
     <ThemedView style={styles.container}>
       {/* Header */}
-      <ThemeHeader onBackPress={() => router.back()} title="Ad Actions" />
+      <ThemeHeader onBackPress={() => router.push("/(tabs)")} title="Ad Actions" />
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Banner Image */}
+        {/* Banner Image / Video */}
         <View style={styles.bannerContainer}>
-          <Image
-            source={{ uri: banner?.banner_image }}
-            style={styles.bannerImage}
-            resizeMode="cover"
-          />
+            <Image
+              source={{ uri: banner?.banner_image }}
+              style={styles.bannerImage}
+              resizeMode="cover"
+            />
         </View>
 
         {/* Ad Info */}
         <View style={styles.infoSection}>
           <ThemedText style={styles.title}>
-            {banner?.title || "Best AC Service Offer"}
+            {banner?.product?.name || "Best AC Service Offer"}
           </ThemedText>
           <ThemedText style={styles.description}>
-            {banner?.description || "AC Installation, Repairing & Maintenance"}
+            {banner?.product?.description || "AC Installation, Repairing & Maintenance"}
           </ThemedText>
-
-          {/* Rating */}
-          <View style={styles.ratingRow}>
-            <View style={styles.starsContainer}>
-              {renderStars(banner?.rating || 4.5)}
-            </View>
-            <ThemedText style={styles.ratingText}>
-              {banner?.rating || 4.5} ({banner?.reviews || 120} reviews)
-            </ThemedText>
-          </View>
         </View>
 
         {/* Divider */}
@@ -205,7 +237,20 @@ export default function BannerDetailsScreen() {
             किसी भी external link या content के लिए जिम्मेदार नहीं है।
           </ThemedText>
         </View>
+        <TouchableOpacity onPress={handleOpenReportModal} activeOpacity={0.8}>
+          <ThemedText style={styles.reportAdText}>Report Ad</ThemedText>
+        </TouchableOpacity>
       </ScrollView>
+
+      {/* Report Modal */}
+      <ReportModal
+        visible={reportModalVisible}
+        reason={reportReason}
+        onChangeReason={setReportReason}
+        onClose={handleCloseReportModal}
+        onSubmit={handleReportProduct}
+        isSubmitting={isReporting}
+      />
     </ThemedView>
   );
 }
@@ -257,9 +302,24 @@ const styles = StyleSheet.create({
     width: "100%",
     height: BANNER_HEIGHT,
   },
+  bannerVideoContainer: {
+    width: "100%",
+    height: BANNER_HEIGHT,
+    backgroundColor: "#000",
+  },
+  bannerVideo: {
+    width: "100%",
+    height: "100%",
+  },
   infoSection: {
     paddingHorizontal: SIZES.padding,
     paddingTop: 20,
+  },
+  reportAdText: {
+    fontSize: 16,
+    color: COLORS.error,
+    textAlign: "center",
+    fontWeight: "700",
   },
   title: {
     fontSize: 22,

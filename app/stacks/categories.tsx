@@ -1,3 +1,4 @@
+import ThemeHeader from "@/components/headers/ThemeHeader";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
@@ -44,14 +45,10 @@ export default function CategoriesScreen() {
   return (
     <ThemedView style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.replace("/(tabs)")} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={22} color={COLORS.text} />
-        </TouchableOpacity>
-        <ThemedText style={styles.headerTitle}>Categories</ThemedText>
-        <View style={{ width: 38 }} />
-      </View>
-
+      <ThemeHeader
+        onBackPress={() => router.replace("/(tabs)")}
+        title="Categories"
+      />
       <View style={styles.body}>
         {/* Left Sidebar */}
         <ScrollView

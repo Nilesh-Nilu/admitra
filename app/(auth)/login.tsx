@@ -70,7 +70,6 @@ export default function LoginScreen() {
         if (response.data.success) {
           AppToast("Login successful!");
           dispatch(setUser(response.data.user));
-          console.log(response.data, "response.data.user");
           await AsyncStorage.setItem("user", JSON.stringify(response.data.user));
           await AsyncStorage.setItem("authToken", response.data.access_token);
           router.replace("/(tabs)");

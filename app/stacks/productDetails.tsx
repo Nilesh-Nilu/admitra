@@ -1,3 +1,4 @@
+import ReportModal from "@/components/modals/ReportModal";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
@@ -7,7 +8,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   BackHandler,
   Dimensions,
@@ -17,7 +17,6 @@ import {
   ScrollView,
   Share,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -25,6 +24,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ImageViewer from "react-native-image-zoom-viewer";
 import AppToast from "@/components/toasts/AppToast";
+import ThemeHeader from "@/components/headers/ThemeHeader";
 
 const { width: screenWidth } = Dimensions.get("window");
 const IMAGE_HEIGHT = screenWidth * 0.65;
@@ -40,7 +40,6 @@ export default function ProductDetailsScreen() {
   const [reportReason, setReportReason] = useState("");
   const [isReporting, setIsReporting] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
-
   const initializeProduct = useCallback(() => {
     if (params.productData) {
       try {
@@ -74,8 +73,9 @@ export default function ProductDetailsScreen() {
 
   const handleChat = async () => {
     try {
+      const vendor_id = product?.user?.user_id? product?.user?.user_id : product?.user_id;
       const response = await createConversationApi({
-        vendor_id: product?.user.id,
+        vendor_id: vendor_id,
         subject: "Product inquiry",
       });
       if (response.id) {
@@ -146,7 +146,6 @@ export default function ProductDetailsScreen() {
 
     try {
       setIsReporting(true);
-
         const response = await reportProductApi({
           product_id: Number(product.id),
           reason,
@@ -166,7 +165,7 @@ export default function ProductDetailsScreen() {
 
   // Prepare images for the zoom viewer
   const zoomImages = productImages.map((img: any) => ({
-    url: img.image,
+    url: img.image_path || img.image,
   }));
 
   if (!product) {
@@ -180,16 +179,7 @@ export default function ProductDetailsScreen() {
   return (
     <ThemedView style={styles.container}>
       {/* Header */}
-      <LinearGradient colors={["#1565C0", "#1E88E5"]} style={[styles.header]}>
-        <TouchableOpacity style={styles.headerBtn} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={24} color={COLORS.white} />
-        </TouchableOpacity>
-        <ThemedText style={styles.headerTitle}>Ad Details</ThemedText>
-        <TouchableOpacity style={styles.headerBtn} onPress={handleShare}>
-          <Ionicons name="share-outline" size={22} color={COLORS.white} />
-        </TouchableOpacity>
-      </LinearGradient>
-
+      <ThemeHeader onBackPress={() => router.push("/(tabs)")} title="Ad Details" />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -213,7 +203,7 @@ export default function ProductDetailsScreen() {
                   activeOpacity={0.9}
                 >
                   <Image
-                    source={{ uri: image.image }}
+                    source={{ uri: image.image_path || image.image }}
                     style={styles.productImage}
                     resizeMode="cover"
                   />
@@ -266,14 +256,13 @@ export default function ProductDetailsScreen() {
         )}
           {/* Seller Row */}
           <View style={styles.sellerRow}>
-            <Image
-              source={{ uri: "https://i.pravatar.cc/150?img=11" }}
-              style={styles.sellerAvatar}
-            />
+            <View style={styles.sellerAvatar}>
+              <Ionicons name="person-outline" size={24} color={COLORS.text} />
+            </View>
             <View>
               <ThemedText style={styles.sellerName}>{product?.user?.name}</ThemedText>
               <ThemedText style={styles.sellerLocation}>
-                {product?.user?.city?.name || product?.city || "India"}
+                {product?.user?.city?.name || product?.city}
               </ThemedText>
             </View>
           </View>
@@ -331,7 +320,6 @@ export default function ProductDetailsScreen() {
         <TouchableOpacity onPress={handleOpenReportModal} activeOpacity={0.8}>
           <ThemedText style={styles.reportAdText}>Report Ad</ThemedText>
         </TouchableOpacity>
-        {/* <View style={{ height: 120 }} /> */}
       </ScrollView>
 
       {/* Bottom Action Bar */}
@@ -411,57 +399,14 @@ export default function ProductDetailsScreen() {
       </Modal>
 
       {/* Report Modal */}
-      <Modal
+      <ReportModal
         visible={reportModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={handleCloseReportModal}
-      >
-        <View style={styles.reportModalOverlay}>
-          <View style={styles.reportModalCard}>
-            <ThemedText style={styles.reportModalTitle}>Report Ad</ThemedText>
-            <ThemedText style={styles.reportModalSubtitle}>
-              Tell us why you are reporting this listing.
-            </ThemedText>
-
-            <TextInput
-              style={styles.reportInput}
-              placeholder="Enter reason"
-              placeholderTextColor={COLORS.gray}
-              value={reportReason}
-              onChangeText={setReportReason}
-              editable={!isReporting}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-            />
-
-            <View style={styles.reportActionsRow}>
-              <TouchableOpacity
-                style={styles.reportCancelBtn}
-                onPress={handleCloseReportModal}
-                disabled={isReporting}
-                activeOpacity={0.8}
-              >
-                <ThemedText style={styles.reportCancelText}>Cancel</ThemedText>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.reportSubmitBtn, isReporting && styles.reportSubmitBtnDisabled]}
-                onPress={handleReportProduct}
-                disabled={isReporting}
-                activeOpacity={0.8}
-              >
-                {isReporting ? (
-                  <ActivityIndicator size="small" color={COLORS.white} />
-                ) : (
-                  <ThemedText style={styles.reportSubmitText}>Submit</ThemedText>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        reason={reportReason}
+        onChangeReason={setReportReason}
+        onClose={handleCloseReportModal}
+        onSubmit={handleReportProduct}
+        isSubmitting={isReporting}
+      />
     </ThemedView>
   );
 }
@@ -609,7 +554,9 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#EEE",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: COLORS.primary + "20",
   },
   sellerName: {
     fontSize: 15,
@@ -651,72 +598,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.error,
     textAlign: "center",
-    fontWeight: "700",
-  },
-  reportModalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "center",
-    paddingHorizontal: 20,
-  },
-  reportModalCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 14,
-    padding: 18,
-  },
-  reportModalTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: COLORS.text,
-  },
-  reportModalSubtitle: {
-    marginTop: 6,
-    fontSize: 14,
-    color: COLORS.gray,
-    lineHeight: 20,
-  },
-  reportInput: {
-    marginTop: 14,
-    minHeight: 100,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: COLORS.text,
-    backgroundColor: "#FAFAFA",
-  },
-  reportActionsRow: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 10,
-    marginTop: 16,
-  },
-  reportCancelBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-  },
-  reportCancelText: {
-    color: COLORS.gray,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  reportSubmitBtn: {
-    backgroundColor: COLORS.error,
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    minWidth: 88,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  reportSubmitBtnDisabled: {
-    opacity: 0.75,
-  },
-  reportSubmitText: {
-    color: COLORS.white,
-    fontSize: 14,
     fontWeight: "700",
   },
   /* Bottom Bar */

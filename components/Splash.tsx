@@ -6,7 +6,7 @@ const Splash = () => {
   return (
     <View style={styles.container}>
       <Image
-        source={require('../assets/images/splashImage.png')}
+        source={require('../assets/images/image.png')}
         style={styles.image}
         resizeMode="contain"
       />
@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: "100%",
-    height: SIZES.height*.3,
+    height: SIZES.height,
   },
 });
 

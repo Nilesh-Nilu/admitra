@@ -15,6 +15,8 @@ import {
   View,
 } from "react-native";
 import { useSelector } from "react-redux";
+import SafetyTipsModal from "@/components/SafetyTipsModal";
+
 
 // Shimmer skeleton component
 const ShimmerItem = ({ animatedValue }: { animatedValue: Animated.Value }) => {
@@ -92,6 +94,8 @@ export default function ChatScreen() {
   const router = useRouter();
   const [conversations, setConversations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showSafetyTips, setShowSafetyTips] = useState(true);
+
   const currentUser = useSelector((state: any) => state.entities.authReducer?.user);
 
   const getMessages = async () => {
@@ -248,6 +252,10 @@ export default function ChatScreen() {
       ) : (
         renderEmptyState()
       )}
+      <SafetyTipsModal 
+  visible={showSafetyTips} 
+  onClose={() => setShowSafetyTips(false)} 
+/>
     </ThemedView>
   );
 }

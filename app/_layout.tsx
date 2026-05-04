@@ -23,6 +23,8 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Provider } from "react-redux";
+import VersionCheck from "react-native-version-check";
+import { Alert,Linking } from "react-native";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -39,34 +41,33 @@ export default function RootLayout() {
   });
   const [isSplashVisible, setSplashVisible] = useState(true);
 
-  // TODO: Enable version check after app is published on Play Store
-  // useEffect(() => {
-  //   const checkAppVersion = async () => {
-  //     try {
-  //       const latestVersion = await VersionCheck.getLatestVersion({
-  //         packageName:'com.admitra.app',
-  //         ignoreErrors: true,
-  //       });
-  //       const currentVersion = VersionCheck.getCurrentVersion();
-  //       const latest = parseFloat(latestVersion);
-  //       const current = parseFloat(currentVersion);
-  //       if (latest > current) {
-  //         Alert.alert(
-  //           'Update Required',
-  //           'A new version of the app is available. Please update to continue using the app.',
-  //           [{ text: 'Update Now', onPress: async () => {
-  //             const url = await VersionCheck.getPlayStoreUrl({ packageName: 'com.admitra.app' });
-  //             Linking.openURL(url);
-  //           }}],
-  //           { cancelable: false }
-  //         );
-  //       }
-  //     } catch (error) {
-  //       console.error('Error checking app version:', error);
-  //     }
-  //   };
-  //   checkAppVersion();
-  // }, []);
+  useEffect(() => {
+    const checkAppVersion = async () => {
+      try {
+        const latestVersion = await VersionCheck.getLatestVersion({
+          packageName:'com.admitra.app',
+          ignoreErrors: true,
+        });
+        const currentVersion = VersionCheck.getCurrentVersion();
+        const latest = parseFloat(latestVersion);
+        const current = parseFloat(currentVersion);
+        if (latest > current) {
+          Alert.alert(
+            'Update Required',
+            'A new version of the app is available. Please update to continue using the app.',
+            [{ text: 'Update Now', onPress: async () => {
+              const url = await VersionCheck.getPlayStoreUrl({ packageName: 'com.admitra.app' });
+              Linking.openURL(url);
+            }}],
+            { cancelable: false }
+          );
+        }
+      } catch (error) {
+        console.error('Error checking app version:', error);
+      }
+    };
+    checkAppVersion();
+  }, []);
 
   const colorScheme = useColorScheme();
 

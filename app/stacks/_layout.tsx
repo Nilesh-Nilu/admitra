@@ -10,6 +10,9 @@ export default function StacksLayout() {
       <Stack.Screen name="chatDetail" options={{ headerShown: false }} />
       <Stack.Screen name="categories" options={{ headerShown: false }} />
       <Stack.Screen name="bannerDetails" options={{ headerShown: false }} />
+      <Stack.Screen name="seeAllBanners" options={{ headerShown: false }} />
+      <Stack.Screen name="seeAllFeatured" options={{ headerShown: false }} />
+      <Stack.Screen name="seeAllFresh" options={{ headerShown: false }} />
     </Stack>
   );
 }
