@@ -232,7 +232,6 @@ export default function ProductDetailsScreen() {
             </View>
           )}
         </View>
-
         {/* Title + Price Row */}
         <View style={styles.titleSection}>
           <View style={styles.titleRow}>

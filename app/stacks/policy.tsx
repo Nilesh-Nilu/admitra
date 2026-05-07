@@ -12,7 +12,7 @@ import RenderHtml from "react-native-render-html";
 export default function PolicyScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const { title = "Privacy Policy", data: policyData } = useLocalSearchParams();
+  const { title = "Policy", data: policyData, pageType } = useLocalSearchParams();
 
   // Parse the policy data from params
   const parsedData = useMemo(() => {
@@ -30,18 +30,39 @@ export default function PolicyScreen() {
   }, [policyData]);
 
   const htmlContent = useMemo(() => {
-    // Handle different data structures from API
+    // If we have pageType and an array of policies, find the matching one
+    if (Array.isArray(parsedData) && pageType) {
+      const matchedPolicy = parsedData.find(
+        (item: any) => item.page_type === pageType
+      );
+      if (matchedPolicy?.content) {
+        return matchedPolicy.content;
+      }
+    }
+
+    // Handle paginated API response: { data: [{ content: "..." }] }
     if (parsedData?.data && Array.isArray(parsedData.data) && parsedData.data.length > 0) {
-      // Paginated API response: { data: [{ content: "..." }] }
+      // If pageType is provided, find matching policy in data array
+      if (pageType) {
+        const matchedPolicy = parsedData.data.find(
+          (item: any) => item.page_type === pageType
+        );
+        if (matchedPolicy?.content) {
+          return matchedPolicy.content;
+        }
+      }
+      // Fallback to first item if no match
       return parsedData.data[0].content || "";
     }
+
+    // Handle direct content: { content: "..." }
     if (parsedData?.content) {
-      // Direct content: { content: "..." }
       return parsedData.content;
     }
+
     // Fallback static content
     return `<h1>${title}</h1><p>Content not available.</p>`;
-  }, [parsedData, title]);
+  }, [parsedData, title, pageType]);
 
   const handleBackPress = useCallback(() => {
     router.replace("/(tabs)/profile");

@@ -27,7 +27,6 @@ const CARD_WIDTH = (SCREEN_WIDTH - SIZES.padding * 2 - 12) / 2;
 export default function SeeAllFeaturedScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const insets = useSafeAreaInsets();
   const { featuredAds } = useSelector((state: any) => state.entities.userReducer) || {};
   const safeFeatured = Array.isArray(featuredAds) ? featuredAds : [];
 
@@ -90,8 +89,7 @@ export default function SeeAllFeaturedScreen() {
   return (
     <ThemedView style={[styles.container]}>
       <ThemeHeader onBackPress={() => router.back()} title="All Featured Ads" />
-      
-      {safeFeatured.length === 0 ? (
+        {safeFeatured.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="star-outline" size={64} color={COLORS.gray} />
           <ThemedText style={styles.emptyText}>No featured ads available</ThemedText>

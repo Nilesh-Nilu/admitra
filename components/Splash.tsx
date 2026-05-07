@@ -6,7 +6,7 @@ const Splash = () => {
   return (
     <View style={styles.container}>
       <Image
-        source={require('../assets/images/image.png')}
+        source={require('../assets/images/splash-logo.png')}
         style={styles.image}
         resizeMode="contain"
       />
@@ -19,7 +19,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#000000',
   },
   image: {
     width: "100%",

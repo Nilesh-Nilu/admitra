@@ -30,7 +30,7 @@ import { useDispatch, useSelector } from "react-redux";
 export default function PostScreen() {
   const router = useRouter();
   const user = useSelector((state: any) => state.entities.authReducer?.user);
-  const { categories, subCategories,plans } = useSelector((state: any) => state.entities.userReducer) || {};
+  const { categories, subCategories, plans } = useSelector((state: any) => state.entities.userReducer) || {};
   const [images, setImages] = useState<any[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -79,9 +79,9 @@ export default function PostScreen() {
       setImages([...images, ...newImages]);
     }
   };
-  useEffect(()=>{
+  useEffect(() => {
     dispatch(getPlansListApi(getPlansListUrl))
-  },[])
+  }, [])
 
   const takePhoto = async () => {
     if (images.length >= 8) {
@@ -100,7 +100,7 @@ export default function PostScreen() {
       base64: true,
     });
 
-    if (!result.canceled) {  
+    if (!result.canceled) {
       setImages([...images, `data:${result.assets[0].mimeType};base64,${result.assets[0].base64}`]);
     }
   };
@@ -148,16 +148,16 @@ export default function PostScreen() {
         banner_video_url: adType.id === 3 ? videoLink : null,
         website_link: adType.id === 3 ? websiteLink : null,
       };
-      
+
       const response = await handleVerifyandAddProductApi(payload);
-      
+
       Alert.alert(
         "Listing Submitted!",
         "Your ad has been submitted for review. It will be live shortly.",
         [{ text: "OK", onPress: () => router.push("/(tabs)") }]
       );
-      
-     dispatch(getApprovedProductsApi(getApprovedProductsUrl));
+
+      dispatch(getApprovedProductsApi(getApprovedProductsUrl));
       // Clear form
       clearForm();
     } catch (error) {
@@ -183,11 +183,10 @@ export default function PostScreen() {
     if (!validateForm()) return;
 
     setIsLoading(true);
-    
+
     try {
       // Create order for payment
       const order = await createOrderApi(adType.id);
-      console.log(order, "order");
       if (!order) {
         AppToast("Failed to create order. Please try again.");
         setIsLoading(false);
@@ -399,7 +398,7 @@ export default function PostScreen() {
                   style={[
                     styles.adTypeCard,
                     adType.id === plan.id && styles.adTypeCardActive,
-                    plan.id === 3 && styles.adTypeCardBanner,
+                    // plan.id === 3 && styles.adTypeCardBanner,
                   ]}
                   onPress={() => setAdType(plan)}
                   activeOpacity={0.8}
@@ -407,7 +406,7 @@ export default function PostScreen() {
                   <View style={styles.adTypeHeader}>
                     <View style={styles.adTypeLeft}>
                       <Ionicons
-                        name={adType.id === plan.id? "radio-button-on" : "radio-button-off"}
+                        name={adType.id === plan.id ? "radio-button-on" : "radio-button-off"}
                         size={22}
                         color={adType.id === plan.id ? COLORS.blue : COLORS.gray}
                       />
@@ -516,25 +515,25 @@ export default function PostScreen() {
             </View>
           </View>
 
-        <View style={[styles.footer]}>
-          <TouchableOpacity 
-            style={[styles.submitBtn, isLoading && styles.submitBtnDisabled]} 
-            onPress={handleSubmit}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <>
-                <ActivityIndicator size="small" color={COLORS.white} />
-                <ThemedText style={styles.submitBtnText}>Processing...</ThemedText>
-              </>
-            ) : (
-              <>
-                <ThemedText style={styles.submitBtnText}>Pay & Post Ad</ThemedText>
-                <Ionicons name="arrow-forward" size={20} color={COLORS.white} />
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
+          <View style={[styles.footer]}>
+            <TouchableOpacity
+              style={[styles.submitBtn, isLoading && styles.submitBtnDisabled]}
+              onPress={handleSubmit}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <ActivityIndicator size="small" color={COLORS.white} />
+                  <ThemedText style={styles.submitBtnText}>Processing...</ThemedText>
+                </>
+              ) : (
+                <>
+                  <ThemedText style={styles.submitBtnText}>Pay & Post Ad</ThemedText>
+                  <Ionicons name="arrow-forward" size={20} color={COLORS.white} />
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
         </ScrollView>
 
         {/* Submit Button */}
@@ -740,8 +739,9 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   adTypeCardActive: {
-    borderColor: COLORS.primary,
     borderWidth: 1,
+    borderColor: "#E53935",
+    backgroundColor: "#FFEBEE",
   },
   adTypeCardBanner: {
     borderColor: "#E53935",

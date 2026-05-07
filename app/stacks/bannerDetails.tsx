@@ -17,7 +17,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import WebView from "react-native-webview";
 import { reportProductApi } from "@/constants/functions";
 import AppToast from "@/components/toasts/AppToast";
 import { COLORS } from "@/constants/Colors";
@@ -181,6 +180,9 @@ export default function BannerDetailsScreen() {
           <ThemedText style={styles.description}>
             {banner?.product?.description || "AC Installation, Repairing & Maintenance"}
           </ThemedText>
+          <ThemedText style={styles.price}>
+            ₹{banner?.product?.price || ""}
+          </ThemedText>
         </View>
 
         {/* Divider */}
@@ -321,11 +323,15 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "700",
   },
+  price: {
+    fontSize: 16,
+    color: "#1a1a1a",
+    fontWeight: "700",
+  },
   title: {
     fontSize: 22,
     fontWeight: "700",
     color: "#1a1a1a",
-    marginBottom: 8,
   },
   description: {
     fontSize: 15,

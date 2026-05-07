@@ -286,10 +286,10 @@ export const markConversationAsReadApi = async (conversationId) => {
   }
 };
 
-export const getPolicyApi = async (url) => {
+export const getPolicyApi = async () => {
   try {
     const response = await axios.get(
-      `${baseUrl}/${url}`,
+      `${baseUrl}/pages`,
       await getAuthToken()
     );
     return response.data.data;

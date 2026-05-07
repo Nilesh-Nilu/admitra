@@ -24,6 +24,7 @@ import {
   getSubCategoriesApi,
 } from "@/store/reducers/userReducer";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -171,11 +172,28 @@ export default function HomeScreen() {
     ? safeProducts.filter((p: any) => p.category_id === selectedCategory)
     : safeProducts;
 
+  // Load saved city from AsyncStorage on mount
+  useEffect(() => {
+    const loadSavedCity = async () => {
+      try {
+        const savedCityJson = await AsyncStorage.getItem("selectedCity");
+        if (savedCityJson) {
+          const savedCity = JSON.parse(savedCityJson);
+          setSelectedCity(savedCity);
+        }
+      } catch (error) {
+        console.log("Error loading saved city:", error);
+      }
+    };
+    loadSavedCity();
+  }, []);
+
+  // Set default city only if no saved city and cities are loaded
   useEffect(() => {
     if (!selectedCity && safeCities.length > 0) {
       setSelectedCity(safeCities[0]);
     }
-  }, [safeCities, selectedCity]);
+  }, [safeCities]);
 
   useEffect(() => {
     dispatch(getCategoriesApi(getCategoriesUrl));
@@ -718,10 +736,14 @@ export default function HomeScreen() {
                 key={String(city.id)}
                 style={[styles.cityItem, selected && styles.cityItemSel]}
                 activeOpacity={0.75}
-                onPress={() => {
+                onPress={async () => {
                   setSelectedCity(city);
                   setShowCitySheet(false);
-
+                  try {
+                    await AsyncStorage.setItem("selectedCity", JSON.stringify(city));
+                  } catch (error) {
+                    console.log("Error saving city:", error);
+                  }
                 }}
               >
                 <View>

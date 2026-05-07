@@ -3,7 +3,7 @@ import GetVerifiedProfileModal from "@/components/modals/GetVerifiedProfileModal
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
-import { getPolicyApi, getPrivacyPolicyUrl, getRefundPolicyUrl, getTermsAndConditionsUrl, ImageUrl, logoutUser, updateUserProfileUrl } from "@/constants/functions";
+import { getPolicyApi, ImageUrl, logoutUser, updateUserProfileUrl } from "@/constants/functions";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 import { updateUserProfile } from "@/store/reducers/authReducer";
 import { Ionicons } from "@expo/vector-icons";
@@ -45,27 +45,72 @@ export default function ProfileScreen() {
   const { states, cities } = useSelector((state: any) => state.entities.userReducer);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
+
+  // Page types from API data
+  const PAGE_TYPES = {
+    REFUND: "refund_and_Cancellation_policy",
+    PRICING: "pricing-policy",
+    DISCLAIMER: "disclaimer",
+    COMMUNITY: "community_guidelines",
+    NOTIFICATION: "notification_policy",
+    DATA_RETENTION: "data_retention_policy",
+    INTELLECTUAL: "intellectual_Property _Copyright_policy",
+    CONTENT_AD: "content_ad_posting_policy",
+    GMAIL_HELP: "gmail_help",
+    REPORT: "report_ad_user",
+  };
+
   const menuItems = [
     {
-      icon: "document-text-outline",
-      title: "Terms & Conditions",
-      onPress: () => handleMenuPress("/stacks/policy", "Terms & Conditions", getTermsAndConditionsUrl),
-    },
-    {
-      icon: "shield-checkmark-outline",
-      title: "Privacy Policy",
-      onPress: () => handleMenuPress("/stacks/policy", "Privacy Policy", getPrivacyPolicyUrl),
-    },
-    {
       icon: "refresh-outline",
-      title: "Refund Policy",
-      onPress: () => handleMenuPress("/stacks/policy", "Refund Policy", getRefundPolicyUrl),
+      title: "Refund & Cancellation Policy",
+      pageType: PAGE_TYPES.REFUND,
     },
-    // {
-    //   icon: "call-outline",
-    //   title: "Help/Guide",
-    //   onPress: () => handleMenuPress("/stacks/policy", "Help/Guide"),
-    // },
+    {
+      icon: "pricetag-outline",
+      title: "Pricing Policy",
+      pageType: PAGE_TYPES.PRICING,
+    },
+    {
+      icon: "alert-circle-outline",
+      title: "Disclaimer",
+      pageType: PAGE_TYPES.DISCLAIMER,
+    },
+    {
+      icon: "people-outline",
+      title: "Community Guidelines",
+      pageType: PAGE_TYPES.COMMUNITY,
+    },
+    {
+      icon: "notifications-outline",
+      title: "Notification Policy",
+      pageType: PAGE_TYPES.NOTIFICATION,
+    },
+    {
+      icon: "server-outline",
+      title: "Data Retention Policy",
+      pageType: PAGE_TYPES.DATA_RETENTION,
+    },
+    {
+      icon: "shield-outline",
+      title: "Intellectual Property & Copyright",
+      pageType: PAGE_TYPES.INTELLECTUAL,
+    },
+    {
+      icon: "create-outline",
+      title: "Content & Ad Posting Policy",
+      pageType: PAGE_TYPES.CONTENT_AD,
+    },
+    {
+      icon: "mail-outline",
+      title: "Gmail Help",
+      pageType: PAGE_TYPES.GMAIL_HELP,
+    },
+    {
+      icon: "flag-outline",
+      title: "Report Ad / User",
+      pageType: PAGE_TYPES.REPORT,
+    },
   ];
 
   const isVerified = user?.is_verify === 1;
@@ -84,20 +129,18 @@ export default function ProfileScreen() {
     return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
   };
 
-  const handleMenuPress = async (route: string, title: string, url?: string) => {
+  const handleMenuPress = async (title: string, pageType: string) => {
     let responseData = undefined;
-    if (url) {
-      try {
-        responseData = await getPolicyApi(url);
-        console.log(responseData, "response");
-      } catch (error) {
-        console.log(error, "Failed to fetch policy data");
-      }
+    try {
+      responseData = await getPolicyApi();
+    } catch (error) {
+      console.log(error, "Failed to fetch policy data");
     }
     router.push({
-      pathname: route as any,
+      pathname: "/stacks/policy" as any,
       params: {
         title: title,
+        pageType: pageType,
         ...(responseData ? { data: JSON.stringify(responseData) } : {}),
       },
     });
@@ -200,15 +243,18 @@ export default function ProfileScreen() {
           <View style={styles.profileCard}>
             <View style={styles.profileLeft}>
               <View style={styles.avatarWrap}>
-                <Image
-                  source={
-                    user?.AadharImage
-                      ? `${ImageUrl}/${user?.AadharImage}`
-                      : "https://i.pravatar.cc/150?img=11"
-                  }
-                  style={styles.avatar}
-                />
+                {user?.AadharImage ? (
+                  <Image
+                    source={{ uri: `${ImageUrl}/${user?.AadharImage}` }}
+                    style={styles.avatar}
+                  />
+                ) : (
+                  <View style={styles.avatarPlaceholder}>
+                  <Ionicons name="person-outline" size={24} color={COLORS.text} />
+                  </View>
+                )}
                 {isVerified && (
+          
                   <View style={styles.verifiedBadge}>
                     <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
                   </View>
@@ -238,7 +284,7 @@ export default function ProfileScreen() {
         {isVerified ? (
           <View style={styles.verificationBanner}>
             <View style={styles.verificationIcon}>
-              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+              <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
             </View>
             <View style={styles.verificationText}>
               <ThemedText style={styles.verificationTitle}>Your profile is verified!</ThemedText>
@@ -248,11 +294,17 @@ export default function ProfileScreen() {
             </View>
           </View>
         ) : (
-          <TouchableOpacity style={styles.verificationBanner} onPress={handleOpenVerificationModal}>
-            <View style={styles.verificationText}>
-              <ThemedText style={styles.verificationTitle}>Get Verified!</ThemedText>
+          <TouchableOpacity style={styles.verificationBannerPending} onPress={handleOpenVerificationModal}>
+            <View style={styles.verificationIconPending}>
+              <Ionicons name="shield-checkmark" size={24} color="#1565C0" />
             </View>
-            <Ionicons name="checkmark-circle" size={20} color={COLORS.white} />
+            <View style={styles.verificationText}>
+              <ThemedText style={styles.verificationTitlePending}>Get Verified!</ThemedText>
+              <ThemedText style={styles.verificationSubtitlePending}>
+                Verify your profile to build trust.
+              </ThemedText>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#1565C0" />
           </TouchableOpacity>
         )}
         {/* Profile Overview Stats */}
@@ -399,8 +451,8 @@ export default function ProfileScreen() {
           {menuItems.map((item, index) => (
             <TouchableOpacity
               key={index}
-              style={styles.menuItem}
-              onPress={item.onPress}
+              style={[styles.menuItem, index === menuItems.length - 1 && styles.menuItemLast]}
+              onPress={() => handleMenuPress(item.title, item.pageType)}
               activeOpacity={0.7}
             >
               <View style={styles.menuItemLeft}>
@@ -487,6 +539,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
+  avatarPlaceholder: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: COLORS.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 3,
+    borderColor: "rgba(255,255,255,0.4)",
+  },
   profileLeft: {
     flexDirection: "row",
     alignItems: "center",
@@ -546,23 +608,22 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.8)",
   },
 
-  /* Verification Banner */
+  /* Verification Banner - Success State (Green) */
   verificationBanner: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: COLORS.success,
+    backgroundColor: "#E8F5E9",
     marginHorizontal: SIZES.padding,
     marginTop: 16,
-    padding: 12,
+    padding: 16,
     borderRadius: 12,
-    // gap: 10,
+    gap: 12,
   },
   verificationIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: COLORS.white,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#C8E6C9",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -570,13 +631,43 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   verificationTitle: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "700",
-    color: COLORS.white,
+    color: "#1B5E20",
   },
   verificationSubtitle: {
-    fontSize: 12,
-    color: "#4CAF50",
+    fontSize: 13,
+    color: "#2E7D32",
+    marginTop: 2,
+  },
+
+  /* Verification Banner - Pending State (Blue) */
+  verificationBannerPending: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#E3F2FD",
+    marginHorizontal: SIZES.padding,
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 12,
+    gap: 12,
+  },
+  verificationIconPending: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#BBDEFB",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  verificationTitlePending: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0D47A1",
+  },
+  verificationSubtitlePending: {
+    fontSize: 13,
+    color: "#1565C0",
     marginTop: 2,
   },
 

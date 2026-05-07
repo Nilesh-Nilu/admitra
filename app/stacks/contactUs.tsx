@@ -6,7 +6,7 @@ import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect } from "react";
+import { useEffect } from "react";
 import { BackHandler, Linking, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
