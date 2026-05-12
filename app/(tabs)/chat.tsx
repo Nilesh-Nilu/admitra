@@ -94,7 +94,6 @@ export default function ChatScreen() {
   const router = useRouter();
   const [conversations, setConversations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showSafetyTips, setShowSafetyTips] = useState(true);
 
   const currentUser = useSelector((state: any) => state.entities.authReducer?.user);
 
@@ -236,7 +235,7 @@ export default function ChatScreen() {
     <ThemedView style={styles.container}>
       {/* Header */}
       <ThemeHeader onBackPress={() => router.back()} title="Chats" />
-    
+
 
       {/* Chat List */}
       {loading ? (
@@ -252,10 +251,7 @@ export default function ChatScreen() {
       ) : (
         renderEmptyState()
       )}
-      <SafetyTipsModal 
-  visible={showSafetyTips} 
-  onClose={() => setShowSafetyTips(false)} 
-/>
+
     </ThemedView>
   );
 }

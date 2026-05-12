@@ -20,6 +20,7 @@ import {
 import { reportProductApi } from "@/constants/functions";
 import AppToast from "@/components/toasts/AppToast";
 import { COLORS } from "@/constants/Colors";
+import ImageZoomModal from "@/components/modals/ImageZoomModal";
 
 const { width: screenWidth } = Dimensions.get("window");
 const BANNER_HEIGHT = screenWidth * 0.5;
@@ -47,6 +48,7 @@ export default function BannerDetailsScreen() {
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [isReporting, setIsReporting] = useState(false);
+  const [zoomModalVisible, setZoomModalVisible] = useState(false);
 
   const initializeBanner = useCallback(() => {
     if (params.bannerData) {
@@ -165,11 +167,16 @@ export default function BannerDetailsScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Banner Image / Video */}
         <View style={styles.bannerContainer}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => banner?.banner_image && setZoomModalVisible(true)}
+          >
             <Image
               source={{ uri: banner?.banner_image }}
               style={styles.bannerImage}
               resizeMode="cover"
             />
+          </TouchableOpacity>
         </View>
 
         {/* Ad Info */}
@@ -252,6 +259,12 @@ export default function BannerDetailsScreen() {
         onClose={handleCloseReportModal}
         onSubmit={handleReportProduct}
         isSubmitting={isReporting}
+      />
+      <ImageZoomModal
+        visible={zoomModalVisible}
+        images={banner?.banner_image ? [{ image: banner.banner_image }] : []}
+        initialIndex={0}
+        onClose={() => setZoomModalVisible(false)}
       />
     </ThemedView>
   );

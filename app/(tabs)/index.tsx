@@ -47,7 +47,7 @@ import { useDispatch, useSelector } from "react-redux";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = (SCREEN_WIDTH - SIZES.padding * 2 - 12) / 2;
 const FEATURED_CARD_WIDTH = SCREEN_WIDTH * 0.38;
-const BANNER_WIDTH = SCREEN_WIDTH - SIZES.padding * 2;
+const BANNER_WIDTH = SCREEN_WIDTH;
 
 const ShimmerBlock = ({
   style,
@@ -156,9 +156,11 @@ export default function HomeScreen() {
   const dispatch = useDispatch();
   const { loader, cities, categories, products, banners, featuredAds } =
     useSelector((state: any) => state.entities.userReducer) || {};
+  const { user } = useSelector((state: any) => state.entities.authReducer) || {};
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [showCitySheet, setShowCitySheet] = useState(false);
   const [selectedCity, setSelectedCity] = useState<any>(null);
+  const [isCityInitialized, setIsCityInitialized] = useState(false);
   const [bannerIndex, setBannerIndex] = useState(0);
   const bannerScrollRef = useRef<ScrollView>(null);
   const autoPlayRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -172,28 +174,50 @@ export default function HomeScreen() {
     ? safeProducts.filter((p: any) => p.category_id === selectedCategory)
     : safeProducts;
 
-  // Load saved city from AsyncStorage on mount
+  // Initialize city based on user profile, saved city, or default to first city
   useEffect(() => {
-    const loadSavedCity = async () => {
+    const initializeCity = async () => {
+      if (safeCities.length === 0 || isCityInitialized) return;
+
       try {
+        // Priority 1: User's city from profile
+        if (user?.city_id) {
+          const userCity = safeCities.find((c: any) => Number(c.id) === Number(user.city_id));
+          if (userCity) {
+            setSelectedCity(userCity);
+            await AsyncStorage.setItem("selectedCity", JSON.stringify(userCity));
+            setIsCityInitialized(true);
+            return;
+          }
+        }
+
+        // Priority 2: Saved city from AsyncStorage
         const savedCityJson = await AsyncStorage.getItem("selectedCity");
         if (savedCityJson) {
           const savedCity = JSON.parse(savedCityJson);
-          setSelectedCity(savedCity);
+          const stillExists = safeCities.some((c: any) => Number(c.id) === Number(savedCity.id));
+          if (stillExists) {
+            setSelectedCity(savedCity);
+            setIsCityInitialized(true);
+            return;
+          }
         }
+
+        // Priority 3: Default to first city
+        setSelectedCity(safeCities[0]);
+        setIsCityInitialized(true);
       } catch (error) {
-        console.log("Error loading saved city:", error);
+        console.log("Error initializing city:", error);
+        // Fallback to first city on error
+        if (safeCities.length > 0) {
+          setSelectedCity(safeCities[0]);
+          setIsCityInitialized(true);
+        }
       }
     };
-    loadSavedCity();
-  }, []);
 
-  // Set default city only if no saved city and cities are loaded
-  useEffect(() => {
-    if (!selectedCity && safeCities.length > 0) {
-      setSelectedCity(safeCities[0]);
-    }
-  }, [safeCities]);
+    initializeCity();
+  }, [safeCities, user, isCityInitialized]);
 
   useEffect(() => {
     dispatch(getCategoriesApi(getCategoriesUrl));
@@ -693,12 +717,6 @@ export default function HomeScreen() {
           <ThemedText style={styles.emptySub}>
             No products available in this category
           </ThemedText>
-          {/* <TouchableOpacity
-            style={styles.emptyBtn}
-            onPress={() => setSelectedCategory(null)}
-          >
-            <ThemedText style={styles.emptyBtnText}>View All Products</ThemedText>
-          </TouchableOpacity> */}
         </View>
       )}
     </View>
@@ -808,7 +826,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 8,
-    marginBottom: 12,
   },
   logoContainer: { flex: 1 },
   logo: { width: 56, height: 44, resizeMode: "contain" },
@@ -848,7 +865,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginBottom: 14,
+    marginBottom: SIZES.padding,
   },
   searchContainer: {
     flex: 1,
@@ -921,14 +938,12 @@ const styles = StyleSheet.create({
   bannerCard: {
     width: BANNER_WIDTH,
     height: 180,
-    borderRadius: 14,
+    borderRadius: 0,
     overflow: "hidden",
-    marginRight: 12,
   },
   bannerImage: {
     width: "100%",
     height: "100%",
-    borderRadius: 14,
     justifyContent: "flex-end",
     alignItems: "center",
   },
@@ -971,17 +986,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
     color: COLORS.white,
-  },
-  bannerVideoContainer: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 14,
-    overflow: "hidden",
-    backgroundColor: COLORS.black,
-  },
-  bannerVideo: {
-    width: "100%",
-    height: "100%",
   },
   bannerDots: {
     flexDirection: "row",

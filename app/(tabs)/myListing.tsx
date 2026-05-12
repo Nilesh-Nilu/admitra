@@ -125,6 +125,7 @@ export default function MyListingsScreen() {
 
   const renderListingCard = ({ item }: { item: any }) => {
     const statusConfig = getStatusConfig(item.approve);
+    const firstImage = item.images && item.images.length > 0 ? item.images[0].image_path : null;
 
     return (
       <TouchableOpacity
@@ -132,15 +133,23 @@ export default function MyListingsScreen() {
         activeOpacity={0.8}
         onPress={() => openDetailModal(item)}
       >
-        {/* Product Image Placeholder */}
-        <View style={styles.imagePlaceholder}>
-          <LinearGradient
-            colors={["#11998e", "#38ef7d"]}
-            style={styles.imagePlaceholderGradient}
-          >
-            <Ionicons name="cube" size={32} color={COLORS.white} />
-          </LinearGradient>
-        </View>
+        {/* Product Image */}
+        {firstImage ? (
+          <Image
+            source={{ uri: firstImage }}
+            style={styles.productImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={styles.imagePlaceholder}>
+            <LinearGradient
+              colors={["#11998e", "#38ef7d"]}
+              style={styles.imagePlaceholderGradient}
+            >
+              <Ionicons name="cube" size={32} color={COLORS.white} />
+            </LinearGradient>
+          </View>
+        )}
 
         {/* Product Info */}
         <View style={styles.listingInfo}>
@@ -170,16 +179,6 @@ export default function MyListingsScreen() {
             </View>
           </View>
         </View>
-
-        {/* Actions */}
-        {/* <View style={styles.listingActions}>
-          <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="create-outline" size={18} color={COLORS.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionButton, styles.deleteButton]}>
-            <Ionicons name="trash-outline" size={18} color={COLORS.error} />
-          </TouchableOpacity>
-        </View> */}
       </TouchableOpacity>
     );
   };
@@ -229,7 +228,7 @@ export default function MyListingsScreen() {
                   {selectedItem.images.map((img: any, index: number) => (
                     <Image
                       key={index}
-                      source={{ uri: img.image }}
+                      source={{ uri: img.image_path }}
                       style={styles.modalImage}
                       resizeMode="cover"
                     />
@@ -427,6 +426,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
+  },
+  productImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
   },
   imagePlaceholder: {
     width: 80,

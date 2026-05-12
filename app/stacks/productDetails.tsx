@@ -1,4 +1,5 @@
 import ReportModal from "@/components/modals/ReportModal";
+import ImageZoomModal from "@/components/modals/ImageZoomModal";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
@@ -13,7 +14,6 @@ import {
   Dimensions,
   Image,
   Linking,
-  Modal,
   ScrollView,
   Share,
   StyleSheet,
@@ -22,7 +22,6 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import ImageViewer from "react-native-image-zoom-viewer";
 import AppToast from "@/components/toasts/AppToast";
 import ThemeHeader from "@/components/headers/ThemeHeader";
 
@@ -163,10 +162,6 @@ export default function ProductDetailsScreen() {
     }
   };
 
-  // Prepare images for the zoom viewer
-  const zoomImages = productImages.map((img: any) => ({
-    url: img.image_path || img.image,
-  }));
 
   if (!product) {
     return (
@@ -335,67 +330,13 @@ export default function ProductDetailsScreen() {
       </View>
 
       {/* Zoom Modal */}
-      <Modal
+      <ImageZoomModal
         visible={zoomModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={handleZoomModalClose}
-      >
-        <View style={styles.zoomModalContainer}>
-          {/* Close Button */}
-          <TouchableOpacity
-            style={styles.zoomCloseButton}
-            onPress={handleZoomModalClose}
-          >
-            <Ionicons name="close" size={28} color={COLORS.white} />
-          </TouchableOpacity>
-
-          {/* Image Counter */}
-          {productImages.length > 1 && (
-            <View style={styles.zoomImageCounter}>
-              <ThemedText style={styles.zoomCounterText}>
-                {selectedImageIndex + 1} / {productImages.length}
-              </ThemedText>
-            </View>
-          )}
-
-          {/* Zoomable Image Viewer */}
-          <ImageViewer
-            imageUrls={zoomImages}
-            index={selectedImageIndex}
-            onChange={(index) => setSelectedImageIndex(index || 0)}
-            onCancel={handleZoomModalClose}
-            enableSwipeDown={true}
-            onSwipeDown={handleZoomModalClose}
-            saveToLocalByLongPress={false}
-            renderIndicator={() => <></>}
-            backgroundColor="transparent"
-            style={styles.zoomViewer}
-          />
-
-          {/* Zoom Hint */}
-          <View style={styles.zoomHintContainer}>
-            <ThemedText style={styles.zoomHintText}>
-              Pinch to zoom • Swipe to navigate • Swipe down to close
-            </ThemedText>
-          </View>
-
-          {/* Dots Indicator */}
-          {productImages.length > 1 && (
-            <View style={styles.zoomDotsRow}>
-              {productImages.map((_: any, i: number) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.zoomDot,
-                    i === selectedImageIndex && styles.zoomDotActive,
-                  ]}
-                />
-              ))}
-            </View>
-          )}
-        </View>
-      </Modal>
+        images={productImages}
+        initialIndex={selectedImageIndex}
+        onClose={handleZoomModalClose}
+        onIndexChange={setSelectedImageIndex}
+      />
 
       {/* Report Modal */}
       <ReportModal
@@ -648,8 +589,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: COLORS.white,
   },
-
-  /* Zoom Feature Styles */
   zoomHint: {
     position: "absolute",
     bottom: 10,
@@ -657,77 +596,5 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.4)",
     borderRadius: 20,
     padding: 8,
-  },
-
-  /* Zoom Modal */
-  zoomModalContainer: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.95)",
-  },
-  zoomCloseButton: {
-    position: "absolute",
-    top: 50,
-    right: 20,
-    zIndex: 10,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  zoomImageCounter: {
-    position: "absolute",
-    top: 50,
-    left: 20,
-    zIndex: 10,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  zoomCounterText: {
-    color: COLORS.white,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  zoomViewer: {
-    flex: 1,
-  },
-  zoomHintContainer: {
-    position: "absolute",
-    bottom: 100,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-  },
-  zoomHintText: {
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 12,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  zoomDotsRow: {
-    position: "absolute",
-    bottom: 60,
-    left: 0,
-    right: 0,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 8,
-  },
-  zoomDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "rgba(255,255,255,0.4)",
-  },
-  zoomDotActive: {
-    backgroundColor: COLORS.white,
-    width: 20,
-    borderRadius: 4,
   },
 });

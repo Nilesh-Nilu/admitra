@@ -1,3 +1,4 @@
+import SafetyTipsModal from "@/components/SafetyTipsModal";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
@@ -25,6 +26,7 @@ export default function ChatDetailScreen() {
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
   const [inputText, setInputText] = useState("");
+  const [showSafetyTips, setShowSafetyTips] = useState(true);
   const currentUser = useSelector((state: any) => state.entities.authReducer?.user);
   const userName = params.userName as string || "User";
   const conversation_id = params.conversation_id as string || "";
@@ -228,6 +230,10 @@ export default function ChatDetailScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+      <SafetyTipsModal
+        visible={showSafetyTips}
+        onClose={() => setShowSafetyTips(false)}
+      />
     </ThemedView>
   );
 }
