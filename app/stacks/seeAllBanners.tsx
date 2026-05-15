@@ -92,31 +92,39 @@ export default function SeeAllBannersScreen() {
         style={styles.bannerImage}
         resizeMode="cover"
       >
-        <View style={styles.bannerActions}>
-          <TouchableOpacity
-            style={styles.bannerBtnLeft}
-            activeOpacity={0.8}
-            onPress={(e) => {
-              e.stopPropagation();
-              handleVisitWebsite(item.website_link);
-            }}
-          >
-            <Ionicons name="globe-outline" size={16} color="#1565C0" />
-            <ThemedText style={styles.bannerBtnLeftText}>Visit Website</ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.bannerBtnRight}
-            activeOpacity={0.8}
-            onPress={(e) => {
-              e.stopPropagation();
-              handleWatchVideo(item.banner_video_url);
-            }}
-          >
-            <Ionicons name="play-circle" size={16} color={COLORS.white} />
-            <ThemedText style={styles.bannerBtnRightText}>Watch Video</ThemedText>
-          </TouchableOpacity>
+        <View style={styles.bannerBadge}>
+          <ThemedText style={styles.bannerBadgeText}>Banner</ThemedText>
         </View>
       </ImageBackground>
+      <View style={styles.bannerDescriptionContainer}>
+        <ThemedText style={styles.bannerDescriptionText} numberOfLines={2}>
+          {item.product.description}
+        </ThemedText>
+      </View>
+      <View style={styles.bannerActions}>
+        <TouchableOpacity
+          style={styles.bannerBtnLeft}
+          activeOpacity={0.8}
+          onPress={(e) => {
+            e.stopPropagation();
+            handleVisitWebsite(item.website_link);
+          }}
+        >
+          <Ionicons name="globe-outline" size={16} color="#1565C0" />
+          <ThemedText style={styles.bannerBtnLeftText}>Visit Website</ThemedText>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.bannerBtnRight}
+          activeOpacity={0.8}
+          onPress={(e) => {
+            e.stopPropagation();
+            handleWatchVideo(item.banner_video_url);
+          }}
+        >
+          <Ionicons name="play-circle" size={16} color={COLORS.white} />
+          <ThemedText style={styles.bannerBtnRightText}>Watch Video</ThemedText>
+        </TouchableOpacity>
+      </View>
     </TouchableOpacity>
   ), []);
 
@@ -134,7 +142,6 @@ export default function SeeAllBannersScreen() {
           renderItem={renderBannerItem}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContainer}
-          showsVerticalScrollIndicator={false}
         />
       )}
     </ThemedView>
@@ -152,25 +159,48 @@ const styles = StyleSheet.create({
   },
   bannerCard: {
     width: BANNER_WIDTH,
-    height: 180,
     borderRadius: 16,
     overflow: "hidden",
-    backgroundColor: COLORS.lightGray,
-    elevation:8
+    backgroundColor: COLORS.white,
+    elevation: 8,
   },
   bannerImage: {
     width: "100%",
-    height: "100%",
-    borderRadius: 16,
-    justifyContent: "flex-end",
-    alignItems: "center",
+    height: 140,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  bannerBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "#1565C0",
+    borderRadius: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  bannerBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: COLORS.white,
+    textTransform: "uppercase",
+  },
+  bannerDescriptionContainer: {
+    padding: 12,
+    backgroundColor: COLORS.white,
+  },
+  bannerDescriptionText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: COLORS.black,
+    lineHeight: 20,
   },
   bannerActions: {
     flexDirection: "row",
     width: "100%",
     backgroundColor: COLORS.white,
-    paddingVertical: 10,
     paddingHorizontal: 12,
+    paddingBottom: 12,
   },
   bannerBtnLeft: {
     flex: 1,

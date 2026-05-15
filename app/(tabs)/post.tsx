@@ -9,8 +9,8 @@ import { setClearData } from "@/store/reducers/paymentReducer";
 import { getApprovedProductsApi, getPlansListApi } from "@/store/reducers/userReducer";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -60,10 +60,11 @@ export default function PostScreen() {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsMultipleSelection: true,
       quality: 0.8,
       selectionLimit: 8 - images.length,
       base64: true,
+      allowsEditing: true,
+      aspect: [1, 1],
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -82,6 +83,14 @@ export default function PostScreen() {
   useEffect(() => {
     dispatch(getPlansListApi(getPlansListUrl))
   }, [])
+  useFocusEffect(
+    React.useCallback(() => {
+      // When this screen is unfocused (navigated away from), clear images
+      return () => {
+        setImages([]);
+      };
+    }, [])
+  );
 
   const takePhoto = async () => {
     if (images.length >= 8) {
@@ -98,6 +107,8 @@ export default function PostScreen() {
     const result = await ImagePicker.launchCameraAsync({
       quality: 0.8,
       base64: true,
+      allowsEditing: true,
+      aspect: [1, 1],
     });
 
     if (!result.canceled) {
@@ -121,6 +132,10 @@ export default function PostScreen() {
     }
     if (!selectedCategory) {
       Alert.alert("Category Required", "Please select a category");
+      return false;
+    }
+    if (!selectedSubCategory) {
+      Alert.alert("Sub Category Required", "Please select a sub category");
       return false;
     }
     if (!price.trim()) {
@@ -248,7 +263,6 @@ export default function PostScreen() {
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           {/* Image Upload Section */}

@@ -231,7 +231,6 @@ export default function ProfileScreen() {
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
       >
         {/* Blue Header */}
         <LinearGradient colors={["#1565C0", "#1E88E5"]} style={styles.header}>

@@ -100,7 +100,6 @@ export default function SeeAllFeaturedScreen() {
           renderItem={renderFeaturedItem}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContainer}
-          showsVerticalScrollIndicator={false}
           numColumns={2}
           columnWrapperStyle={styles.columnWrapper}
         />

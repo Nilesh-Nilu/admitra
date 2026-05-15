@@ -191,7 +191,6 @@ export default function ChatDetailScreen() {
             renderItem={renderMessage}
             keyExtractor={(item) => item.id.toString()}
             contentContainerStyle={styles.messagesList}
-            showsVerticalScrollIndicator={false}
             onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
           />
         ) : (

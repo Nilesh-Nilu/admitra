@@ -293,7 +293,6 @@ const GetVerifiedProfileModal: React.FC<GetVerifiedProfileModalProps> = ({
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
         >
           {/* Full Name */}
           <View style={styles.fieldContainer}>

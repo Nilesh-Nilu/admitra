@@ -138,7 +138,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
             <ScrollView
               style={styles.modalForm}
-              showsVerticalScrollIndicator={false}
             >
               <View style={styles.inputGroup}>
                 <ThemedText style={styles.inputLabel}>Name</ThemedText>

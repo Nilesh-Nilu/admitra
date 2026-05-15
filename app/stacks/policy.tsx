@@ -150,7 +150,6 @@ export default function PolicyScreen() {
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
       >
         <View style={styles.logoContainer}>
           <View style={styles.logo}>

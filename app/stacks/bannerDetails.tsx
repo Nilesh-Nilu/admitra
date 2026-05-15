@@ -61,7 +61,6 @@ export default function BannerDetailsScreen() {
       }
     }
   }, [params.bannerData]);
-  console.log(banner, "banner");
   useEffect(() => {
     initializeBanner();
   }, [initializeBanner]);
@@ -164,7 +163,12 @@ export default function BannerDetailsScreen() {
     <ThemedView style={styles.container}>
       {/* Header */}
       <ThemeHeader onBackPress={() => router.push("/(tabs)")} title="Ad Actions" />
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.scrollContent}
+        nestedScrollEnabled={true}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Banner Image / Video */}
         <View style={styles.bannerContainer}>
           <TouchableOpacity
@@ -301,6 +305,10 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: SIZES.padding20*10,
   },
   bannerContainer: {
     marginHorizontal: SIZES.padding,

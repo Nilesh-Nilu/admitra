@@ -246,7 +246,6 @@ export default function ChatScreen() {
           renderItem={renderChatItem}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.chatList}
-          showsVerticalScrollIndicator={false}
         />
       ) : (
         renderEmptyState()

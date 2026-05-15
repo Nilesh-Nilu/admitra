@@ -176,8 +176,9 @@ export default function ProductDetailsScreen() {
       {/* Header */}
       <ThemeHeader onBackPress={() => router.push("/(tabs)")} title="Ad Details" />
       <ScrollView
-        showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        nestedScrollEnabled={true}
+        keyboardShouldPersistTaps="handled"
       >
         {/* Image Card */}
         <View style={styles.imageCard}>
@@ -384,8 +385,10 @@ const styles = StyleSheet.create({
   },
 
   scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: SIZES.padding,
-    paddingTop: 16,
+    paddingTop: SIZES.padding16,
+    paddingBottom: SIZES.padding20 * 6,
   },
 
   /* Image Card */

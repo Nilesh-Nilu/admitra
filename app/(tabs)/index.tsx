@@ -49,6 +49,11 @@ const CARD_WIDTH = (SCREEN_WIDTH - SIZES.padding * 2 - 12) / 2;
 const FEATURED_CARD_WIDTH = SCREEN_WIDTH * 0.38;
 const BANNER_WIDTH = SCREEN_WIDTH;
 
+// Icon sizes (not in SIZES constant)
+const ICON_SIZE_SMALL = 12;
+const ICON_SIZE_MEDIUM = 24;
+const ICON_SIZE_LARGE = 32;
+
 const ShimmerBlock = ({
   style,
   animatedValue,
@@ -394,7 +399,7 @@ export default function HomeScreen() {
         activeOpacity={0.8}
       >
         <Ionicons name="logo-whatsapp" size={16} color={COLORS.white} />
-        <ThemedText style={styles.whatsappText}>WhatsApp Help</ThemedText>
+        <ThemedText style={styles.whatsappText}>Help</ThemedText>
       </TouchableOpacity>
     </View>
   );
@@ -611,7 +616,7 @@ export default function HomeScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ gap: 10 }}
         >
-          {featuredAds.slice(0, 8).map((item: any) => (
+          {featuredAds.slice(0, 20).map((item: any) => (
             <TouchableOpacity
               key={item.id}
               style={styles.featuredCard}
@@ -745,7 +750,6 @@ export default function HomeScreen() {
         <ScrollView
           style={{ marginTop: 4 }}
           contentContainerStyle={{ paddingBottom: 24 }}
-          showsVerticalScrollIndicator={false}
         >
           {safeCities.map((city: any) => {
             const selected = Number(selectedCity?.id) === Number(city?.id);
@@ -794,7 +798,6 @@ export default function HomeScreen() {
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
       >
         {renderHeader()}
         {loader ? (
@@ -816,7 +819,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F5F5F5", top: -8 },
+  container: { flex: 1, backgroundColor: "#F5F5F5", top: -SIZES.padding8 },
   scrollView: { flex: 1 },
   scrollContent: { paddingHorizontal: SIZES.padding },
 
@@ -825,38 +828,33 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 8,
+    paddingVertical: SIZES.padding8,
   },
   logoContainer: { flex: 1 },
-  logo: { width: 56, height: 44, resizeMode: "contain" },
+  logo: { width: ICON_SIZE_LARGE + 24, height: ICON_SIZE_MEDIUM + 20, resizeMode: "contain" },
   locationSelector: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    backgroundColor: COLORS.white,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    gap: SIZES.padding8,
+    backgroundColor: "#E8F0FE",
+    paddingHorizontal: SIZES.padding10,
+    paddingVertical: SIZES.padding8,
+    borderRadius: SIZES.radius12,
   },
   locationIconBg: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: ICON_SIZE_MEDIUM + 6,
+    height: ICON_SIZE_MEDIUM + 6,
+    borderRadius: (ICON_SIZE_MEDIUM + 6) / 2,
     backgroundColor: "#1E8E3E",
     justifyContent: "center",
     alignItems: "center",
   },
-  locationLabel: { fontSize: 10, color: COLORS.gray },
-  locationRow: { flexDirection: "row", alignItems: "center", gap: 3 },
+  locationLabel: { fontSize: SIZES.fontSize10, color: "#1565C0", fontWeight: "600" },
+  locationRow: { flexDirection: "row", alignItems: "center", gap: SIZES.padding2 },
   locationCity: {
-    fontSize: 13,
+    fontSize: SIZES.fontSize12,
     fontWeight: "700",
-    color: COLORS.text,
+    color: "#0D47A1",
     maxWidth: 90,
   },
 
@@ -864,7 +862,7 @@ const styles = StyleSheet.create({
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: SIZES.padding8,
     marginBottom: SIZES.padding,
   },
   searchContainer: {
@@ -872,48 +870,51 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.white,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
+    borderRadius: SIZES.radius8,
+    paddingHorizontal: SIZES.padding12,
+    paddingVertical: SIZES.padding12,
+    gap: SIZES.padding8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  searchPlaceholder: { flex: 1, fontSize: 13, color: COLORS.gray },
+  searchPlaceholder: { flex: 1, fontSize: SIZES.fontSize12, color: COLORS.gray },
   whatsappBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: SIZES.padding4,
     backgroundColor: "#25D366",
-    paddingHorizontal: 10,
-    paddingVertical: 12,
-    borderRadius: 10,
+    paddingHorizontal: SIZES.padding10,
+    paddingVertical: SIZES.padding12,
+    borderRadius: SIZES.radius8,
   },
-  whatsappText: { fontSize: 10, fontWeight: "700", color: COLORS.white },
+  whatsappText: { fontSize: SIZES.fontSize10, fontWeight: "700", color: COLORS.white },
 
   /* ── Categories ── */
-  categoriesSection: { marginBottom: 16 },
-  categoriesScroll: { gap: 14, paddingRight: 8 },
-  categoryItem: { alignItems: "center", width: 60 },
+  categoriesSection: { marginBottom: SIZES.padding16 },
+  categoriesScroll: { gap: SIZES.padding14, paddingRight: SIZES.padding8 },
+  categoryItem: { alignItems: "center", width: ICON_SIZE_LARGE + 28 },
   categoryIconBox: {
-    width: 50,
-    height: 50,
-    borderRadius: 14,
+    width: ICON_SIZE_LARGE + 18,
+    height: ICON_SIZE_LARGE + 18,
+    borderRadius: SIZES.radius6,
     backgroundColor: COLORS.white,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#E8E8E8",
-    marginBottom: 5,
+    marginBottom: SIZES.padding4,
     overflow: "hidden",
   },
   categoryIconBoxActive: {
     backgroundColor: "#1565C0",
     borderColor: "#1565C0",
   },
-  categoryImg: { width: 50, height: 50, borderRadius: 14 },
+  categoryImg: { width: ICON_SIZE_LARGE + 18, height: ICON_SIZE_LARGE + 18, borderRadius: SIZES.radius6 },
   categoryLabel: {
-    fontSize: 10,
+    fontSize: SIZES.fontSize10,
     fontWeight: "600",
     color: COLORS.text,
     textAlign: "center",
@@ -921,24 +922,24 @@ const styles = StyleSheet.create({
   categoryLabelActive: { color: "#1565C0", fontWeight: "700" },
 
   /* ── Sections ── */
-  section: { marginBottom: 20 },
+  section: { marginBottom: SIZES.padding20 },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: SIZES.padding12,
   },
-  sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  sectionTitle: { fontSize: 16, fontWeight: "700", color: COLORS.text },
-  featuredStar: { fontSize: 16 },
-  seeAllBtn: { flexDirection: "row", alignItems: "center", gap: 3 },
-  seeAllText: { fontSize: 13, fontWeight: "600", color: "#1565C0" },
+  sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: SIZES.padding6 },
+  sectionTitle: { fontSize: SIZES.fontSize16, fontWeight: "700", color: COLORS.text },
+  featuredStar: { fontSize: SIZES.fontSize16 },
+  seeAllBtn: { flexDirection: "row", alignItems: "center", gap: SIZES.padding2 },
+  seeAllText: { fontSize: SIZES.fontSize12, fontWeight: "600", color: "#1565C0" },
 
   /* ── Banner ── */
   bannerCard: {
     width: BANNER_WIDTH,
-    height: 180,
-    borderRadius: 0,
+    height: SIZES.padding20 * 11,
+    borderRadius: 8,
     overflow: "hidden",
   },
   bannerImage: {
@@ -951,22 +952,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     width: "100%",
     backgroundColor: COLORS.white,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingVertical: SIZES.padding10,
+    paddingHorizontal: SIZES.padding12,
   },
   bannerBtnLeft: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderTopLeftRadius: 8,
-    borderBottomLeftRadius: 8,
+    gap: SIZES.padding6,
+    paddingVertical: SIZES.padding10,
+    paddingHorizontal: SIZES.padding12,
+    borderTopLeftRadius: SIZES.radius2,
+    borderBottomLeftRadius: SIZES.radius2,
   },
   bannerBtnLeftText: {
-    fontSize: 13,
+    fontSize: SIZES.fontSize12,
     fontWeight: "600",
     color: "#1565C0",
   },
@@ -975,68 +976,68 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
+    gap: SIZES.padding6,
     backgroundColor: "#E53935",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderTopRightRadius: 8,
-    borderBottomRightRadius: 8,
+    paddingVertical: SIZES.padding10,
+    paddingHorizontal: SIZES.padding12,
+    borderTopRightRadius: SIZES.radius2,
+    borderBottomRightRadius: SIZES.radius2,
   },
   bannerBtnRightText: {
-    fontSize: 13,
+    fontSize: SIZES.fontSize12,
     fontWeight: "600",
     color: COLORS.white,
   },
   bannerDots: {
     flexDirection: "row",
     justifyContent: "center",
-    gap: 5,
-    marginTop: 10,
+    gap: SIZES.padding4,
+    marginTop: SIZES.padding10,
   },
   bannerDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: SIZES.padding4,
+    height: SIZES.padding4,
+    borderRadius: SIZES.padding4 / 2,
     backgroundColor: "#D0D0D0",
   },
-  bannerDotActive: { backgroundColor: "#1565C0", width: 16, borderRadius: 3 },
+  bannerDotActive: { backgroundColor: "#1565C0", width: ICON_SIZE_SMALL + 4, borderRadius: SIZES.padding4 / 2 },
 
   /* ── Featured ── */
   featuredCard: {
     width: FEATURED_CARD_WIDTH,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: SIZES.radius6,
     overflow: "hidden",
     borderWidth: 2,
     borderColor: "#FFD400",
   },
   featuredBadge: {
     position: "absolute",
-    top: 6,
-    left: 6,
+    top: SIZES.padding6,
+    left: SIZES.padding6,
     zIndex: 2,
     backgroundColor: "#FF6B35",
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingHorizontal: SIZES.padding8,
+    paddingVertical: SIZES.padding2,
+    borderRadius: SIZES.radius2,
   },
-  featuredBadgeText: { fontSize: 9, fontWeight: "700", color: COLORS.white },
+  featuredBadgeText: { fontSize: SIZES.fontSize10 - 1, fontWeight: "700", color: COLORS.white },
   featuredImg: {
     width: "100%",
     height: FEATURED_CARD_WIDTH * 0.75,
     resizeMode: "cover",
   },
-  featuredInfo: { padding: 8, gap: 2 },
-  featuredPrice: { fontSize: 14, fontWeight: "800", color: COLORS.text },
-  featuredLocation: { fontSize: 11, color: COLORS.gray },
-  featuredTime: { fontSize: 10, color: COLORS.gray },
+  featuredInfo: { padding: SIZES.padding8, gap: SIZES.padding2 },
+  featuredPrice: { fontSize: SIZES.fontSize14, fontWeight: "800", color: COLORS.text },
+  featuredLocation: { fontSize: SIZES.fontSize10 + 1, color: COLORS.gray },
+  featuredTime: { fontSize: SIZES.fontSize10, color: COLORS.gray },
 
   /* ── Recommendations Grid ── */
-  listingsRow: { gap: 12, marginBottom: 12 },
+  listingsRow: { gap: SIZES.padding12, marginBottom: SIZES.padding12 },
   listingCard: {
     width: CARD_WIDTH,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: SIZES.radius6,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
@@ -1052,72 +1053,72 @@ const styles = StyleSheet.create({
   listingImg: { width: "100%", height: "100%", resizeMode: "cover" },
   verifiedBadge: {
     position: "absolute",
-    top: 8,
-    left: 8,
+    top: SIZES.padding8,
+    left: SIZES.padding8,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#1E8E3E",
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 6,
-    gap: 3,
+    paddingHorizontal: SIZES.padding6,
+    paddingVertical: SIZES.padding4,
+    borderRadius: SIZES.padding4,
+    gap: SIZES.padding2,
   },
-  verifiedText: { fontSize: 9, fontWeight: "700", color: COLORS.white },
-  listingInfo: { padding: 10, gap: 4 },
-  listingPrice: { fontSize: 15, fontWeight: "800", color: COLORS.text },
-  listingTitle: { fontSize: 12, color: COLORS.gray, lineHeight: 16 },
+  verifiedText: { fontSize: SIZES.fontSize10 - 1, fontWeight: "700", color: COLORS.white },
+  listingInfo: { padding: SIZES.padding10, gap: SIZES.padding4 },
+  listingPrice: { fontSize: SIZES.fontSize14, fontWeight: "800", color: COLORS.text },
+  listingTitle: { fontSize: SIZES.fontSize12, color: COLORS.gray, lineHeight: SIZES.padding16 },
 
   /* ── Empty ── */
   emptyState: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 40,
-    gap: 10,
+    paddingVertical: SIZES.padding20 * 2,
+    gap: SIZES.padding10,
   },
-  emptyTitle: { fontSize: 16, fontWeight: "700", color: COLORS.text },
-  emptySub: { fontSize: 13, color: COLORS.gray, textAlign: "center" },
+  emptyTitle: { fontSize: SIZES.fontSize16, fontWeight: "700", color: COLORS.text },
+  emptySub: { fontSize: SIZES.fontSize12, color: COLORS.gray, textAlign: "center" },
   emptyBtn: {
-    marginTop: 8,
+    marginTop: SIZES.padding8,
     backgroundColor: "#1565C0",
-    paddingHorizontal: 22,
-    paddingVertical: 10,
-    borderRadius: 10,
+    paddingHorizontal: SIZES.padding20 + 2,
+    paddingVertical: SIZES.padding10,
+    borderRadius: SIZES.radius8,
   },
-  emptyBtnText: { fontSize: 13, fontWeight: "600", color: COLORS.white },
+  emptyBtnText: { fontSize: SIZES.fontSize12, fontWeight: "600", color: COLORS.white },
 
   /* ── City Sheet ── */
   cityOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)" },
   citySheet: {
     backgroundColor: COLORS.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: SIZES.radius10,
+    borderTopRightRadius: SIZES.radius10,
     maxHeight: "62%",
-    paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingHorizontal: SIZES.padding16,
+    paddingTop: SIZES.padding8,
   },
   cityHandle: {
-    width: 44,
-    height: 4,
-    borderRadius: 2,
+    width: ICON_SIZE_MEDIUM + 20,
+    height: SIZES.padding4,
+    borderRadius: SIZES.padding4 / 2,
     backgroundColor: COLORS.border,
     alignSelf: "center",
-    marginBottom: 12,
+    marginBottom: SIZES.padding12,
   },
   citySheetHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 10,
+    marginBottom: SIZES.padding10,
   },
-  citySheetTitle: { fontSize: 16, fontWeight: "700", color: COLORS.text },
+  citySheetTitle: { fontSize: SIZES.fontSize16, fontWeight: "700", color: COLORS.text },
   cityItem: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    marginBottom: 8,
+    paddingVertical: SIZES.padding12,
+    paddingHorizontal: SIZES.padding12,
+    borderRadius: SIZES.radius8,
+    marginBottom: SIZES.padding8,
     borderWidth: 1,
     borderColor: COLORS.border,
     backgroundColor: COLORS.white,
@@ -1126,7 +1127,7 @@ const styles = StyleSheet.create({
     borderColor: "#1565C0",
     backgroundColor: "#1565C0" + "0D",
   },
-  cityName: { fontSize: 14, fontWeight: "600", color: COLORS.text },
+  cityName: { fontSize: SIZES.fontSize14, fontWeight: "600", color: COLORS.text },
   cityNameSel: { color: "#1565C0" },
-  cityState: { marginTop: 2, fontSize: 12, color: COLORS.gray },
+  cityState: { marginTop: SIZES.padding2, fontSize: SIZES.fontSize12, color: COLORS.gray },
 });

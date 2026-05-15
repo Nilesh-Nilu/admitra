@@ -216,7 +216,7 @@ export default function MyListingsScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView>
               {/* Product Images */}
               {selectedItem.images && selectedItem.images.length > 0 ? (
                 <ScrollView
@@ -322,7 +322,6 @@ export default function MyListingsScreen() {
         renderItem={renderListingCard}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
         ListHeaderComponent={safeProducts.length > 0 ? renderStats : null}
         ListEmptyComponent={renderEmptyState}
         refreshControl={

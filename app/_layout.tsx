@@ -24,7 +24,7 @@ import "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Provider } from "react-redux";
 import VersionCheck from "react-native-version-check";
-import { Alert,Linking } from "react-native";
+import { Alert, Linking, View } from "react-native";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -96,8 +96,10 @@ export default function RootLayout() {
             <ThemeProvider
               value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
             >
-              <StatusBar style="auto" />
-              <Slot />
+              <StatusBar style="dark" />
+              <View style={{ flex: 1, backgroundColor: "#F5F5F5" }}>
+                <Slot />
+              </View>
             </ThemeProvider>
           </SafeAreaProvider>
         </GestureHandlerRootView>

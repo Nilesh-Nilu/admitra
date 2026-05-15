@@ -78,7 +78,6 @@ export default function ContactUsScreen() {
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
-        showsVerticalScrollIndicator={false}
       >
         {/* Location Card */}
         <Pressable style={styles.card} onPress={openMaps}>

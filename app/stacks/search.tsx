@@ -214,7 +214,7 @@ export default function SearchScreen() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.filterContent} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.filterContent}>
           {/* Category Filter */}
           <View style={styles.filterSection}>
             <ThemedText style={styles.filterSectionTitle}>Category</ThemedText>
@@ -367,7 +367,6 @@ export default function SearchScreen() {
           numColumns={2}
           columnWrapperStyle={styles.listingsRow}
           contentContainerStyle={styles.listingsContainer}
-          showsVerticalScrollIndicator={false}
         />
       ) : (
         <View style={styles.emptyState}>
