@@ -16,6 +16,7 @@ import {
   Alert,
   Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -41,6 +42,16 @@ export default function PostScreen() {
   const [websiteLink, setWebsiteLink] = useState("");
   const [videoLink, setVideoLink] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [categorySearchQuery, setCategorySearchQuery] = useState("");
+  const [tempSelectedCategory, setTempSelectedCategory] = useState<any>(null);
+
+  const [isNegotiable, setIsNegotiable] = useState(false);
+  const [condition, setCondition] = useState("New");
+  const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
+  const [additionalDetails, setAdditionalDetails] = useState("");
+
   const dispatch = useDispatch();
   // Filter sub-categories based on selected category
   const filteredSubCategories = selectedCategory
@@ -157,11 +168,14 @@ export default function PostScreen() {
         name: title,
         description: description,
         price: price,
+        additional_details: additionalDetails,
         images: [...images],
         plan_id: adType.id,
         banner_image: adType.id === 3 ? images[0] : null,
         banner_video_url: adType.id === 3 ? videoLink : null,
         website_link: adType.id === 3 ? websiteLink : null,
+        condition: condition,
+        price_negotiable: isNegotiable,
       };
 
       const response = await handleVerifyandAddProductApi(payload);
@@ -190,6 +204,9 @@ export default function PostScreen() {
     setPrice("");
     setSelectedCategory(null);
     setSelectedSubCategory(null);
+    setIsNegotiable(false);
+    setCondition("New");
+    setAdditionalDetails("");
   };
 
   // Handle submit with payment
@@ -265,6 +282,124 @@ export default function PostScreen() {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
+          {/* Ad Type */}
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Ad Type</ThemedText>
+            <View style={styles.adTypeContainer}>
+              {plans.map((plan: any) => {
+                let iconName = "document-text-outline";
+                let iconColor = "#1976D2";
+                let iconBg = "#E3F2FD";
+                let subtitle = "Basic Listing";
+                let chatLabel = "Chat Enabled";
+                let features: string[] = [];
+                let badgeText = "Free limited time offer";
+                let badgeBg = "#E3F2FD";
+                let badgeColor = "#1976D2";
+
+                if (plan.id === 2 || plan.type === "featured") {
+                  iconName = "star";
+                  iconColor = "#FBC02D";
+                  iconBg = "#FFF9C4";
+                  subtitle = "Top Placement";
+                  chatLabel = "Call + Chat Enabled";
+                  features = ["Top placement in category", "More visibility, more buyers"];
+                  badgeText = "Recommended";
+                  badgeBg = "#FBC02D";
+                  badgeColor = "#000";
+                } else if (plan.id === 3 || plan.type === "banner") {
+                  iconName = "rocket";
+                  iconColor = "#D32F2F";
+                  iconBg = "#FFEBEE";
+                  subtitle = "Homepage Banner";
+                  chatLabel = "Call + Chat Enabled";
+                  features = ["Homepage banner placement", "Maximum reach & visibility"];
+                  badgeText = "";
+                }
+
+                return (
+                  <TouchableOpacity
+                    key={plan.id}
+                    style={[
+                      styles.adTypeCard,
+                      adType.id === plan.id && styles.adTypeCardActive,
+                      (plan.id === 2 || plan.type === "featured") && adType.id === plan.id && { backgroundColor: '#FFFDE7', borderColor: '#FFF59D' },
+                      (plan.id === 3 || plan.type === "banner") && adType.id === plan.id && { backgroundColor: '#FFEBEE', borderColor: '#FFCDD2' }
+                    ]}
+                    onPress={() => setAdType(plan)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.adTypeRow}>
+                      <Ionicons
+                        name={adType.id === plan.id ? "radio-button-on" : "radio-button-off"}
+                        size={22}
+                        color={adType.id === plan.id ? COLORS.primary : COLORS.gray}
+                      />
+                      <View style={[styles.adTypeIconBox, { backgroundColor: iconBg }]}>
+                        <Ionicons name={iconName as any} size={24} color={iconColor} />
+                      </View>
+                      
+                      <View style={styles.adTypeMainCol}>
+                        <View style={styles.adTypeTitleRowFixed}>
+                          <ThemedText style={styles.adTypeTitleFixed}>
+                            {plan.name} {parseFloat(plan.price) > 0 ? `₹${plan.price}` : "(Free)"}
+                          </ThemedText>
+                        </View>
+                        <ThemedText style={styles.adTypeSubtitleFixed}>{subtitle}</ThemedText>
+                      </View>
+
+                      <View style={styles.adTypeMiddleCol}>
+                        <View style={styles.chatInfoRow}>
+                          {plan.id !== 1 && plan.type !== "free" && <Ionicons name="call" size={16} color="#4CAF50" style={{ marginRight: 4 }} />}
+                          <Ionicons 
+                            name="chatbubble-ellipses-outline" 
+                            size={16} 
+                            color={plan.id === 1 || plan.type === "free" ? "#1976D2" : "#4CAF50"} 
+                            style={{ marginRight: 6 }}
+                          />
+                          <View>
+                            <ThemedText style={styles.chatLabel}>{chatLabel}</ThemedText>
+                          </View>
+                        </View>
+                      </View>
+
+                      <View style={styles.adTypeRightCol}>
+                        <ThemedText style={styles.durationText}>/ {plan.duration_days} days</ThemedText>
+                        {!!badgeText && (
+                          <View style={[styles.planBadge, { backgroundColor: badgeBg }]}>
+                            <ThemedText style={[styles.planBadgeText, { color: badgeColor }]}>
+                              {badgeText}
+                            </ThemedText>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Important Notice */}
+          <View style={styles.importantNoticeContainer}>
+            <Ionicons name="warning" size={32} color="#D32F2F" style={styles.noticeIcon} />
+            <View style={styles.noticeContent}>
+              <ThemedText style={styles.noticeTitle}>Important Notice</ThemedText>
+              <ThemedText style={styles.noticeText}>
+                Illegal link या illegal vedio post करने पर users आपको report कर सकते है।
+                अगर multiple reports मिलते हैं तो:
+              </ThemedText>
+              <View style={styles.bulletPoint}>
+                <View style={styles.bulletDot} />
+                <ThemedText style={styles.bulletText}>आपका ad remove हो सकता है।</ThemedText>
+              </View>
+              <View style={styles.bulletPoint}>
+                <View style={styles.bulletDot} />
+                <ThemedText style={styles.bulletText}>आपका account temporary या permanent ban/block हो सकता है।</ThemedText>
+              </View>
+            </View>
+          </View>
+
           {/* Image Upload Section */}
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Upload Images</ThemedText>
@@ -313,22 +448,83 @@ export default function PostScreen() {
             </View>
           </View>
 
+          {/* Product Price */}
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Product Price</ThemedText>
+            <View style={styles.priceRow}>
+              <View style={[styles.priceInputWrapper, { flex: 1 }]}>
+                <ThemedText style={styles.currency}>₹</ThemedText>
+                <TextInput
+                  style={styles.priceInput}
+                  placeholder="Enter price"
+                  placeholderTextColor={COLORS.gray}
+                  value={price}
+                  onChangeText={setPrice}
+                  keyboardType="numeric"
+                />
+              </View>
+              <TouchableOpacity
+                style={styles.checkboxRow}
+                onPress={() => setIsNegotiable(!isNegotiable)}
+                activeOpacity={0.8}
+              >
+                <Ionicons
+                  name={isNegotiable ? "checkbox" : "square-outline"}
+                  size={24}
+                  color={isNegotiable ? COLORS.primary : COLORS.gray}
+                />
+                <ThemedText style={styles.checkboxLabel}>Price is negotiable</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Condition */}
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Condition</ThemedText>
+            <View style={styles.conditionRow}>
+              <TouchableOpacity
+                style={styles.radioOption}
+                onPress={() => setCondition("New")}
+                activeOpacity={0.8}
+              >
+                <Ionicons
+                  name={condition === "New" ? "radio-button-on" : "radio-button-off"}
+                  size={22}
+                  color={condition === "New" ? COLORS.primary : COLORS.gray}
+                />
+                <ThemedText style={styles.radioLabel}>New</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.radioOption}
+                onPress={() => setCondition("Used")}
+                activeOpacity={0.8}
+              >
+                <Ionicons
+                  name={condition === "Used" ? "radio-button-on" : "radio-button-off"}
+                  size={22}
+                  color={condition === "Used" ? COLORS.primary : COLORS.gray}
+                />
+                <ThemedText style={styles.radioLabel}>Used</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+
           {/* Title */}
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Ad Title *</ThemedText>
             <TextInput
               style={styles.input}
-              placeholder="What are you selling?"
+              placeholder="Enter ad title"
               placeholderTextColor={COLORS.gray}
               value={title}
               onChangeText={setTitle}
               maxLength={70}
             />
-            <ThemedText style={styles.charCount}>{title.length}/70</ThemedText>
           </View>
+
           {/* Description */}
           <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Description</ThemedText>
+            <ThemedText style={styles.sectionTitle}>Description *</ThemedText>
             <TextInput
               style={[styles.input, styles.textArea]}
               placeholder="Describe your item in detail..."
@@ -340,128 +536,60 @@ export default function PostScreen() {
               textAlignVertical="top"
               maxLength={4000}
             />
-            <ThemedText style={styles.charCount}>{description.length}/4000</ThemedText>
           </View>
+
+          {/* Additional Details */}
+          <View style={styles.section}>
+            <TouchableOpacity
+              style={styles.additionalDetailsHeader}
+              onPress={() => setShowAdditionalDetails(!showAdditionalDetails)}
+              activeOpacity={0.8}
+            >
+              <View style={styles.additionalDetailsLeft}>
+                <Ionicons name="document-text-outline" size={20} color={COLORS.primary} style={{ marginRight: 8 }} />
+                <ThemedText style={styles.additionalDetailsTitle}>Additional Details</ThemedText>
+              </View>
+              <Ionicons
+                name={showAdditionalDetails ? "chevron-up" : "chevron-down"}
+                size={20}
+                color={COLORS.gray}
+              />
+            </TouchableOpacity>
+            {showAdditionalDetails && (
+              <View style={styles.additionalDetailsContent}>
+                <TextInput
+                  style={[styles.input, styles.textArea, { marginTop: 12 }]}
+                  placeholder="Any extra info..."
+                  placeholderTextColor={COLORS.gray}
+                  value={additionalDetails}
+                  onChangeText={setAdditionalDetails}
+                  multiline
+                  numberOfLines={3}
+                  textAlignVertical="top"
+                />
+              </View>
+            )}
+          </View>
+
           {/* Category */}
           <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Category *</ThemedText>
-            <View style={styles.categoriesGrid}>
-              {categories.map((cat: any) => (
-                <TouchableOpacity
-                  key={cat.id}
-                  style={[
-                    styles.categoryChip,
-                    selectedCategory === cat.id && styles.categoryChipActive,
-                  ]}
-                  onPress={() => handleCategorySelect(cat.id)}
-                >
-                  <ThemedText
-                    style={[
-                      styles.categoryChipText,
-                      selectedCategory === cat.id && styles.categoryChipTextActive,
-                    ]}
-                  >
-                    {cat.name}
-                  </ThemedText>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Sub Category - Only shown when category is selected */}
-          {selectedCategory && (
-            <View style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>Sub Category *</ThemedText>
-              {filteredSubCategories.length > 0 ? (
-                <View style={styles.categoriesGrid}>
-                  {filteredSubCategories.map((subCat: any) => (
-                    <TouchableOpacity
-                      key={subCat.id}
-                      style={[
-                        styles.categoryChip,
-                        selectedSubCategory === subCat.id && styles.categoryChipActive,
-                      ]}
-                      onPress={() => setSelectedSubCategory(subCat.id)}
-                    >
-                      <ThemedText
-                        style={[
-                          styles.categoryChipText,
-                          selectedSubCategory === subCat.id && styles.categoryChipTextActive,
-                        ]}
-                      >
-                        {subCat.name}
-                      </ThemedText>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              ) : (
-                <ThemedText style={styles.noSubCategoriesText}>
-                  No sub-categories available for this category
-                </ThemedText>
-              )}
-            </View>
-          )}
-
-          {/* Ad Type */}
-          <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Ad Type</ThemedText>
-            <View style={styles.adTypeContainer}>
-              {plans.map((plan: any) => (
-                <TouchableOpacity
-                  key={plan.id}
-                  style={[
-                    styles.adTypeCard,
-                    adType.id === plan.id && styles.adTypeCardActive,
-                    // plan.id === 3 && styles.adTypeCardBanner,
-                  ]}
-                  onPress={() => setAdType(plan)}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.adTypeHeader}>
-                    <View style={styles.adTypeLeft}>
-                      <Ionicons
-                        name={adType.id === plan.id ? "radio-button-on" : "radio-button-off"}
-                        size={22}
-                        color={adType.id === plan.id ? COLORS.blue : COLORS.gray}
-                      />
-                      <View style={styles.adTypeTitleWrap}>
-                        <View style={styles.adTypeTitleRow}>
-                          <ThemedText
-                            style={[
-                              styles.adTypeTitle,
-                              adType === plan.type && styles.adTypeTitleActive,
-                            ]}
-                          >
-                            {plan.name}
-                          </ThemedText>
-                          {parseFloat(plan.price) > 0 && (
-                            <ThemedText style={styles.adTypePrice}>₹{plan.price}</ThemedText>
-                          )}
-                        </View>
-                        <ThemedText style={styles.adTypeSubtitle}>
-                          Duration: {plan.duration_days} days
-                        </ThemedText>
-                      </View>
-                    </View>
-                    {plan.type === "featured" && (
-                      <View style={styles.recommendedBadge}>
-                        <ThemedText style={styles.recommendedText}>Recommended</ThemedText>
-                      </View>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              ))}
-
-              {/* Banner Alert */}
-              {adType.id === 3 && (
-                <View style={styles.bannerAlert}>
-                  <Ionicons name="alert-circle" size={16} color="#E53935" />
-                  <ThemedText style={styles.bannerAlertText}>
-                    Banner ad will show on homepage for more visibility
-                  </ThemedText>
-                </View>
-              )}
-            </View>
+            <ThemedText style={styles.sectionTitle}>Category & Sub Category *</ThemedText>
+            <TouchableOpacity 
+              style={styles.categorySelectorBtn} 
+              onPress={() => setShowCategoryModal(true)}
+              activeOpacity={0.8}
+            >
+              <ThemedText style={selectedCategory ? styles.categorySelectedText : styles.categoryPlaceholderText}>
+                {selectedCategory
+                  ? (() => {
+                      const catName = categories.find((c: any) => c.id === selectedCategory)?.name || "";
+                      const subCatName = subCategories.find((sc: any) => sc.id === selectedSubCategory)?.name || "";
+                      return subCatName ? `${catName} > ${subCatName}` : catName;
+                    })()
+                  : "Select Category"}
+              </ThemedText>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
+            </TouchableOpacity>
           </View>
 
           {/* Website Link - Required for Banner */}
@@ -511,24 +639,6 @@ export default function PostScreen() {
             </View>
           )}
 
-          {/* Price */}
-          <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Price *</ThemedText>
-            <View style={styles.priceContainer}>
-              <View style={styles.priceInputWrapper}>
-                <ThemedText style={styles.currency}>₹</ThemedText>
-                <TextInput
-                  style={styles.priceInput}
-                  placeholder="Enter price"
-                  placeholderTextColor={COLORS.gray}
-                  value={price}
-                  onChangeText={setPrice}
-                  keyboardType="numeric"
-                />
-              </View>
-            </View>
-          </View>
-
           <View style={[styles.footer]}>
             <TouchableOpacity
               style={[styles.submitBtn, isLoading && styles.submitBtnDisabled]}
@@ -553,6 +663,131 @@ export default function PostScreen() {
         {/* Submit Button */}
         <View style={{ height: 100 }} />
       </KeyboardAvoidingView>
+
+      {/* Category Modal */}
+      <Modal
+        visible={showCategoryModal}
+        animationType="slide"
+        onRequestClose={() => {
+          if (tempSelectedCategory) {
+            setTempSelectedCategory(null);
+            setCategorySearchQuery("");
+          } else {
+            setShowCategoryModal(false);
+            setCategorySearchQuery("");
+          }
+        }}
+      >
+        <View style={styles.categoryModalContainer}>
+          {/* Header */}
+          <View style={styles.categoryModalHeader}>
+            {tempSelectedCategory ? (
+              <TouchableOpacity
+                onPress={() => {
+                  setTempSelectedCategory(null);
+                  setCategorySearchQuery("");
+                }}
+                style={styles.categoryModalBackBtn}
+              >
+                <Ionicons name="chevron-back" size={28} color={COLORS.text} />
+              </TouchableOpacity>
+            ) : null}
+            <ThemedText style={styles.categoryModalTitle}>
+              {tempSelectedCategory ? "Select Sub Category" : "Select Category"}
+            </ThemedText>
+            <TouchableOpacity
+              onPress={() => {
+                setShowCategoryModal(false);
+                setTempSelectedCategory(null);
+                setCategorySearchQuery("");
+              }}
+              style={styles.categoryModalCloseBtn}
+            >
+              <Ionicons name="close" size={24} color={COLORS.text} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Breadcrumbs for Sub Category */}
+          {tempSelectedCategory && (
+            <View style={styles.breadcrumbContainer}>
+              <ThemedText style={styles.breadcrumbText}>
+                Category {'>'} <ThemedText style={{fontWeight: "600"}}>{tempSelectedCategory.name}</ThemedText>
+              </ThemedText>
+            </View>
+          )}
+
+          {/* Search Bar */}
+          <View style={styles.categoryModalSearchWrapper}>
+            <View style={styles.categoryModalSearchBox}>
+              <Ionicons name="search" size={20} color={COLORS.gray} />
+              <TextInput
+                style={styles.categoryModalSearchInput}
+                placeholder={tempSelectedCategory ? "Search sub category" : "Search category"}
+                value={categorySearchQuery}
+                onChangeText={setCategorySearchQuery}
+                placeholderTextColor={COLORS.gray}
+              />
+            </View>
+          </View>
+
+          {/* List */}
+          <ScrollView
+            style={styles.categoryModalList}
+            contentContainerStyle={styles.categoryModalListContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            {!tempSelectedCategory &&
+              categories
+                .filter((cat: any) =>
+                  cat?.name?.toLowerCase().includes(categorySearchQuery.toLowerCase())
+                )
+                .map((cat: any) => (
+                  <TouchableOpacity
+                    key={cat.id}
+                    style={styles.categoryModalItem}
+                    onPress={() => {
+                      setTempSelectedCategory(cat);
+                      setCategorySearchQuery("");
+                    }}
+                  >
+                    <View style={styles.categoryModalItemLeft}>
+                      {/* Using a default icon for categories without one */}
+                      <Ionicons name="list-outline" size={20} color={COLORS.primary} style={{ marginRight: 16 }} />
+                      <ThemedText style={styles.categoryModalItemText}>{cat.name}</ThemedText>
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color={COLORS.gray} />
+                  </TouchableOpacity>
+                ))}
+
+            {tempSelectedCategory &&
+              subCategories
+                .filter(
+                  (subCat: any) =>
+                    subCat.category_id === tempSelectedCategory.id &&
+                    subCat?.name?.toLowerCase().includes(categorySearchQuery.toLowerCase())
+                )
+                .map((subCat: any) => (
+                  <TouchableOpacity
+                    key={subCat.id}
+                    style={styles.categoryModalItem}
+                    onPress={() => {
+                      setSelectedCategory(tempSelectedCategory.id);
+                      setSelectedSubCategory(subCat.id);
+                      setShowCategoryModal(false);
+                      setTempSelectedCategory(null);
+                      setCategorySearchQuery("");
+                    }}
+                  >
+                    <View style={styles.categoryModalItemLeft}>
+                      <Ionicons name="pricetag-outline" size={20} color={COLORS.primary} style={{ marginRight: 16 }} />
+                      <ThemedText style={styles.categoryModalItemText}>{subCat.name}</ThemedText>
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color={COLORS.gray} />
+                  </TouchableOpacity>
+                ))}
+          </ScrollView>
+        </View>
+      </Modal>
     </ThemedView>
   );
 }
@@ -705,40 +940,207 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
 
-  /* Categories */
-  categoriesGrid: {
+  /* New Field Styles */
+  priceRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
+    alignItems: "center",
+    gap: 16,
   },
-  categoryChip: {
+  checkboxRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: COLORS.white,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
   },
-  categoryChipActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  categoryChipText: {
-    fontSize: 13,
+  checkboxLabel: {
+    fontSize: 14,
     color: COLORS.text,
     fontWeight: "500",
   },
-  categoryChipTextActive: {
-    color: COLORS.white,
+  conditionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 24,
   },
-  noSubCategoriesText: {
+  radioOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  radioLabel: {
     fontSize: 14,
+    color: COLORS.text,
+    fontWeight: "500",
+  },
+  additionalDetailsHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: COLORS.white,
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+  additionalDetailsLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  additionalDetailsTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.primary,
+  },
+  additionalDetailsContent: {
+    marginTop: 8,
+  },
+
+  /* Category Selector & Modal */
+  categorySelectorBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginTop: 8,
+  },
+  categoryPlaceholderText: {
+    fontSize: 15,
     color: COLORS.gray,
-    fontStyle: "italic",
-    paddingVertical: 8,
+  },
+  categorySelectedText: {
+    fontSize: 15,
+    color: COLORS.text,
+    fontWeight: "500",
+  },
+  categoryModalContainer: {
+    flex: 1,
+    backgroundColor: COLORS.white,
+  },
+  categoryModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  categoryModalBackBtn: {
+    marginRight: 16,
+  },
+  categoryModalTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: "700",
+    color: COLORS.text,
+  },
+  categoryModalCloseBtn: {
+    padding: 4,
+  },
+  breadcrumbContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  breadcrumbText: {
+    fontSize: 14,
+    color: COLORS.text,
+  },
+  categoryModalSearchWrapper: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
+  },
+  categoryModalSearchBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F5F5F5",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 44,
+  },
+  categoryModalSearchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 15,
+    color: COLORS.text,
+  },
+  categoryModalList: {
+    flex: 1,
+  },
+  categoryModalListContent: {
+    paddingBottom: 20,
+  },
+  categoryModalItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F5F5F5",
+  },
+  categoryModalItemLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  categoryModalItemText: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: COLORS.text,
+  },
+
+  /* Important Notice */
+  importantNoticeContainer: {
+    flexDirection: "row",
+    backgroundColor: "#FFEBEE",
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#FFCDD2",
+    marginBottom: 20,
+    marginTop: 8,
+  },
+  noticeIcon: {
+    marginRight: 12,
+    marginTop: 4,
+  },
+  noticeContent: {
+    flex: 1,
+  },
+  noticeTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#D32F2F",
+    marginBottom: 6,
+  },
+  noticeText: {
+    fontSize: 12,
+    color: "#424242",
+    lineHeight: 18,
+    marginBottom: 8,
+    fontWeight: "500",
+  },
+  bulletPoint: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 4,
+  },
+  bulletDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#D32F2F",
+    marginTop: 6,
+    marginRight: 8,
+  },
+  bulletText: {
+    flex: 1,
+    fontSize: 12,
+    color: "#424242",
+    lineHeight: 18,
+    fontWeight: "500",
   },
 
   /* Ad Type */
@@ -747,85 +1149,94 @@ const styles = StyleSheet.create({
   },
   adTypeCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: "#E0E0E0",
+    padding: 12,
   },
   adTypeCardActive: {
-    borderWidth: 1,
-    borderColor: "#E53935",
-    backgroundColor: "#FFEBEE",
+    borderColor: COLORS.primary,
   },
-  adTypeCardBanner: {
-    borderColor: "#E53935",
-    backgroundColor: "#FFEBEE",
-  },
-  adTypeHeader: {
+  adTypeRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
   },
-  adTypeLeft: {
+  adTypeIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    marginHorizontal: 12,
+  },
+  adTypeMainCol: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  adTypeTitleRowFixed: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  adTypeTitleFixed: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: COLORS.text,
+  },
+  adTypeSubtitleFixed: {
+    fontSize: 12,
+    color: COLORS.gray,
+  },
+  adTypeMiddleCol: {
+    flex: 1.2,
+    borderLeftWidth: 1,
+    borderLeftColor: "#E0E0E0",
+    paddingLeft: 12,
+  },
+  chatInfoRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 12,
-    flex: 1,
+    marginBottom: 4,
   },
-  adTypeTitleWrap: {
-    flex: 1,
-  },
-  adTypeTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  adTypeTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: COLORS.text,
-  },
-  adTypeTitleActive: {
-    color: COLORS.primary,
-    fontWeight: "700",
-  },
-  adTypePrice: {
-    fontSize: 15,
+  chatLabel: {
+    fontSize: 12,
     fontWeight: "700",
     color: COLORS.text,
+    marginBottom: 2,
   },
-  adTypeSubtitle: {
-    fontSize: 13,
-    color: COLORS.gray,
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  recommendedBadge: {
-    backgroundColor: "#FFF8E1",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "#FFECB3",
-  },
-  recommendedText: {
+  chatSub: {
     fontSize: 11,
-    fontWeight: "600",
-    color: "#FF8F00",
+    color: COLORS.gray,
   },
-  bannerAlert: {
+  featureRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    backgroundColor: "#FFEBEE",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 8,
+    marginTop: 4,
   },
-  bannerAlertText: {
-    fontSize: 13,
-    color: "#C62828",
-    flex: 1,
+  featureText: {
+    fontSize: 11,
+    color: COLORS.gray,
+  },
+  adTypeRightCol: {
+    alignItems: "flex-end",
+    justifyContent: "center",
+    paddingLeft: 8,
+  },
+  durationText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+  planBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    top:16
+  },
+  planBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
   },
 
   /* Link Inputs */
@@ -873,12 +1284,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  durationText: {
-    fontSize: 15,
-    fontWeight: "500",
-    color: COLORS.text,
-  },
-
   /* Price */
   priceContainer: {
     flexDirection: "row",

@@ -8,20 +8,28 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    Dimensions,
-    FlatList,
-    Image,
-    Modal,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  FlatList,
+  Image,
+  Modal,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useSelector } from "react-redux";
 
 const { width } = Dimensions.get("window");
 
+const filterOptions = [
+  { id: 'all', label: 'All Ads', icon: 'reader-outline', color: '#1565C0', bgColor: '#E8F0FE', borderColor: '#BBDEFB' },
+  { id: 'normal', label: 'Normal Ads', icon: 'card-outline', color: '#2E7D32', bgColor: '#E8F5E9', borderColor: '#C8E6C9' },
+  { id: 'featured', label: 'Features Ads', icon: 'star-outline', color: '#E65100', bgColor: '#FFF3E0', borderColor: '#FFE0B2' },
+  { id: 'banner', label: 'Baner Ads', icon: 'images-outline', color: '#7B1FA2', bgColor: '#F3E5F5', borderColor: '#E1BEE7' },
+  { id: 'pending', label: 'Pending Ads', icon: 'time-outline', color: '#F57F17', bgColor: '#FFF8E1', borderColor: '#FFECB3' },
+  { id: 'favorites', label: 'Favorite Ads', icon: 'heart-outline', color: '#f5af19', bgColor: '#f5af1915', borderColor: '#f5af1915' },
+];
 
 const getStatusConfig = (status: string) => {
   switch (status) {
@@ -62,6 +70,17 @@ export default function MyListingsScreen() {
   const safeProducts = approvedProducts || [];
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState('all');
+  const [showFilters, setShowFilters] = useState(true);
+
+  const filteredProducts = safeProducts.filter((p: any) => {
+    if (selectedFilter === 'all') return true;
+    if (selectedFilter === 'pending') return p.approve === 'pending';
+    if (selectedFilter === 'normal') return p.approve === 'approved';
+    if (selectedFilter === 'featured') return p.is_featured || p.featured;
+    if (selectedFilter === 'banner') return p.is_banner || p.banner;
+    return true;
+  });
 
   const openDetailModal = (item: any) => {
     setSelectedItem(item);
@@ -314,11 +333,71 @@ export default function MyListingsScreen() {
     );
   };
 
+  const renderFilters = () => {
+    if (!showFilters) return null;
+    return (
+      <View style={styles.filterSection}>
+        <View style={styles.filterHeader}>
+          <ThemedText style={styles.filterTitle}>My Ads</ThemedText>
+          <TouchableOpacity onPress={() => setShowFilters(false)}>
+            <Ionicons name="close" size={20} color={COLORS.text} />
+          </TouchableOpacity>
+        </View>
+        <FlatList
+          data={filterOptions}
+          numColumns={4}
+          keyExtractor={(item) => item.id.toString()}
+          columnWrapperStyle={{
+            justifyContent: "flex-start",
+            gap: 8,
+            alignItems: 'center'
+          }}
+          contentContainerStyle={styles.filterScroll}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item: filter }) => {
+            const isSelected = selectedFilter === filter.id;
+
+            return (
+              <TouchableOpacity
+                style={[
+                  styles.filterCard,
+                  isSelected && {
+                    backgroundColor: filter.bgColor,
+                    borderColor: filter.color,
+                  },
+                ]}
+                onPress={() => setSelectedFilter(filter.id)}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name={filter.icon as any}
+                  size={28}
+                  color={filter.color}
+                  style={{ marginBottom: 6 }}
+                />
+
+                <ThemedText
+                  style={[
+                    styles.filterLabel,
+                    isSelected && { color: filter.color },
+                  ]}
+                >
+                  {filter.label}
+                </ThemedText>
+              </TouchableOpacity>
+            );
+          }}
+        />
+      </View>
+    );
+  };
+
   return (
     <ThemedView style={styles.container}>
       <ThemeHeader onBackPress={() => router.back()} title="My Listings" />
+      {renderFilters()}
       <FlatList
-        data={safeProducts}
+        data={filteredProducts}
         renderItem={renderListingCard}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContent}
@@ -327,7 +406,7 @@ export default function MyListingsScreen() {
         refreshControl={
           <RefreshControl
             refreshing={false}
-            onRefresh={() => {}}
+            onRefresh={() => { }}
             tintColor={COLORS.primary}
           />
         }
@@ -371,6 +450,47 @@ const styles = StyleSheet.create({
   listContent: {
     padding: SIZES.padding,
     paddingBottom: 100,
+  },
+
+  /* Filters */
+  filterSection: {
+    backgroundColor: COLORS.white,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  filterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: SIZES.padding,
+    marginBottom: 12,
+  },
+  filterTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  filterScroll: {
+    paddingHorizontal: SIZES.padding,
+    gap: 10,
+  },
+  filterCard: {
+    width: 90,
+    height: 80,
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 8,
+  },
+  filterLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.gray,
+    textAlign: 'center',
   },
 
   /* Stats */

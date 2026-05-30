@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { logoutFromReducer, setUser } from "../store/reducers/authReducer";
 import { baseUrl as API_BASE_URL } from "./config";
+import AppToast from "@/components/toasts/AppToast";
 
 export const baseUrl = API_BASE_URL;
 // Reusable API configuration with auth headers and credentials
@@ -26,6 +27,8 @@ export const otpVerificationUrl = "verify-otp";
 export const getUserDetailsUrl = "user";
 export const signupUrl = "auth/register";
 export const updateUserProfileUrl = "user/update";
+export const getAuthManagementListUrl = "auth-management/list";
+
 
 // categories
 export const getCategoriesUrl = "product-categories";
@@ -74,6 +77,157 @@ export const logoutUser = async (dispatch, router,role) => {
     });
   } catch (error) {
     console.log(error);
+  }
+};
+
+
+export const getAuthManagementListApi = async () => {
+  try {
+    const response = await axios.get(
+      `${baseUrl}/${getAuthManagementListUrl}`,
+      {
+        headers: {
+          Accept: "*/*",
+          // 'X-CSRF-TOKEN': '' // If a CSRF token is needed, provide it here
+        }
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.log("Error fetching auth management list:", error.response?.data || error.message || error);
+    throw error;
+  }
+};
+
+  // ── Send OTP ──────────────────────────────────────────────────────────────
+export const handleSendmailOtp = async (email, setLoading, setStep) => {
+  console.log(email, "email");
+    setLoading(true);
+    try {
+      const response = await axios.post(
+        "https://admastermarketplace.in/api/send-mailotp",
+        { email: email },
+        {
+          headers: {
+          },
+        }
+      );
+      console.log(response.data, "response");
+      // API returns { success: true, message: "OTP sent" } or similar
+      if (response.data?.success === false) {
+        AppToast(response.data?.message || "Failed to send OTP.");
+        return;
+      }
+
+      AppToast(`OTP sent to your Gmail! ${response.data.otp}`);
+      setStep("otp");
+    } catch (error) {
+      console.log(error)
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Verify OTP ────────────────────────────────────────────────────────────
+ export const handleVerifymailOtp = async (email, otp, setLoading, router) => {
+    const code = otp.join("");
+    if (code.length < 6) {
+      AppToast("Enter the 6-digit OTP");
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await axios.post(
+        "https://admastermarketplace.in/api/verify-mailotp", // 🔁 replace with your actual verify endpoint
+        { email: email, otp: code },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "*/*",
+            "X-CSRF-TOKEN": "",
+          },
+        }
+      );
+
+      if (response.data?.success === false) {
+        AppToast(response.data?.message || "Invalid OTP.");
+        return;
+      }
+      await AsyncStorage.setItem("user", JSON.stringify(response.data.user));
+      await AsyncStorage.setItem("authToken", response.data.access_token);
+      router.replace("/(tabs)");
+      AppToast("Login successful!");
+    } catch (error) {
+      const msg =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        "Invalid OTP. Please try again.";
+      AppToast(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+// ── Send OTP (Phone) ─────────────────────────────────────────────────────────
+export const handleSendPhoneOtp = async (phone, setLoading,setStep) => {
+  setLoading(true);
+  try {
+    const response = await axios.post(
+      "https://admastermarketplace.in/api/send-otp",
+      { phone },
+      {
+        headers: {},
+      }
+    );
+    console.log(response.data, "response");
+    if (response.data?.success) {
+      AppToast(`OTP sent successfully! ${response.data.otp}`);
+      setStep("otp");
+      // Optionally, handle navigation or further state logic here
+    }
+  } catch (error) {
+   console.log(error)
+  } finally {
+    setLoading(false);
+  }
+};
+// ── Verify OTP (Phone) ────────────────────────────────────────────────────────
+export const handleVerifyPhoneOtp = async (phone, otp, setLoading, router) => {
+  // Ensure 'otp' is sent as a string, not an array
+  const otpString = Array.isArray(otp) ? otp.join("") : String(otp);
+  setLoading(true);
+  try {
+    const response = await axios.post(
+      "https://admastermarketplace.in/api/verify-otp",
+      { phone, otp: otpString },
+      {
+        headers: {
+          // Accept: "application/json",
+          // "Content-Type": "application/json",
+          // "X-CSRF-TOKEN": "",
+        },
+      }
+    );
+    if (response.data?.success) {
+      AppToast("Login successful!");
+      await AsyncStorage.setItem("user", JSON.stringify(response.data.user));
+      await AsyncStorage.setItem("authToken", response.data.access_token);
+      router.replace("/(tabs)");
+    } else {
+      const msg =
+        response.data?.message ||
+        response.data?.error ||
+        "Invalid OTP. Please try again.";
+      AppToast(msg);
+    }
+  } catch (error) {
+    const msg =
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      "Invalid OTP. Please try again.";
+    AppToast(msg);
+  } finally {
+    setLoading(false);
   }
 };
 
@@ -307,6 +461,31 @@ export const reportProductApi = async (data) => {
       await getAuthToken()
     );
     return response.data;
+  } catch (error) {
+    console.log(error?.response?.data || error, "error");
+    throw error;
+  }
+}
+
+export const getPromotionBannerApi = async () => {
+  try {
+    const response = await axios.get(
+      `${baseUrl}/business-promotion/get-all`,
+      await getAuthToken()
+    );
+    return response.data.data;
+  } catch (error) {
+    console.log(error?.response?.data || error, "error");
+    throw error;
+  }
+}
+export const getBannerWarningApi = async () => {
+  try {
+    const response = await axios.get(
+      `${baseUrl}/banner-warning/get-all`,
+      await getAuthToken()
+    );
+    return response.data.data;
   } catch (error) {
     console.log(error?.response?.data || error, "error");
     throw error;

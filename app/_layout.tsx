@@ -25,13 +25,25 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Provider } from "react-redux";
 import VersionCheck from "react-native-version-check";
 import { Alert, Linking, View } from "react-native";
+import messaging from '@react-native-firebase/messaging';
+import {
+  requestUserPermission,
+  notificationListner,
+  createNotificationChannel,
+  requestAndroidNotificationPermission,
+  configurePushNotification,
+} from '../app/notification/notifications';
 
 SplashScreen.preventAutoHideAsync();
+
+// ✅ Must be outside the component, at module level
+messaging().setBackgroundMessageHandler(async remoteMessage => {
+  console.log('Background message received:', remoteMessage);
+});
 
 export default function RootLayout() {
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
-    // Roboto fonts
     "Roboto-Thin": Roboto_100Thin,
     "Roboto-Light": Roboto_300Light,
     "Roboto-Regular": Roboto_400Regular,
@@ -45,7 +57,7 @@ export default function RootLayout() {
     const checkAppVersion = async () => {
       try {
         const latestVersion = await VersionCheck.getLatestVersion({
-          packageName:'com.admitra.app',
+          packageName: 'com.admitra.app',
           ignoreErrors: true,
         });
         const currentVersion = VersionCheck.getCurrentVersion();
@@ -78,10 +90,34 @@ export default function RootLayout() {
   }, [loaded]);
 
   useEffect(() => {
+    const initializeNotifications = async () => {
+      try {
+        configurePushNotification();
+        createNotificationChannel();
+        await requestAndroidNotificationPermission();
+        notificationListner();
+      } catch (error) {
+        console.error('Error initializing notification system:', error);
+      }
+    };
+    initializeNotifications();
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      try {
+        await requestUserPermission();
+      } catch (error) {
+        console.error('Error setting up FCM permissions:', error);
+      }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       setSplashVisible(false);
-    }, 1000); // 2 seconds delay
-
+    }, 1000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -91,18 +127,16 @@ export default function RootLayout() {
 
   return (
     <Provider store={store}>
-        <GestureHandlerRootView style={{ flex: 1 }}>
-          <SafeAreaProvider style={{ flex: 1 }}>
-            <ThemeProvider
-              value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
-            >
-              <StatusBar style="dark" />
-              <View style={{ flex: 1, backgroundColor: "#F5F5F5" }}>
-                <Slot />
-              </View>
-            </ThemeProvider>
-          </SafeAreaProvider>
-        </GestureHandlerRootView>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider style={{ flex: 1 }}>
+          <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+            <StatusBar style="dark" />
+            <View style={{ flex: 1, backgroundColor: "#F5F5F5" }}>
+              <Slot />
+            </View>
+          </ThemeProvider>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
     </Provider>
   );
 }

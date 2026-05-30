@@ -1,0 +1,136 @@
+import React from "react";
+import { Image, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { ThemedText } from "@/components/ThemedText";
+import { COLORS } from "@/constants/Colors";
+import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
+
+const ICON_SIZE_LARGE = 32;
+
+type HomeCategoriesProps = {
+  categories: any[];
+  selectedCategory: number | null;
+  onPressCategory: (categoryId: number | null) => void;
+  onPressMore: () => void;
+};
+
+export const HomeCategories = ({
+  categories,
+  selectedCategory,
+  onPressCategory,
+  onPressMore,
+}: HomeCategoriesProps) => {
+  return (
+    <View style={styles.categoriesSection}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.categoriesScroll}
+      >
+        {/* "All" chip */}
+        <TouchableOpacity
+          style={styles.categoryItem}
+          activeOpacity={0.7}
+          onPress={() => onPressCategory(null)}
+        >
+          <View
+            style={[
+              styles.categoryIconBox,
+              selectedCategory === null && styles.categoryIconBoxActive,
+            ]}
+          >
+            <Ionicons
+              name="grid"
+              size={22}
+              color={selectedCategory === null ? COLORS.white : "#1565C0"}
+            />
+          </View>
+          <ThemedText
+            style={[
+              styles.categoryLabel,
+              selectedCategory === null && styles.categoryLabelActive,
+            ]}
+          >
+            All
+          </ThemedText>
+        </TouchableOpacity>
+
+        {categories.map((cat: any) => (
+          <TouchableOpacity
+            key={cat.id}
+            style={styles.categoryItem}
+            activeOpacity={0.7}
+            onPress={() => onPressCategory(cat.id)}
+          >
+            <View
+              style={[
+                styles.categoryIconBox,
+                selectedCategory === cat.id && styles.categoryIconBoxActive,
+              ]}
+            >
+              {cat.image ? (
+                <Image source={{ uri: cat.image }} style={styles.categoryImg} />
+              ) : (
+                <Ionicons name="pricetag" size={22} color="#1565C0" />
+              )}
+            </View>
+            <ThemedText
+              style={[
+                styles.categoryLabel,
+                selectedCategory === cat.id && styles.categoryLabelActive,
+              ]}
+              numberOfLines={1}
+            >
+              {cat.name}
+            </ThemedText>
+          </TouchableOpacity>
+        ))}
+
+        <TouchableOpacity
+          style={styles.categoryItem}
+          activeOpacity={0.7}
+          onPress={onPressMore}
+        >
+          <View style={styles.categoryIconBox}>
+            <Ionicons name="ellipsis-horizontal" size={22} color="#1565C0" />
+          </View>
+          <ThemedText style={styles.categoryLabel}>More</ThemedText>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  categoriesSection: { marginBottom: SIZES.padding16 },
+  categoriesScroll: { gap: SIZES.padding14, paddingRight: SIZES.padding8 },
+  categoryItem: { alignItems: "center", width: ICON_SIZE_LARGE + 28 },
+  categoryIconBox: {
+    width: ICON_SIZE_LARGE + 18,
+    height: ICON_SIZE_LARGE + 18,
+    borderRadius: SIZES.radius6,
+    backgroundColor: COLORS.white,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E8E8E8",
+    marginBottom: SIZES.padding4,
+    overflow: "hidden",
+  },
+  categoryIconBoxActive: {
+    backgroundColor: "#1565C0",
+    borderColor: "#1565C0",
+  },
+  categoryImg: {
+    width: ICON_SIZE_LARGE + 18,
+    height: ICON_SIZE_LARGE + 18,
+    borderRadius: SIZES.radius6,
+  },
+  categoryLabel: {
+    fontSize: SIZES.fontSize10,
+    fontWeight: "600",
+    color: COLORS.text,
+    textAlign: "center",
+  },
+  categoryLabelActive: { color: "#1565C0", fontWeight: "700" },
+});

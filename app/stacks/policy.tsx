@@ -163,7 +163,7 @@ export default function PolicyScreen() {
         {/* Render HTML Content */}
         <View style={styles.htmlContainer}>
           <RenderHtml
-            contentWidth={width - SIZES.padding * 2}
+            contentWidth={width - SIZES.padding * 6}
             source={{ html: htmlContent }}
             tagsStyles={htmlStyles}
             renderersProps={renderersProps}

@@ -251,492 +251,595 @@ const GetVerifiedProfileModal: React.FC<GetVerifiedProfileModalProps> = ({
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  return (
-    <Modal
-      visible={isVisible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <View style={styles.container}>
-        {/* Blue Header */}
-        <LinearGradient
-          colors={["#1565C0", "#1E88E5"]}
-          style={styles.header}
-        >
-          {/* Close Button */}
-          <Pressable style={styles.closeButton} onPress={onClose}>
-            <Ionicons name="close" size={24} color={COLORS.white} />
-          </Pressable>
+return (
+  <Modal
+    visible={isVisible}
+    animationType="slide"
+    presentationStyle="pageSheet"
+    onRequestClose={onClose}
+  >
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.topBanner}>
+        <ThemedText style={styles.topTitle}>
+          Why Get Verified?
+        </ThemedText>
 
-          {/* Header Content */}
-          <View style={styles.headerContent}>
-            <ThemedText style={styles.headerTitle}>Get Verified Profile</ThemedText>
-            <View style={styles.benefitsContainer}>
-              <View style={styles.benefitItem}>
-                <Ionicons name="checkmark" size={16} color={COLORS.white} />
-                <ThemedText style={styles.benefitText}>Increase Trust</ThemedText>
-              </View>
-              <View style={styles.benefitItem}>
-                <Ionicons name="checkmark" size={16} color={COLORS.white} />
-                <ThemedText style={styles.benefitText}>Get More Views</ThemedText>
-              </View>
-              <View style={styles.benefitItem}>
-                <Ionicons name="checkmark" size={16} color={COLORS.white} />
-                <ThemedText style={styles.benefitText}>Trusted Seller Badge</ThemedText>
-              </View>
-            </View>
+        <View style={styles.benefitsRow}>
+          <View style={styles.benefitCard}>
+            <Ionicons name="shield-checkmark" size={22} color="#1565C0" />
+            <ThemedText style={styles.benefitHeading}>
+              Increase
+            </ThemedText>
+            <ThemedText style={styles.benefitSub}>
+              Buyer Trust
+            </ThemedText>
           </View>
-        </LinearGradient>
 
-        {/* Form Content */}
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-        >
-          {/* Full Name */}
-          <View style={styles.fieldContainer}>
-            <ThemedText style={styles.label}>Full Name</ThemedText>
+          <View style={styles.benefitCard}>
+            <Ionicons name="stats-chart" size={22} color="#1565C0" />
+            <ThemedText style={styles.benefitHeading}>
+              More Visibility
+            </ThemedText>
+            <ThemedText style={styles.benefitSub}>
+              on Ads
+            </ThemedText>
+          </View>
+
+          <View style={styles.benefitCard}>
+            <Ionicons name="checkmark-done-circle" size={22} color="#1565C0" />
+            <ThemedText style={styles.benefitHeading}>
+              Verified Badge
+            </ThemedText>
+            <ThemedText style={styles.benefitSub}>
+              on Profile
+            </ThemedText>
+          </View>
+        </View>
+      </View>
+
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Full Name */}
+        <View style={styles.fieldContainer}>
+          <ThemedText style={styles.label}>Full Name</ThemedText>
+
+          <View style={styles.inputContainer}>
+            <Ionicons name="person-outline" size={18} color="#7B8794" />
             <TextInput
               style={styles.input}
-              placeholder="Enter your name"
-              placeholderTextColor={COLORS.gray}
+              placeholder="Enter full name"
               value={form.fullName}
               onChangeText={(text) => updateForm("fullName", text)}
             />
           </View>
+        </View>
 
-          {/* Mobile Number */}
-          <View style={styles.fieldContainer}>
-            <ThemedText style={styles.label}>Mobile Number</ThemedText>
-            <View style={styles.mobileInputContainer}>
-              <View style={styles.countryCode}>
-                <ThemedText style={styles.countryCodeText}>+91</ThemedText>
-              </View>
-              <TextInput
-                style={styles.mobileInput}
-                placeholder="9876543210"
-                placeholderTextColor={COLORS.gray}
-                keyboardType="phone-pad"
-                maxLength={10}
-                value={form.mobileNumber}
-                onChangeText={(text) => updateForm("mobileNumber", text)}
-                editable={false} // Phone is usually verified separately
-              />
-            </View>
+        {/* Mobile */}
+        <View style={styles.fieldContainer}>
+          <ThemedText style={styles.label}>Mobile Number</ThemedText>
+
+          <View style={styles.inputContainer}>
+            <Ionicons name="call-outline" size={18} color="#7B8794" />
+
+            <ThemedText style={styles.countryCodeText}>
+              +91
+            </ThemedText>
+
+            <TextInput
+              style={[styles.input, { flex: 1 }]}
+              placeholder="9876543210"
+              keyboardType="phone-pad"
+              value={form.mobileNumber}
+              editable={false}
+            />
           </View>
+        </View>
 
-          {/* Email */}
-          <View style={styles.fieldContainer}>
-            <ThemedText style={styles.label}>Email (Gmail)</ThemedText>
+        {/* Email */}
+        <View style={styles.fieldContainer}>
+          <ThemedText style={styles.label}>Email (Gmail)</ThemedText>
+
+          <View style={styles.inputContainer}>
+            <Ionicons name="mail-outline" size={18} color="#7B8794" />
+
             <TextInput
               style={styles.input}
-              placeholder="Enter your email"
-              placeholderTextColor={COLORS.gray}
+              placeholder="Enter email"
               keyboardType="email-address"
-              autoCapitalize="none"
               value={form.email}
               onChangeText={(text) => updateForm("email", text)}
             />
           </View>
+        </View>
 
-          {/* State Dropdown */}
-          <ThemeSelect
-            label="State"
-            placeholder="Select State"
-            value={selectedState}
-            items={states}
-            onSelect={(state) => handleStateChange(state as State)}
-            containerStyle={styles.fieldContainer}
-          />
-
-          {/* City Dropdown */}
-          <ThemeSelect
-            label="City"
-            placeholder="Select City"
-            value={selectedCity}
-            items={filteredCities}
-            onSelect={(city) => setSelectedCity(city as City)}
-            disabled={!selectedState}
-            containerStyle={styles.fieldContainer}
-          />
-
-          {/* Address */}
-          <View style={styles.fieldContainer}>
-            <ThemedText style={styles.label}>Address</ThemedText>
-            <TextInput
-              style={[styles.input, styles.multilineInput]}
-              placeholder="Enter your full address"
-              placeholderTextColor={COLORS.gray}
-              multiline
-              numberOfLines={3}
-              textAlignVertical="top"
-              value={form.address}
-              onChangeText={(text) => updateForm("address", text)}
+        {/* State & City */}
+        <View style={styles.row}>
+          <View style={{ flex: 1 }}>
+            <ThemeSelect
+              label="State"
+              placeholder="Select State"
+              value={selectedState}
+              items={states}
+              onSelect={(state) => handleStateChange(state as State)}
             />
-            <ThemedText style={styles.helperText}>
-              This address will be shown on your profile
-            </ThemedText>
           </View>
 
-          {/* Upload ID Proof */}
-          <View style={styles.fieldContainer}>
-            <ThemedText style={styles.label}>
-              Upload ID Proof <ThemedText style={styles.subLabel}>(Aadhaar / PAN / Voter ID)</ThemedText>
-            </ThemedText>
-            <Pressable
-              style={styles.imageUploadButton}
-              onPress={() => showImageOptions("aadhar")}
-            >
-              {form.AadharImage ? (
-                <View style={styles.imagePreviewContainer}>
-                  <Image
-                    source={{
-                      uri: form.AadharImage.startsWith("data:")
-                        ? form.AadharImage
-                        : `${ImageUrl}/${form.AadharImage}`
-                    }}
-                    style={styles.imagePreview}
-                  />
-                  <View style={styles.imageOverlay}>
-                    <Ionicons name="checkmark-circle" size={24} color={COLORS.success} />
-                    <ThemedText style={styles.imageSuccessText}>Uploaded</ThemedText>
-                    <Pressable
-                      style={styles.changeImageButton}
-                      onPress={() => showImageOptions("aadhar")}
-                    >
-                      <Ionicons name="camera-outline" size={16} color={COLORS.white} />
-                      <ThemedText style={styles.changeImageText}>Change</ThemedText>
-                    </Pressable>
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.uploadPlaceholder}>
-                  <Ionicons name="cloud-upload-outline" size={32} color={COLORS.gray} />
-                  <ThemedText style={styles.uploadText}>Upload ID Card</ThemedText>
-                  <ThemedText style={styles.uploadSubtext}>Tap to select or take photo</ThemedText>
-                </View>
-              )}
-            </Pressable>
-          </View>
-          {/* Upload ID Proof Back */}
-          <View style={styles.fieldContainer}>
-            <ThemedText style={styles.label}>
-              Upload ID Proof <ThemedText style={styles.subLabel}>(Aadhaar / PAN / Voter ID)</ThemedText>
-            </ThemedText>
-            <Pressable
-              style={styles.imageUploadButton}
-              onPress={() => showImageOptions("aadharBack")}
-            >
-              {form.AadharImageBack ? (
-                <View style={styles.imagePreviewContainer}>
-                  <Image
-                    source={{
-                      uri: form.AadharImageBack.startsWith("data:")
-                        ? form.AadharImageBack
-                        : `${ImageUrl}/${form.AadharImageBack}`
-                    }}
-                    style={styles.imagePreview}
-                  />
-                  <View style={styles.imageOverlay}>
-                    <Ionicons name="checkmark-circle" size={24} color={COLORS.success} />
-                    <ThemedText style={styles.imageSuccessText}>Uploaded</ThemedText>
-                    <Pressable
-                      style={styles.changeImageButton}
-                      onPress={() => showImageOptions("aadharBack")}
-                    >
-                      <Ionicons name="camera-outline" size={16} color={COLORS.white} />
-                      <ThemedText style={styles.changeImageText}>Change</ThemedText>
-                    </Pressable>
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.uploadPlaceholder}>
-                  <Ionicons name="cloud-upload-outline" size={32} color={COLORS.gray} />
-                  <ThemedText style={styles.uploadText}>Upload ID Card</ThemedText>
-                  <ThemedText style={styles.uploadSubtext}>Tap to select or take photo</ThemedText>
-                </View>
-              )}
-            </Pressable>
-          </View>
+          <View style={{ width: 10 }} />
 
-          {/* Upload Selfie */}
-          <View style={styles.fieldContainer}>
-            <ThemedText style={styles.label}>
-              Upload Selfie <ThemedText style={styles.subLabel}>(Clear face required)</ThemedText>
-            </ThemedText>
-            <Pressable
-              style={styles.imageUploadButton}
-              onPress={() => showImageOptions("selfie")}
-            >
-              {form.selfieverificationImage ? (
-                <View style={styles.imagePreviewContainer}>
-                  <Image
-                    source={{
-                      uri: form.selfieverificationImage.startsWith("data:")
-                        ? form.selfieverificationImage
-                        : `${ImageUrl}/${form.selfieverificationImage}`
-                    }}
-                    style={styles.imagePreview}
-                  />
-                  <View style={styles.imageOverlay}>
-                    <Ionicons name="checkmark-circle" size={24} color={COLORS.success} />
-                    <ThemedText style={styles.imageSuccessText}>Uploaded</ThemedText>
-                    <Pressable
-                      style={styles.changeImageButton}
-                      onPress={() => showImageOptions("selfie")}
-                    >
-                      <Ionicons name="camera-outline" size={16} color={COLORS.white} />
-                      <ThemedText style={styles.changeImageText}>Change</ThemedText>
-                    </Pressable>
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.uploadPlaceholder}>
-                  <Ionicons name="person-outline" size={32} color={COLORS.gray} />
-                  <ThemedText style={styles.uploadText}>Take Selfie</ThemedText>
-                  <ThemedText style={styles.uploadSubtext}>Tap to select or take photo</ThemedText>
-                </View>
-              )}
-            </Pressable>
+          <View style={{ flex: 1 }}>
+            <ThemeSelect
+              label="City"
+              placeholder="Select City"
+              value={selectedCity}
+              items={filteredCities}
+              onSelect={(city) => setSelectedCity(city as City)}
+              disabled={!selectedState}
+            />
           </View>
+        </View>
 
-          {/* Security Note */}
-          <View style={styles.securityNote}>
-            <Ionicons name="shield-checkmark" size={16} color={COLORS.gray} />
-            <ThemedText style={styles.securityText}>
-              Your data is secure and only used for verification.
-            </ThemedText>
-          </View>
+        {/* Address */}
+        <View style={styles.fieldContainer}>
+          <ThemedText style={styles.label}>Address / area</ThemedText>
 
-          {/* Spacing for bottom button */}
-          <View style={{ height: 100 }} />
-        </ScrollView>
-
-        {/* Bottom Button */}
-        <View style={styles.bottomContainer}>
-          <ThemedButton
-            buttonText="Verify Now"
-            onPress={handleSubmit}
-            style={styles.verifyButton}
-            textStyle={styles.verifyButtonText}
+          <TextInput
+            style={styles.addressInput}
+            placeholder="Enter your address"
+            multiline
+            value={form.address}
+            onChangeText={(text) => updateForm("address", text)}
           />
         </View>
+
+        {/* Note */}
+        <View style={styles.infoBox}>
+          <Ionicons
+            name="information-circle"
+            size={18}
+            color="#1565C0"
+          />
+
+          <ThemedText style={styles.infoText}>
+            ID verification se bharosa badhta hai aur verified
+            sellers ko zyada visibility milti hai.
+          </ThemedText>
+        </View>
+
+        {/* ID Section */}
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <ThemedText style={styles.sectionTitle}>
+              ID Proof (Optional but Recommended)
+            </ThemedText>
+
+            <View style={styles.optionalBadge}>
+              <ThemedText style={styles.optionalText}>
+                Optional
+              </ThemedText>
+            </View>
+          </View>
+
+          <ThemedText style={styles.sectionSubText}>
+            Adding ID increases your trust score and helps in
+            faster verification.
+          </ThemedText>
+
+          {/* ID Type Buttons */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingVertical: 10 }}
+          >
+            {[
+              "Aadhaar",
+              "Voter ID",
+              "PAN Card",
+              "Driving License",
+              "Other",
+            ].map((item) => (
+              <Pressable key={item} style={styles.idTypeButton}>
+                <ThemedText style={styles.idTypeText}>
+                  {item}
+                </ThemedText>
+              </Pressable>
+            ))}
+          </ScrollView>
+
+          {/* Upload ID */}
+          <ThemedText style={styles.uploadTitle}>
+            Upload ID Photo
+          </ThemedText>
+
+          <Pressable
+            style={styles.uploadBox}
+            onPress={() => showImageOptions("aadhar")}
+          >
+            {form.AadharImage ? (
+              <Image
+                source={{
+                  uri: form.AadharImage.startsWith("data:")
+                    ? form.AadharImage
+                    : `${ImageUrl}/${form.AadharImage}`,
+                }}
+                style={styles.uploadedImage}
+              />
+            ) : (
+              <>
+                <Ionicons
+                  name="cloud-upload-outline"
+                  size={38}
+                  color="#1565C0"
+                />
+
+                <ThemedText style={styles.uploadBoxTitle}>
+                  Tap to Upload ID Photo
+                </ThemedText>
+
+                <ThemedText style={styles.uploadBoxSub}>
+                  JPG, PNG up to 5MB
+                </ThemedText>
+              </>
+            )}
+          </Pressable>
+
+          {/* Selfie */}
+          <ThemedText style={[styles.uploadTitle, { marginTop: 18 }]}>
+            Upload Selfie
+          </ThemedText>
+
+          <Pressable
+            style={styles.uploadBox}
+            onPress={() => showImageOptions("selfie")}
+          >
+            {form.selfieverificationImage ? (
+              <Image
+                source={{
+                  uri: form.selfieverificationImage.startsWith("data:")
+                    ? form.selfieverificationImage
+                    : `${ImageUrl}/${form.selfieverificationImage}`,
+                }}
+                style={styles.uploadedImage}
+              />
+            ) : (
+              <>
+                <Ionicons
+                  name="person-circle-outline"
+                  size={40}
+                  color="#1565C0"
+                />
+
+                <ThemedText style={styles.uploadBoxTitle}>
+                  Tap to Upload Selfie
+                </ThemedText>
+
+                <ThemedText style={styles.uploadBoxSub}>
+                  Clear face required
+                </ThemedText>
+              </>
+            )}
+          </Pressable>
+        </View>
+
+        {/* Verified Row */}
+        <View style={styles.verifiedRow}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Ionicons
+              name="shield-checkmark"
+              size={22}
+              color="#1565C0"
+            />
+
+            <View>
+              <ThemedText style={styles.verifiedTitle}>
+                Verified
+              </ThemedText>
+
+              <ThemedText style={styles.verifiedSub}>
+                Verified ads get more trust
+              </ThemedText>
+            </View>
+          </View>
+
+          <View style={styles.verifiedBadge}>
+            <ThemedText style={styles.verifiedBadgeText}>
+              Verified
+            </ThemedText>
+          </View>
+        </View>
+
+        <View style={{ height: 100 }} />
+      </ScrollView>
+
+      {/* Bottom Button */}
+      <View style={styles.bottomContainer}>
+        <ThemedButton
+          buttonText="Get Verified Now"
+          onPress={handleSubmit}
+          style={styles.verifyButton}
+          textStyle={styles.verifyButtonText}
+        />
       </View>
-    </Modal>
-  );
+    </View>
+  </Modal>
+);
 };
+
+// Replace styles with these updated styles
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: "#F5F7FB",
   },
-  header: {
-    paddingTop: SIZES.padding * 3,
-    paddingHorizontal: SIZES.padding,
-    paddingBottom: SIZES.padding * 1.5,
+
+  topBanner: {
+    backgroundColor: "#FFFFFF",
+    paddingTop: 55,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
   },
-  closeButton: {
-    position: "absolute",
-    top: SIZES.padding * 2.5,
-    left: SIZES.padding,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 10,
-  },
-  headerContent: {
-    alignItems: "center",
-  },
-  headerTitle: {
-    fontSize: SIZES.fontSize22,
+
+  topTitle: {
+    fontSize: 22,
     fontWeight: "700",
-    color: COLORS.white,
-    marginBottom: SIZES.padding,
+    color: "#1565C0",
+    marginBottom: 16,
   },
-  benefitsContainer: {
-    gap: 8,
-  },
-  benefitItem: {
+
+  benefitsRow: {
     flexDirection: "row",
+    justifyContent: "space-between",
+  },
+
+  benefitCard: {
+    flex: 1,
     alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
   },
-  benefitText: {
-    fontSize: SIZES.fontSize14,
-    color: COLORS.white,
-    fontWeight: "500",
+
+  benefitHeading: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#111827",
+    marginTop: 6,
   },
+
+  benefitSub: {
+    fontSize: 11,
+    color: "#6B7280",
+  },
+
   scrollView: {
     flex: 1,
   },
+
   scrollContent: {
-    padding: SIZES.padding,
-    gap: SIZES.padding,
+    padding: 16,
   },
+
   fieldContainer: {
-    gap: 8,
+    marginBottom: 16,
   },
+
   label: {
-    fontSize: SIZES.fontSize14,
+    fontSize: 13,
     fontWeight: "600",
-    color: COLORS.text,
+    marginBottom: 6,
+    color: "#111827",
   },
-  subLabel: {
-    fontSize: SIZES.fontSize12,
-    fontWeight: "400",
-    color: COLORS.gray,
-  },
-  input: {
-    height: SIZES.height * 0.065,
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: SIZES.radius10,
-    paddingHorizontal: SIZES.padding,
-    fontSize: SIZES.fontSize16,
-    color: COLORS.text,
-  },
-  multilineInput: {
-    height: 80,
-    paddingTop: 12,
-    textAlignVertical: "top",
-  },
-  helperText: {
-    fontSize: SIZES.fontSize12,
-    color: COLORS.gray,
-    marginTop: 4,
-  },
-  mobileInputContainer: {
+
+  inputContainer: {
     flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 52,
     gap: 10,
   },
-  countryCode: {
-    height: SIZES.height * 0.065,
-    backgroundColor: COLORS.lightGray,
+
+  input: {
+    flex: 1,
+    fontSize: 15,
+    color: "#111827",
+  },
+
+  countryCodeText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#111827",
+  },
+
+  row: {
+    flexDirection: "row",
+    marginBottom: 16,
+  },
+
+  addressInput: {
+    minHeight: 52,
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: SIZES.radius10,
-    paddingHorizontal: SIZES.padding,
-    justifyContent: "center",
+    borderColor: "#D1D5DB",
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 15,
+    color: "#111827",
+  },
+
+  infoBox: {
+    flexDirection: "row",
+    gap: 10,
+    backgroundColor: "#EFF6FF",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 18,
+  },
+
+  infoText: {
+    flex: 1,
+    fontSize: 12,
+    color: "#1565C0",
+    lineHeight: 18,
+  },
+
+  sectionCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
   },
-  countryCodeText: {
-    fontSize: SIZES.fontSize16,
+
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#111827",
+  },
+
+  optionalBadge: {
+    backgroundColor: "#E5E7EB",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+
+  optionalText: {
+    fontSize: 11,
     fontWeight: "600",
-    color: COLORS.text,
+    color: "#6B7280",
   },
-  mobileInput: {
-    flex: 1,
-    height: SIZES.height * 0.065,
-    backgroundColor: COLORS.lightGray,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: SIZES.radius10,
-    paddingHorizontal: SIZES.padding,
-    fontSize: SIZES.fontSize16,
-    color: COLORS.text,
+
+  sectionSubText: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginTop: 6,
+    lineHeight: 18,
   },
-  imageUploadButton: {
-    height: SIZES.height * 0.18,
-    backgroundColor: COLORS.white,
+
+  idTypeButton: {
     borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: SIZES.radius10,
+    borderColor: "#D1D5DB",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginRight: 10,
+    backgroundColor: "#FFFFFF",
+  },
+
+  idTypeText: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: "#111827",
+  },
+
+  uploadTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 8,
+  },
+
+  uploadBox: {
+    height: 170,
+    borderWidth: 1,
     borderStyle: "dashed",
+    borderColor: "#93C5FD",
+    borderRadius: 12,
+    backgroundColor: "#F8FBFF",
+    justifyContent: "center",
+    alignItems: "center",
     overflow: "hidden",
   },
-  uploadPlaceholder: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: SIZES.padding,
-  },
-  uploadText: {
-    fontSize: SIZES.fontSize14,
+
+  uploadBoxTitle: {
+    fontSize: 14,
     fontWeight: "600",
-    color: COLORS.text,
+    color: "#1565C0",
     marginTop: 8,
   },
-  uploadSubtext: {
-    fontSize: SIZES.fontSize12,
-    color: COLORS.gray,
+
+  uploadBoxSub: {
+    fontSize: 12,
+    color: "#6B7280",
     marginTop: 4,
   },
-  imagePreviewContainer: {
-    flex: 1,
-    position: "relative",
-  },
-  imagePreview: {
+
+  uploadedImage: {
     width: "100%",
     height: "100%",
     resizeMode: "cover",
   },
-  imageOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 4,
-  },
-  imageSuccessText: {
-    fontSize: SIZES.fontSize14,
-    fontWeight: "600",
-    color: COLORS.white,
-  },
-  changeImageButton: {
-    position: "absolute",
-    bottom: 8,
-    right: 8,
+
+  verifiedRow: {
+    marginTop: 18,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
     flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    gap: 4,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    paddingHorizontal: 10,
+  },
+
+  verifiedTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#111827",
+  },
+
+  verifiedSub: {
+    fontSize: 12,
+    color: "#6B7280",
+  },
+
+  verifiedBadge: {
+    backgroundColor: "#DBEAFE",
+    paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: 20,
   },
-  changeImageText: {
-    fontSize: SIZES.fontSize12,
-    fontWeight: "500",
-    color: COLORS.white,
+
+  verifiedBadgeText: {
+    color: "#1565C0",
+    fontWeight: "700",
+    fontSize: 12,
   },
-  securityNote: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    marginTop: SIZES.padding,
-  },
-  securityText: {
-    fontSize: SIZES.fontSize12,
-    color: COLORS.gray,
-    textAlign: "center",
-  },
+
   bottomContainer: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: COLORS.white,
-    paddingHorizontal: SIZES.padding,
-    paddingTop: SIZES.padding,
-    paddingBottom: SIZES.padding * 2,
+    backgroundColor: "#FFFFFF",
+    padding: 16,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: "#E5E7EB",
   },
+
   verifyButton: {
-    backgroundColor: "#00C853",
-    borderRadius: SIZES.radius10,
+    backgroundColor: "#1565C0",
+    borderRadius: 12,
+    height: 54,
   },
+
   verifyButtonText: {
-    fontSize: SIZES.fontSize16,
+    fontSize: 16,
     fontWeight: "700",
+    color: "#FFFFFF",
   },
 });
 
