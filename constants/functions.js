@@ -64,6 +64,9 @@ export const ImageUrl = "https://admastermarketplace.in/storage"
 export const RAZORPAY_KEY = "rzp_test_RmeHXdBQXDWzp9"
 export const RAZORPAY_SECRET = "ktPiQoi6ak9Lwv7KkhOrcSns"
 
+// verifing warning
+export const getVerifyingWarningUrl = "getverifywarning"
+
 
 export const logoutUser = async (dispatch, router,role) => {
   try {
@@ -337,15 +340,25 @@ export const createOrderApi = async (plan_id) => {
 
 export const handleVerifyandAddProductApi= async (data) => {
   try {
+    const authConfig = await getAuthToken();
+    const config = {
+      ...authConfig,
+      headers: {
+        ...(authConfig.headers || {}),
+        'accept': 'application/json',
+        'X-CSRF-TOKEN': '',
+      },
+    };
     const response = await axios.post(
       `${baseUrl}/${verifyAndStorePaymentUrl}`,
       data,
-      await getAuthToken()
+      config
     );
     return response.data;
   }
   catch (error) {
-    console.log(error.response.data, "error");
+    console.log(error?.response?.data || error, "error");
+    throw error;
   }
 }
 //chat
@@ -479,6 +492,7 @@ export const getPromotionBannerApi = async () => {
     throw error;
   }
 }
+
 export const getBannerWarningApi = async () => {
   try {
     const response = await axios.get(
@@ -491,3 +505,29 @@ export const getBannerWarningApi = async () => {
     throw error;
   }
 }
+
+export const getChildCategoriesApi = async (subCategoryId) => {
+  try {
+    const response = await axios.get(
+      `${baseUrl}/subcategories/${subCategoryId}/children`,
+      await getAuthToken()
+    );
+    return response.data.data || [];
+  } catch (error) {
+    console.log(error?.response?.data || error, "error");
+    return [];
+  }
+};
+
+export const getVerifyingWarningApi = async () => {
+  try {
+    const response = await axios.get(
+      `${baseUrl}/${getVerifyingWarningUrl}`,
+      await getAuthToken()
+    );
+    return response.data.data || [];
+  } catch (error) {
+    console.log(error?.response?.data || error, "error");
+    return [];
+  }
+};

@@ -14,6 +14,8 @@ export default function StacksLayout() {
       <Stack.Screen name="seeAllFeatured" options={{ headerShown: false }} />
       <Stack.Screen name="seeAllFresh" options={{ headerShown: false }} />
       <Stack.Screen name="notifications" options={{ headerShown: false }} />
+      <Stack.Screen name="verificationSuccess" options={{ headerShown: false }} />
+      <Stack.Screen name="verificationPending" options={{ headerShown: false }} />
     </Stack>
   );
 }

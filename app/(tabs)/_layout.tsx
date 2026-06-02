@@ -1,15 +1,18 @@
 import { HapticTab } from '@/components/HapticTab';
 import { COLORS } from '@/constants/Colors';
+import { SIZES, SIZES_WITH_ALIASES } from '@/constants/Sizes';
 import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
-import { useRef } from 'react';
-import { Animated, StyleSheet, View } from 'react-native';
+import { Tabs, useRouter } from 'expo-router';
+import { useRef, useState } from 'react';
+import { Animated, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
-  const bottomPosition = Math.max(insets.bottom, 10) ;
+  const bottomPosition = Math.max(insets.bottom, 10);
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const router = useRouter();
+  const [showWarning, setShowWarning] = useState(false);
 
   const animateIcon = () => {
     Animated.sequence([
@@ -35,6 +38,7 @@ export default function TabLayout() {
   );
 
   return (
+    <>
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -82,6 +86,12 @@ export default function TabLayout() {
             </View>
           ),
         }}
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            setShowWarning(true);
+          },
+        }}
       />
 
       <Tabs.Screen
@@ -111,6 +121,46 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+
+      <Modal
+        visible={showWarning}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowWarning(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.warningModal}>
+            <ScrollView
+              contentContainerStyle={styles.warningScroll}
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+            >
+              <Image
+                source={require('@/assets/images/warning.png')}
+                style={styles.warningImage}
+              />
+            </ScrollView>
+            <View style={[styles.warningActions, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={() => setShowWarning(false)}
+              >
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.proceedBtn}
+                onPress={() => {
+                  setShowWarning(false);
+                  router.push('/(tabs)/post');
+                }}
+              >
+                <Text style={styles.proceedBtnText}>I Understand, Proceed</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 }
 
@@ -180,5 +230,90 @@ const styles = StyleSheet.create({
   },
   postButtonActive: {
     transform: [{ scale: 1.03 }],
+  },
+
+  /* Warning Modal */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  warningModal: {
+    backgroundColor: 'transparent',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '92%',
+    width: '100%',
+    overflow: 'hidden',
+  },
+  warningScroll: {
+    padding: 16,
+  },
+  warningImage: {
+    width: SIZES_WITH_ALIASES.width * 0.9,
+    alignSelf: 'center',
+    resizeMode: 'contain',
+  },
+  warningText: {
+    fontSize: 13,
+    color: '#424242',
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  warningBullet: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    alignSelf: 'stretch',
+    marginBottom: 6,
+  },
+  bulletDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#D32F2F',
+    marginTop: 7,
+    marginRight: 8,
+  },
+  bulletText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#424242',
+    lineHeight: 20,
+  },
+  warningActions: {
+    flexDirection: 'row',
+    gap: 10,
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    backgroundColor: '#fff',
+    width: '100%',
+  },
+  cancelBtn: {
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    alignItems: 'center',
+  },
+  cancelBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#424242',
+  },
+  proceedBtn: {
+    flex: 2,
+    paddingVertical: 13,
+    borderRadius: 10,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+  },
+  proceedBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#fff',
   },
 });

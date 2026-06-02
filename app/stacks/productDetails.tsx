@@ -98,14 +98,6 @@ export default function ProductDetailsScreen() {
     Linking.openURL(`tel:${phoneNumber}`);
   };
 
-  const handleShare = async () => {
-    try {
-      await Share.share({
-        message: `Check out ${product?.name} for ₹${product?.price} on Admitra!`,
-      });
-    } catch (_) {}
-  };
-
   const productImages = product?.images || [];
   const isVerifiedSeller = product?.user?.is_verify === 1;
 

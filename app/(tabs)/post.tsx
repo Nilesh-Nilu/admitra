@@ -3,7 +3,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import AppToast from "@/components/toasts/AppToast";
 import { COLORS } from "@/constants/Colors";
-import { createOrderApi, getApprovedProductsUrl, getPlansListUrl, handleVerifyandAddProductApi, RAZORPAY_KEY } from "@/constants/functions";
+import { createOrderApi, getApprovedProductsUrl, getChildCategoriesApi, getPlansListUrl, handleVerifyandAddProductApi, RAZORPAY_KEY } from "@/constants/functions";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 import { setClearData } from "@/store/reducers/paymentReducer";
 import { getApprovedProductsApi, getPlansListApi } from "@/store/reducers/userReducer";
@@ -33,16 +33,19 @@ export default function PostScreen() {
   const user = useSelector((state: any) => state.entities.authReducer?.user);
   const { categories, subCategories, plans } = useSelector((state: any) => state.entities.userReducer) || {};
   const [images, setImages] = useState<any[]>([]);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
+  const [title, setTitle] = useState("test");
+  const [description, setDescription] = useState("test");
+  const [price, setPrice] = useState("100");
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [selectedSubCategory, setSelectedSubCategory] = useState<number | null>(null);
-  const [adType, setAdType] = useState<any>(1);
+  const [selectedChildCategory, setSelectedChildCategory] = useState<number | null>(null);
+  const [childCategories, setChildCategories] = useState<any[]>([]);
+  const [tempSelectedSubCategory, setTempSelectedSubCategory] = useState<any>(null);
+  const [loadingChildrenForId, setLoadingChildrenForId] = useState<number | null>(null);
+  const [adType, setAdType] = useState<any>(null);
   const [websiteLink, setWebsiteLink] = useState("");
   const [videoLink, setVideoLink] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [categorySearchQuery, setCategorySearchQuery] = useState("");
   const [tempSelectedCategory, setTempSelectedCategory] = useState<any>(null);
@@ -50,18 +53,32 @@ export default function PostScreen() {
   const [isNegotiable, setIsNegotiable] = useState(false);
   const [condition, setCondition] = useState("New");
   const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
-  const [additionalDetails, setAdditionalDetails] = useState("");
+  const [customFields, setCustomFields] = useState<{ name: string; value: string }[]>([{ name: "Warranty", value: "" }]);
+  const [videoLink2, setVideoLink2] = useState("");
 
   const dispatch = useDispatch();
   // Filter sub-categories based on selected category
-  const filteredSubCategories = selectedCategory
-    ? subCategories.filter((subCat: any) => subCat.category_id === selectedCategory)
-    : [];
 
-  // Handle category selection - also clears sub-category
-  const handleCategorySelect = (categoryId: number) => {
-    setSelectedCategory(categoryId);
-    setSelectedSubCategory(null); // Reset sub-category when category changes
+  const handleSubCategorySelect = async (subCat: any, currentTempCategory: any) => {
+    setLoadingChildrenForId(subCat.id);
+    const children = await getChildCategoriesApi(subCat.id);
+    setLoadingChildrenForId(null);
+    if (children && children.length > 0) {
+      // Has children — advance to step 3
+      setChildCategories(children);
+      setTempSelectedSubCategory(subCat);
+      setSelectedChildCategory(null);
+    } else {
+      // No children — finalize selection immediately
+      setSelectedCategory(currentTempCategory.id);
+      setSelectedSubCategory(subCat.id);
+      setSelectedChildCategory(null);
+      setChildCategories([]);
+      setShowCategoryModal(false);
+      setTempSelectedCategory(null);
+      setTempSelectedSubCategory(null);
+      setCategorySearchQuery("");
+    }
   };
   const pickImage = async () => {
     if (images.length >= 8) {
@@ -94,6 +111,12 @@ export default function PostScreen() {
   useEffect(() => {
     dispatch(getPlansListApi(getPlansListUrl))
   }, [])
+
+  useEffect(() => {
+    if (plans?.length > 0 && !adType) {
+      setAdType(plans[0]);
+    }
+  }, [plans]);
   useFocusEffect(
     React.useCallback(() => {
       // When this screen is unfocused (navigated away from), clear images
@@ -153,32 +176,51 @@ export default function PostScreen() {
       Alert.alert("Price Required", "Please enter a price");
       return false;
     }
+    if (adType?.id === 3 && !videoLink) {
+      Alert.alert("Banner Video Required", "Please upload a banner video");
+      return false;
+    }
+    if (adType?.id === 3 && !websiteLink) {
+      Alert.alert("Banner Website Link Required", "Please enter a website link");
+      return false;
+    }
+
     return true;
   };
 
-  // Submit product after payment success
+  // Submit product after payment success (or free plan)
   const submitProduct = async (paymentData: any) => {
     try {
+      const filledCustomFields = customFields.filter(f => f.name.trim() && f.value.trim());
       const payload = {
-        razorpay_order_id: paymentData.razorpay_order_id,
-        razorpay_payment_id: paymentData.razorpay_payment_id,
-        razorpay_signature: paymentData.razorpay_signature,
+        razorpay_order_id: paymentData?.razorpay_order_id || null,
+        razorpay_payment_id: paymentData?.razorpay_payment_id || null,
+        razorpay_signature: paymentData?.razorpay_signature || null,
         category_id: selectedCategory,
         sub_category_id: selectedSubCategory,
+        child_category_id: selectedChildCategory || 0,
         name: title,
-        description: description,
-        price: price,
-        additional_details: additionalDetails,
-        images: [...images],
-        plan_id: adType.id,
-        banner_image: adType.id === 3 ? images[0] : null,
-        banner_video_url: adType.id === 3 ? videoLink : null,
-        website_link: adType.id === 3 ? websiteLink : null,
-        condition: condition,
+        description,
+        price: Number(price) || 0,
+        condition: condition.toLowerCase(),
         price_negotiable: isNegotiable,
+        custom_fields: filledCustomFields,
+        images: [...images],
+        plan_id: adType?.id,
+        banner_image: adType?.id === 3 ? images[0] : null,
+        banner_video_url: adType?.id === 3 ? videoLink : null,
+        website_link: adType?.id === 3 ? websiteLink : null,
+        video: videoLink2 || null,
       };
+      console.log(payload, "payload");
 
       const response = await handleVerifyandAddProductApi(payload);
+      console.log(response, "response");
+
+      if (!response) {
+        AppToast("Failed to submit listing. Please try again.");
+        return;
+      }
 
       Alert.alert(
         "Listing Submitted!",
@@ -187,7 +229,6 @@ export default function PostScreen() {
       );
 
       dispatch(getApprovedProductsApi(getApprovedProductsUrl));
-      // Clear form
       clearForm();
     } catch (error) {
       console.log(error, "error");
@@ -204,38 +245,55 @@ export default function PostScreen() {
     setPrice("");
     setSelectedCategory(null);
     setSelectedSubCategory(null);
+    setSelectedChildCategory(null);
+    setChildCategories([]);
     setIsNegotiable(false);
     setCondition("New");
-    setAdditionalDetails("");
+    setCustomFields([{ name: "", value: "" }]);
+    setVideoLink2("");
   };
 
   // Handle submit with payment
   const handleSubmit = async () => {
-    // First validate the form
     if (!validateForm()) return;
 
     setIsLoading(true);
 
     try {
-      // Create order for payment
-      const order = await createOrderApi(adType.id);
-      if (!order) {
+      const orderRes = await createOrderApi(adType?.id);
+      if (!orderRes) {
         AppToast("Failed to create order. Please try again.");
         setIsLoading(false);
         return;
       }
 
-      // Open Razorpay checkout
+      // Backend may return flat { order_id, total_amount } or nested { data: { ... } }
+      const order = orderRes?.data ?? orderRes;
+      const totalAmount = Number(order?.total_amount ?? 0);
+      const razorpayOrderId = order?.order_id || order?.id;
+
+      console.log("Order response:", orderRes, "Parsed:", { totalAmount, razorpayOrderId });
+
+      // Free plan — skip Razorpay, submit directly
+      if (!totalAmount || totalAmount === 0) {
+        await submitProduct({});
+        setIsLoading(false);
+        return;
+      }
+
+      if (!razorpayOrderId) {
+        AppToast("Invalid order. Please try again.");
+        setIsLoading(false);
+        return;
+      }
+
       const options = {
         key: RAZORPAY_KEY,
-        amount: order.total_amount * 100,
+        amount: totalAmount * 100,
         currency: "INR",
         name: "Gaxa Marketplace",
         description: "Post Ad Fee",
-        order_id: order.order_id,
-        handler: async (response: any) => {
-          console.log("Razorpay checkout completed:", response);
-        },
+        order_id: razorpayOrderId,
         prefill: {
           name: user?.name || "",
           email: user?.email || "",
@@ -245,19 +303,19 @@ export default function PostScreen() {
           color: COLORS.primary,
         },
       };
+      console.log(options, "options");
 
       RazorpayCheckout.open(options)
         .then(async (paymentResponse: any) => {
           console.log("Payment successful:", paymentResponse);
-          // Payment successful, now submit the product
           await submitProduct(paymentResponse);
         })
         .catch((error: any) => {
           console.log("Razorpay error:", error);
-          if (error.code === "payment_cancelled") {
+          if (error?.code === "payment_cancelled" || error?.description === "Payment Cancelled") {
             AppToast("Payment cancelled");
           } else {
-            AppToast(`Payment failed: ${error.description || "Unknown error"}`);
+            AppToast(`Payment failed: ${error?.description || "Unknown error"}`);
           }
         })
         .finally(() => {
@@ -269,6 +327,7 @@ export default function PostScreen() {
       setIsLoading(false);
     }
   };
+  console.log(plans, "plans");
 
   return (
     <ThemedView style={styles.container}>
@@ -286,7 +345,7 @@ export default function PostScreen() {
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Ad Type</ThemedText>
             <View style={styles.adTypeContainer}>
-              {plans.map((plan: any) => {
+              {(plans || []).map((plan: any) => {
                 let iconName = "document-text-outline";
                 let iconColor = "#1976D2";
                 let iconBg = "#E3F2FD";
@@ -322,23 +381,23 @@ export default function PostScreen() {
                     key={plan.id}
                     style={[
                       styles.adTypeCard,
-                      adType.id === plan.id && styles.adTypeCardActive,
-                      (plan.id === 2 || plan.type === "featured") && adType.id === plan.id && { backgroundColor: '#FFFDE7', borderColor: '#FFF59D' },
-                      (plan.id === 3 || plan.type === "banner") && adType.id === plan.id && { backgroundColor: '#FFEBEE', borderColor: '#FFCDD2' }
+                      adType?.id === plan.id && styles.adTypeCardActive,
+                      (plan.id === 2 || plan.type === "featured") && adType?.id === plan.id && { backgroundColor: '#FFFDE7', borderColor: '#FFF59D' },
+                      (plan.id === 3 || plan.type === "banner") && adType?.id === plan.id && { backgroundColor: '#FFEBEE', borderColor: '#FFCDD2' }
                     ]}
                     onPress={() => setAdType(plan)}
                     activeOpacity={0.8}
                   >
                     <View style={styles.adTypeRow}>
                       <Ionicons
-                        name={adType.id === plan.id ? "radio-button-on" : "radio-button-off"}
+                        name={adType?.id === plan.id ? "radio-button-on" : "radio-button-off"}
                         size={22}
-                        color={adType.id === plan.id ? COLORS.primary : COLORS.gray}
+                        color={adType?.id === plan.id ? COLORS.primary : COLORS.gray}
                       />
                       <View style={[styles.adTypeIconBox, { backgroundColor: iconBg }]}>
                         <Ionicons name={iconName as any} size={24} color={iconColor} />
                       </View>
-                      
+
                       <View style={styles.adTypeMainCol}>
                         <View style={styles.adTypeTitleRowFixed}>
                           <ThemedText style={styles.adTypeTitleFixed}>
@@ -351,10 +410,10 @@ export default function PostScreen() {
                       <View style={styles.adTypeMiddleCol}>
                         <View style={styles.chatInfoRow}>
                           {plan.id !== 1 && plan.type !== "free" && <Ionicons name="call" size={16} color="#4CAF50" style={{ marginRight: 4 }} />}
-                          <Ionicons 
-                            name="chatbubble-ellipses-outline" 
-                            size={16} 
-                            color={plan.id === 1 || plan.type === "free" ? "#1976D2" : "#4CAF50"} 
+                          <Ionicons
+                            name="chatbubble-ellipses-outline"
+                            size={16}
+                            color={plan.id === 1 || plan.type === "free" ? "#1976D2" : "#4CAF50"}
                             style={{ marginRight: 6 }}
                           />
                           <View>
@@ -380,25 +439,6 @@ export default function PostScreen() {
             </View>
           </View>
 
-          {/* Important Notice */}
-          <View style={styles.importantNoticeContainer}>
-            <Ionicons name="warning" size={32} color="#D32F2F" style={styles.noticeIcon} />
-            <View style={styles.noticeContent}>
-              <ThemedText style={styles.noticeTitle}>Important Notice</ThemedText>
-              <ThemedText style={styles.noticeText}>
-                Illegal link या illegal vedio post करने पर users आपको report कर सकते है।
-                अगर multiple reports मिलते हैं तो:
-              </ThemedText>
-              <View style={styles.bulletPoint}>
-                <View style={styles.bulletDot} />
-                <ThemedText style={styles.bulletText}>आपका ad remove हो सकता है।</ThemedText>
-              </View>
-              <View style={styles.bulletPoint}>
-                <View style={styles.bulletDot} />
-                <ThemedText style={styles.bulletText}>आपका account temporary या permanent ban/block हो सकता है।</ThemedText>
-              </View>
-            </View>
-          </View>
 
           {/* Image Upload Section */}
           <View style={styles.section}>
@@ -538,7 +578,27 @@ export default function PostScreen() {
             />
           </View>
 
-          {/* Additional Details */}
+          {/* Video Link (all plans) */}
+          <View style={styles.section}>
+            <View style={styles.linkLabelRow}>
+              <Ionicons name="play-circle-outline" size={18} color={COLORS.primary} />
+              <ThemedText style={styles.linkLabel}>Product Video Link (Optional)</ThemedText>
+            </View>
+            <View style={[styles.input, styles.videoInput]}>
+              <TextInput
+                style={styles.videoTextInput}
+                placeholder="https://youtube.com/..."
+                placeholderTextColor={COLORS.gray}
+                value={videoLink2}
+                onChangeText={setVideoLink2}
+                keyboardType="url"
+                autoCapitalize="none"
+              />
+            </View>
+            <ThemedText style={styles.linkHint}>Add a video demo of your product</ThemedText>
+          </View>
+
+          {/* Additional Details / Custom Fields */}
           <View style={styles.section}>
             <TouchableOpacity
               style={styles.additionalDetailsHeader}
@@ -557,16 +617,48 @@ export default function PostScreen() {
             </TouchableOpacity>
             {showAdditionalDetails && (
               <View style={styles.additionalDetailsContent}>
-                <TextInput
-                  style={[styles.input, styles.textArea, { marginTop: 12 }]}
-                  placeholder="Any extra info..."
-                  placeholderTextColor={COLORS.gray}
-                  value={additionalDetails}
-                  onChangeText={setAdditionalDetails}
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
-                />
+                <ThemedText style={[styles.linkHint, { marginBottom: 8, marginTop: 8 }]}>
+                  Add specific details (e.g. Warranty: 12 months, Brand: Samsung)
+                </ThemedText>
+                {customFields.map((field, index) => (
+                  <View key={index} style={styles.customFieldRow}>
+                    <TextInput
+                      style={[styles.input, styles.customFieldInput]}
+                      placeholder="Field name"
+                      placeholderTextColor={COLORS.gray}
+                      value={field.name}
+                      onChangeText={(text) => {
+                        const updated = [...customFields];
+                        updated[index] = { ...updated[index], name: text };
+                        setCustomFields(updated);
+                      }}
+                    />
+                    <TextInput
+                      style={[styles.input, styles.customFieldInput]}
+                      placeholder="Value"
+                      placeholderTextColor={COLORS.gray}
+                      value={field.value}
+                      onChangeText={(text) => {
+                        const updated = [...customFields];
+                        updated[index] = { ...updated[index], value: text };
+                        setCustomFields(updated);
+                      }}
+                    />
+                    <TouchableOpacity
+                      onPress={() => setCustomFields(customFields.filter((_, i) => i !== index))}
+                      style={styles.removeFieldBtn}
+                    >
+                      <Ionicons name="close-circle" size={22} color="#D32F2F" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                <TouchableOpacity
+                  style={styles.addFieldBtn}
+                  onPress={() => setCustomFields([...customFields, { name: "", value: "" }])}
+                >
+                  <Ionicons name="add-circle-outline" size={18} color={COLORS.primary} />
+                  <ThemedText style={styles.addFieldText}>Add Field</ThemedText>
+                </TouchableOpacity>
               </View>
             )}
           </View>
@@ -574,18 +666,19 @@ export default function PostScreen() {
           {/* Category */}
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Category & Sub Category *</ThemedText>
-            <TouchableOpacity 
-              style={styles.categorySelectorBtn} 
+            <TouchableOpacity
+              style={styles.categorySelectorBtn}
               onPress={() => setShowCategoryModal(true)}
               activeOpacity={0.8}
             >
               <ThemedText style={selectedCategory ? styles.categorySelectedText : styles.categoryPlaceholderText}>
                 {selectedCategory
                   ? (() => {
-                      const catName = categories.find((c: any) => c.id === selectedCategory)?.name || "";
-                      const subCatName = subCategories.find((sc: any) => sc.id === selectedSubCategory)?.name || "";
-                      return subCatName ? `${catName} > ${subCatName}` : catName;
-                    })()
+                    const catName = categories.find((c: any) => c.id === selectedCategory)?.name || "";
+                    const subCatName = subCategories.find((sc: any) => sc.id === selectedSubCategory)?.name || "";
+                    const childName = childCategories.find((cc: any) => cc.id === selectedChildCategory)?.name || "";
+                    return [catName, subCatName, childName].filter(Boolean).join(" > ");
+                  })()
                   : "Select Category"}
               </ThemedText>
               <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
@@ -593,7 +686,7 @@ export default function PostScreen() {
           </View>
 
           {/* Website Link - Required for Banner */}
-          {adType.id === 3 && (
+          {adType?.id === 3 && (
             <View style={styles.section}>
               <View style={styles.linkLabelRow}>
                 <Ionicons name="globe-outline" size={18} color={COLORS.primary} />
@@ -615,7 +708,7 @@ export default function PostScreen() {
           )}
 
           {/* Video Link - Optional for Banner */}
-          {adType.id === 3 && (
+          {adType?.id === 3 && (
             <View style={styles.section}>
               <View style={styles.linkLabelRow}>
                 <Ionicons name="videocam" size={18} color="#4CAF50" />
@@ -669,8 +762,13 @@ export default function PostScreen() {
         visible={showCategoryModal}
         animationType="slide"
         onRequestClose={() => {
-          if (tempSelectedCategory) {
+          if (tempSelectedSubCategory && childCategories.length > 0) {
+            setTempSelectedSubCategory(null);
+            setChildCategories([]);
+            setCategorySearchQuery("");
+          } else if (tempSelectedCategory) {
             setTempSelectedCategory(null);
+            setTempSelectedSubCategory(null);
             setCategorySearchQuery("");
           } else {
             setShowCategoryModal(false);
@@ -681,10 +779,16 @@ export default function PostScreen() {
         <View style={styles.categoryModalContainer}>
           {/* Header */}
           <View style={styles.categoryModalHeader}>
-            {tempSelectedCategory ? (
+            {(tempSelectedCategory) ? (
               <TouchableOpacity
                 onPress={() => {
-                  setTempSelectedCategory(null);
+                  if (tempSelectedSubCategory && childCategories.length > 0) {
+                    setTempSelectedSubCategory(null);
+                    setChildCategories([]);
+                  } else {
+                    setTempSelectedCategory(null);
+                    setTempSelectedSubCategory(null);
+                  }
                   setCategorySearchQuery("");
                 }}
                 style={styles.categoryModalBackBtn}
@@ -693,12 +797,18 @@ export default function PostScreen() {
               </TouchableOpacity>
             ) : null}
             <ThemedText style={styles.categoryModalTitle}>
-              {tempSelectedCategory ? "Select Sub Category" : "Select Category"}
+              {tempSelectedSubCategory && childCategories.length > 0
+                ? "Select Child Category"
+                : tempSelectedCategory
+                  ? "Select Sub Category"
+                  : "Select Category"}
             </ThemedText>
             <TouchableOpacity
               onPress={() => {
                 setShowCategoryModal(false);
                 setTempSelectedCategory(null);
+                setTempSelectedSubCategory(null);
+                setChildCategories([]);
                 setCategorySearchQuery("");
               }}
               style={styles.categoryModalCloseBtn}
@@ -707,11 +817,14 @@ export default function PostScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Breadcrumbs for Sub Category */}
+          {/* Breadcrumbs */}
           {tempSelectedCategory && (
             <View style={styles.breadcrumbContainer}>
               <ThemedText style={styles.breadcrumbText}>
-                Category {'>'} <ThemedText style={{fontWeight: "600"}}>{tempSelectedCategory.name}</ThemedText>
+                {tempSelectedCategory.name}
+                {tempSelectedSubCategory ? (
+                  <ThemedText style={{ color: COLORS.gray }}> {">"} <ThemedText style={{ fontWeight: "600", color: COLORS.text }}>{tempSelectedSubCategory.name}</ThemedText></ThemedText>
+                ) : null}
               </ThemedText>
             </View>
           )}
@@ -722,7 +835,13 @@ export default function PostScreen() {
               <Ionicons name="search" size={20} color={COLORS.gray} />
               <TextInput
                 style={styles.categoryModalSearchInput}
-                placeholder={tempSelectedCategory ? "Search sub category" : "Search category"}
+                placeholder={
+                  tempSelectedSubCategory && childCategories.length > 0
+                    ? "Search child category"
+                    : tempSelectedCategory
+                      ? "Search sub category"
+                      : "Search category"
+                }
                 value={categorySearchQuery}
                 onChangeText={setCategorySearchQuery}
                 placeholderTextColor={COLORS.gray}
@@ -736,6 +855,7 @@ export default function PostScreen() {
             contentContainerStyle={styles.categoryModalListContent}
             keyboardShouldPersistTaps="handled"
           >
+            {/* Step 1: Categories */}
             {!tempSelectedCategory &&
               categories
                 .filter((cat: any) =>
@@ -751,7 +871,6 @@ export default function PostScreen() {
                     }}
                   >
                     <View style={styles.categoryModalItemLeft}>
-                      {/* Using a default icon for categories without one */}
                       <Ionicons name="list-outline" size={20} color={COLORS.primary} style={{ marginRight: 16 }} />
                       <ThemedText style={styles.categoryModalItemText}>{cat.name}</ThemedText>
                     </View>
@@ -759,7 +878,8 @@ export default function PostScreen() {
                   </TouchableOpacity>
                 ))}
 
-            {tempSelectedCategory &&
+            {/* Step 2: Sub Categories */}
+            {tempSelectedCategory && !tempSelectedSubCategory &&
               subCategories
                 .filter(
                   (subCat: any) =>
@@ -770,21 +890,52 @@ export default function PostScreen() {
                   <TouchableOpacity
                     key={subCat.id}
                     style={styles.categoryModalItem}
-                    onPress={() => {
-                      setSelectedCategory(tempSelectedCategory.id);
-                      setSelectedSubCategory(subCat.id);
-                      setShowCategoryModal(false);
-                      setTempSelectedCategory(null);
-                      setCategorySearchQuery("");
-                    }}
+                    onPress={() => handleSubCategorySelect(subCat, tempSelectedCategory)}
+                    disabled={loadingChildrenForId !== null}
                   >
                     <View style={styles.categoryModalItemLeft}>
                       <Ionicons name="pricetag-outline" size={20} color={COLORS.primary} style={{ marginRight: 16 }} />
                       <ThemedText style={styles.categoryModalItemText}>{subCat.name}</ThemedText>
                     </View>
-                    <Ionicons name="chevron-forward" size={18} color={COLORS.gray} />
+                    {loadingChildrenForId === subCat.id ? (
+                      <ActivityIndicator size="small" color={COLORS.primary} />
+                    ) : (
+                      <Ionicons name="chevron-forward" size={18} color={COLORS.gray} />
+                    )}
                   </TouchableOpacity>
                 ))}
+
+            {/* Step 3: Child Categories */}
+            {tempSelectedSubCategory && childCategories.length > 0 && (
+              <>
+                {childCategories
+                  .filter((child: any) =>
+                    child?.name?.toLowerCase().includes(categorySearchQuery.toLowerCase())
+                  )
+                  .map((child: any) => (
+                    <TouchableOpacity
+                      key={child.id}
+                      style={styles.categoryModalItem}
+                      onPress={() => {
+                        setSelectedCategory(tempSelectedCategory.id);
+                        setSelectedSubCategory(tempSelectedSubCategory.id);
+                        setSelectedChildCategory(child.id);
+                        setShowCategoryModal(false);
+                        setTempSelectedCategory(null);
+                        setTempSelectedSubCategory(null);
+                        setCategorySearchQuery("");
+                      }}
+                    >
+                      <View style={styles.categoryModalItemLeft}>
+                        <Ionicons name="git-branch-outline" size={20} color={COLORS.primary} style={{ marginRight: 16 }} />
+                        <ThemedText style={styles.categoryModalItemText}>{child.name}</ThemedText>
+                      </View>
+                      <Ionicons name="chevron-forward" size={18} color={COLORS.gray} />
+                    </TouchableOpacity>
+                  ))}
+              </>
+            )}
+
           </ScrollView>
         </View>
       </Modal>
@@ -992,6 +1143,39 @@ const styles = StyleSheet.create({
   },
   additionalDetailsContent: {
     marginTop: 8,
+  },
+  customFieldRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
+  },
+  customFieldInput: {
+    flex: 1,
+    paddingVertical: 10,
+    fontSize: 14,
+  },
+  removeFieldBtn: {
+    padding: 4,
+  },
+  addFieldBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.primary + "50",
+    borderStyle: "dashed",
+    backgroundColor: COLORS.primary + "08",
+    alignSelf: "flex-start",
+    marginTop: 4,
+  },
+  addFieldText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.primary,
   },
 
   /* Category Selector & Modal */
@@ -1232,7 +1416,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
-    top:16
+    top: 16
   },
   planBadgeText: {
     fontSize: 10,

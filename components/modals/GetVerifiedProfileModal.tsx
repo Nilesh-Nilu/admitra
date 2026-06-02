@@ -1,12 +1,9 @@
 import ThemedButton from "@/components/buttons/ThemedButton";
 import ThemeSelect from "@/components/inputs/ThemeSelect";
 import { ThemedText } from "@/components/ThemedText";
-import { COLORS } from "@/constants/Colors";
 import { ImageUrl } from "@/constants/functions";
-import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
   Alert,

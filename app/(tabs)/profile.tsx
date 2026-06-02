@@ -114,6 +114,7 @@ export default function ProfileScreen() {
   ];
 
   const isVerified = user?.is_verify === 1;
+  const isPending = user?.is_verify === 2;
 
   // Mock stats - replace with actual data from your API
   const stats = {
@@ -211,12 +212,9 @@ export default function ProfileScreen() {
       };
 
       await dispatch(updateUserProfile(updateUserProfileUrl, updateData));
-      await AsyncStorage.setItem("user", JSON.stringify({...user, ...updateData}));
-      Alert.alert(
-        "Verification Submitted",
-        "Your verification request has been submitted. Our team will review your documents and verify your profile shortly.",
-        [{ text: "OK", onPress: () => setShowVerificationModal(false) }]
-      );
+      await AsyncStorage.setItem("user", JSON.stringify({...user, ...updateData, is_verify: 2}));
+      setShowVerificationModal(false);
+      router.push("/stacks/verificationPending" as any);
     } catch (error: any) {
       console.log(error, "error");
       Alert.alert(
@@ -279,19 +277,52 @@ export default function ProfileScreen() {
           </View>
         </LinearGradient>
 
-        {/* Verification Success Banner */}
+        {/* Verification Banner */}
         {isVerified ? (
-          <View style={styles.verificationBanner}>
+          <TouchableOpacity
+            style={styles.verificationBanner}
+            onPress={() =>
+              router.push({
+                pathname: "/stacks/verificationSuccess" as any,
+                params: {
+                  name: user?.name,
+                  phone: user?.phone,
+                  email: user?.email,
+                  address: user?.address,
+                  selfieverificationImage: user?.selfieverificationImage,
+                },
+              })
+            }
+            activeOpacity={0.8}
+          >
             <View style={styles.verificationIcon}>
               <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
             </View>
             <View style={styles.verificationText}>
               <ThemedText style={styles.verificationTitle}>Your profile is verified!</ThemedText>
               <ThemedText style={styles.verificationSubtitle}>
-                You can now post ads and build trust.
+                Tap to view your verified details.
               </ThemedText>
             </View>
-          </View>
+            <Ionicons name="chevron-forward" size={18} color="#4CAF50" />
+          </TouchableOpacity>
+        ) : isPending ? (
+          <TouchableOpacity
+            style={styles.verificationBannerPending}
+            onPress={() => router.push("/stacks/verificationPending" as any)}
+            activeOpacity={0.8}
+          >
+            <View style={styles.verificationIconPending}>
+              <Ionicons name="time-outline" size={24} color="#F59E0B" />
+            </View>
+            <View style={styles.verificationText}>
+              <ThemedText style={styles.verificationTitlePending}>Verification Under Review</ThemedText>
+              <ThemedText style={styles.verificationSubtitlePending}>
+                Our team is reviewing your documents.
+              </ThemedText>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#F59E0B" />
+          </TouchableOpacity>
         ) : (
           <TouchableOpacity style={styles.verificationBannerPending} onPress={handleOpenVerificationModal}>
             <View style={styles.verificationIconPending}>
@@ -306,26 +337,6 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={20} color="#1565C0" />
           </TouchableOpacity>
         )}
-        {/* Profile Overview Stats */}
-        <View style={styles.statsCard}>
-          <ThemedText style={styles.sectionTitle}>Profile Overview</ThemedText>
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <View style={[styles.statIcon, { backgroundColor: "#E3F2FD" }]}>
-                <Ionicons name="document-text-outline" size={20} color="#1565C0" />
-              </View>
-              <ThemedText style={styles.statNumber}>{stats.ads}</ThemedText>
-              <ThemedText style={styles.statLabel}>My Ads</ThemedText>
-            </View>
-            <View style={styles.statItem}>
-              <View style={[styles.statIcon, { backgroundColor: "#F3E5F5" }]}>
-                <Ionicons name="chatbubble-outline" size={20} color="#9C27B0" />
-              </View>
-              <ThemedText style={styles.statNumber}>{stats.messages}</ThemedText>
-              <ThemedText style={styles.statLabel}>Chat</ThemedText>
-            </View>
-          </View>
-        </View>
 
         {/* My Information Section */}
         <View style={styles.infoCard}>
