@@ -42,7 +42,8 @@ export default function ProfileScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
   const { user }: { user: User } = useSelector((state: any) => state.entities.authReducer);
-  const { states, cities } = useSelector((state: any) => state.entities.userReducer);
+  console.log(user, "user");
+  const { states, cities, localities } = useSelector((state: any) => state.entities.userReducer);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
 
@@ -116,14 +117,6 @@ export default function ProfileScreen() {
   const isVerified = user?.is_verify === 1;
   const isPending = user?.is_verify === 2;
 
-  // Mock stats - replace with actual data from your API
-  const stats = {
-    ads: 12,
-    views: 256,
-    favorites: 18,
-    messages: 9,
-  };
-
   const getMemberSince = () => {
     if (!user?.created_at) return "May 2024";
     const date = new Date(user.created_at);
@@ -171,6 +164,7 @@ export default function ProfileScreen() {
     pincode: string;
     state_id: number | null;
     city_id: number | null;
+    locality_id: number | null;
   }) => {
     try {
       await dispatch(updateUserProfile(updateUserProfileUrl, data));
@@ -207,6 +201,7 @@ export default function ProfileScreen() {
         address: data.address,
         state_id: data.state?.id,
         city_id: data.city?.id,
+        locality_id: data.locality?.id,
         AadharImage: data.AadharImage,
         selfieverificationImage: data.selfieverificationImage,
       };
@@ -353,7 +348,7 @@ export default function ProfileScreen() {
               <ThemedText style={styles.infoLabel}>Full Name</ThemedText>
             </View>
             <View style={styles.infoItemRight}>
-              <ThemedText style={styles.infoValue}>{user?.name || "Amit Kumar"}</ThemedText>
+              <ThemedText style={styles.infoValue}>{user?.name}</ThemedText>
               <Ionicons name="chevron-forward" size={18} color={COLORS.lightGray} />
             </View>
           </View>
@@ -375,7 +370,7 @@ export default function ProfileScreen() {
               <ThemedText style={styles.infoLabel}>Email</ThemedText>
             </View>
             <View style={styles.infoItemRight}>
-              <ThemedText style={styles.infoValue}>{user?.email || "amitkumar@gmail.com"}</ThemedText>
+              <ThemedText style={styles.infoValue}>{user?.email}</ThemedText>
               <Ionicons name="chevron-forward" size={18} color={COLORS.lightGray} />
             </View>
           </View>
@@ -387,7 +382,7 @@ export default function ProfileScreen() {
             </View>
             <View style={styles.infoItemRight}>
               <ThemedText style={styles.infoValue}>
-                {user?.address || "Ranchi, Jharkhand"}
+                {user?.address}
               </ThemedText>
               <Ionicons name="chevron-forward" size={18} color={COLORS.lightGray} />
             </View>
@@ -498,6 +493,7 @@ export default function ProfileScreen() {
         userData={user}
         states={states || []}
         cities={cities || []}
+        localities={Array.isArray(localities) ? localities : []}
       />
 
       {/* Get Verified Profile Modal */}

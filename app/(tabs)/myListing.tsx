@@ -3,10 +3,12 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
+import { favoritesUrl, ImageUrl } from "@/constants/functions";
+import { getFavoritesApi } from "@/store/reducers/userReducer";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dimensions,
   FlatList,
@@ -18,7 +20,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
 const { width } = Dimensions.get("window");
 
@@ -66,21 +68,28 @@ const getStatusConfig = (status: string) => {
 
 export default function MyListingsScreen() {
   const router = useRouter();
-  const { approvedProducts } = useSelector((state: any) => state.entities.userReducer) || {};
+  const dispatch = useDispatch();
+  const { approvedProducts, favorites } = useSelector((state: any) => state.entities.userReducer) || {};
   const safeProducts = approvedProducts || [];
+  const safeFavorites = Array.isArray(favorites) ? favorites : [];
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(true);
+  const isFavoritesTab = selectedFilter === 'favorites';
 
-  const filteredProducts = safeProducts.filter((p: any) => {
-    if (selectedFilter === 'all') return true;
-    if (selectedFilter === 'pending') return p.approve === 'pending';
-    if (selectedFilter === 'normal') return p.approve === 'approved';
-    if (selectedFilter === 'featured') return p.is_featured || p.featured;
-    if (selectedFilter === 'banner') return p.is_banner || p.banner;
-    return true;
-  });
+  const filteredProducts = isFavoritesTab
+    ? safeFavorites
+      .filter((fav: any) => fav?.product != null)
+      .map((fav: any) => ({ ...fav.product, _favoritedAt: fav.favorited_at }))
+    : safeProducts.filter((p: any) => {
+      if (selectedFilter === 'all') return true;
+      if (selectedFilter === 'pending') return p.approve === 'pending';
+      if (selectedFilter === 'normal') return p.approve === 'approved';
+      if (selectedFilter === 'featured') return p.is_featured || p.featured;
+      if (selectedFilter === 'banner') return p.is_banner || p.banner;
+      return true;
+    });
 
   const openDetailModal = (item: any) => {
     setSelectedItem(item);
@@ -107,6 +116,10 @@ export default function MyListingsScreen() {
       year: "numeric",
     });
   };
+
+  useEffect(() => {
+    dispatch(getFavoritesApi(`${favoritesUrl}`));
+  }, []);
 
   const renderStats = () => {
     const approved = safeProducts.filter((p: any) => p.approve === "approved").length;
@@ -144,7 +157,10 @@ export default function MyListingsScreen() {
 
   const renderListingCard = ({ item }: { item: any }) => {
     const statusConfig = getStatusConfig(item.approve);
-    const firstImage = item.images && item.images.length > 0 ? item.images[0].image_path : null;
+    const rawImage = Array.isArray(item?.images) && item.images.length > 0 ? item.images[0]?.image_path : null;
+    const firstImage = rawImage
+      ? rawImage.startsWith("http") ? rawImage : `${ImageUrl}/${rawImage}`
+      : null;
 
     return (
       <TouchableOpacity
@@ -176,12 +192,19 @@ export default function MyListingsScreen() {
             <ThemedText style={styles.listingTitle} numberOfLines={1}>
               {item.name}
             </ThemedText>
-            <View style={[styles.statusBadge, { backgroundColor: statusConfig.bgColor }]}>
-              <Ionicons name={statusConfig.icon as any} size={12} color={statusConfig.color} />
-              <ThemedText style={[styles.statusText, { color: statusConfig.color }]}>
-                {statusConfig.label}
-              </ThemedText>
-            </View>
+            {isFavoritesTab ? (
+              <View style={[styles.statusBadge, { backgroundColor: "#FCE4EC" }]}>
+                <Ionicons name="heart" size={12} color="#E91E63" />
+                <ThemedText style={[styles.statusText, { color: "#E91E63" }]}>Saved</ThemedText>
+              </View>
+            ) : (
+              <View style={[styles.statusBadge, { backgroundColor: statusConfig.bgColor }]}>
+                <Ionicons name={statusConfig.icon as any} size={12} color={statusConfig.color} />
+                <ThemedText style={[styles.statusText, { color: statusConfig.color }]}>
+                  {statusConfig.label}
+                </ThemedText>
+              </View>
+            )}
           </View>
 
           <ThemedText style={styles.listingDescription} numberOfLines={2}>
@@ -191,9 +214,15 @@ export default function MyListingsScreen() {
           <View style={styles.listingFooter}>
             <ThemedText style={styles.listingPrice}>{formatPrice(item.price)}</ThemedText>
             <View style={styles.listingDate}>
-              <Ionicons name="calendar-outline" size={12} color={COLORS.gray} />
+              <Ionicons
+                name={isFavoritesTab ? "heart-outline" : "calendar-outline"}
+                size={12}
+                color={COLORS.gray}
+              />
               <ThemedText style={styles.listingDateText}>
-                {formatDate(item.created_at)}
+                {isFavoritesTab
+                  ? formatDate(item._favoritedAt)
+                  : formatDate(item.created_at)}
               </ThemedText>
             </View>
           </View>
@@ -205,11 +234,19 @@ export default function MyListingsScreen() {
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <View style={styles.emptyIconContainer}>
-        <Ionicons name="cube-outline" size={64} color={COLORS.gray} />
+        <Ionicons
+          name={isFavoritesTab ? "heart-outline" : "cube-outline"}
+          size={64}
+          color={COLORS.gray}
+        />
       </View>
-      <ThemedText style={styles.emptyTitle}>No Listings Yet</ThemedText>
+      <ThemedText style={styles.emptyTitle}>
+        {isFavoritesTab ? "No Favorites Yet" : "No Listings Yet"}
+      </ThemedText>
       <ThemedText style={styles.emptySubtitle}>
-        Start selling by creating your first listing
+        {isFavoritesTab
+          ? "Save ads you like by tapping the heart icon"
+          : "Start selling by creating your first listing"}
       </ThemedText>
     </View>
   );
@@ -247,7 +284,7 @@ export default function MyListingsScreen() {
                   {selectedItem.images.map((img: any, index: number) => (
                     <Image
                       key={index}
-                      source={{ uri: img.image_path }}
+                      source={{ uri: img.image_path?.startsWith("http") ? img.image_path : `${ImageUrl}/${img.image_path}` }}
                       style={styles.modalImage}
                       resizeMode="cover"
                     />
@@ -264,12 +301,32 @@ export default function MyListingsScreen() {
                 </View>
               )}
 
+              {
+                selectedItem?.product?.images && selectedItem?.product?.images?.length > 0 && (
+                  <ScrollView
+                    horizontal
+                    pagingEnabled
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.modalImageScroll}
+                  >
+                    {selectedItem?.product?.images?.map((img: any, index: number) => (
+                      <Image
+                        key={index}
+                        source={{ uri: ImageUrl + "/" + img.image_path }}
+                        style={styles.modalImage}
+                        resizeMode="cover"
+                      />
+                    ))}
+                  </ScrollView>
+                )
+              }
+
               {/* Image Count Indicator */}
-              {selectedItem.images && selectedItem.images.length > 1 && (
+              {selectedItem?.images && selectedItem?.images?.length > 1 && (
                 <View style={styles.imageCountBadge}>
                   <Ionicons name="images" size={12} color={COLORS.white} />
                   <ThemedText style={styles.imageCountText}>
-                    {selectedItem.images.length} photos
+                    {selectedItem?.images?.length} photos
                   </ThemedText>
                 </View>
               )}
@@ -401,7 +458,7 @@ export default function MyListingsScreen() {
         renderItem={renderListingCard}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContent}
-        ListHeaderComponent={safeProducts.length > 0 ? renderStats : null}
+        ListHeaderComponent={!isFavoritesTab && safeProducts.length > 0 ? renderStats : null}
         ListEmptyComponent={renderEmptyState}
         refreshControl={
           <RefreshControl

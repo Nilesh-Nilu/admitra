@@ -9,6 +9,7 @@ export const baseUrl = API_BASE_URL;
 // Reusable API configuration with auth headers and credentials
 export const getAuthToken = async () => {
   const authToken = await AsyncStorage.getItem("authToken");
+  // console.log(authToken, "authToken");
   return {
     headers: {
       Authorization: `Bearer ${authToken}`,
@@ -37,23 +38,25 @@ export const getSubCategoriesUrl = "product-subcategories";
 // states and cities
 export const getStatesUrl = "states";
 export const getCitiesUrl = "cities";
+export const getLocalitiesUrl = "localities";
 
 //products
 export const getProductsUrl = "products/all"
-export const getApprovedProductsUrl ="vendor/products"
+export const getApprovedProductsUrl = "vendor/products"
 export const getFeaturedAdsUrl = "ads/featured"
 export const getBannerAdsUrl = "ads/banner"
 export const getProductsByLocationUrl = "products/filter/location"
 export const reportProductUrl = "product/report"
 export const getPlansListUrl = "admin/plans"
+export const favoritesUrl = "favorites"
 //payment
 export const createOrderUrl = "payment/create-order";
 export const verifyAndStorePaymentUrl = "payment/verify-and-store";
 //chat
-export const createChatUrl ="chat/conversation"
-export const getAllconversationsUrl ="chat/conversations"
-export const getChatMessagesUrl ="chat/conversation/"
-export const sendChatMessageUrl ="chat/message"
+export const createChatUrl = "chat/conversation"
+export const getAllconversationsUrl = "chat/conversations"
+export const getChatMessagesUrl = "chat/conversation/"
+export const sendChatMessageUrl = "chat/message"
 
 //profile
 export const getPrivacyPolicyUrl = "pages?page_type=privacy_policy"
@@ -68,11 +71,11 @@ export const RAZORPAY_SECRET = "ktPiQoi6ak9Lwv7KkhOrcSns"
 export const getVerifyingWarningUrl = "getverifywarning"
 
 
-export const logoutUser = async (dispatch, router,role) => {
+export const logoutUser = async (dispatch, router, role) => {
   try {
     await AsyncStorage.clear();
     dispatch(logoutFromReducer());
-    router.replace({   
+    router.replace({
       pathname: "/(auth)/login",
       params: {
         role
@@ -102,77 +105,87 @@ export const getAuthManagementListApi = async () => {
   }
 };
 
-  // ── Send OTP ──────────────────────────────────────────────────────────────
+// ── Send OTP ──────────────────────────────────────────────────────────────
 export const handleSendmailOtp = async (email, setLoading, setStep) => {
   console.log(email, "email");
-    setLoading(true);
-    try {
-      const response = await axios.post(
-        "https://admastermarketplace.in/api/send-mailotp",
-        { email: email },
-        {
-          headers: {
-          },
-        }
-      );
-      console.log(response.data, "response");
-      // API returns { success: true, message: "OTP sent" } or similar
-      if (response.data?.success === false) {
-        AppToast(response.data?.message || "Failed to send OTP.");
-        return;
+  setLoading(true);
+  try {
+    const response = await axios.post(
+      "https://admastermarketplace.in/api/send-mailotp",
+      { email: email },
+      {
+        headers: {
+        },
       }
-
-      AppToast(`OTP sent to your Gmail! ${response.data.otp}`);
-      setStep("otp");
-    } catch (error) {
-      console.log(error)
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ── Verify OTP ────────────────────────────────────────────────────────────
- export const handleVerifymailOtp = async (email, otp, setLoading, router) => {
-    const code = otp.join("");
-    if (code.length < 6) {
-      AppToast("Enter the 6-digit OTP");
+    );
+    console.log(response.data, "response");
+    // API returns { success: true, message: "OTP sent" } or similar
+    if (response.data?.success === false) {
+      AppToast(response.data?.message || "Failed to send OTP.");
       return;
     }
-    setLoading(true);
-    try {
-      const response = await axios.post(
-        "https://admastermarketplace.in/api/verify-mailotp", // 🔁 replace with your actual verify endpoint
-        { email: email, otp: code },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "*/*",
-            "X-CSRF-TOKEN": "",
-          },
-        }
-      );
 
-      if (response.data?.success === false) {
-        AppToast(response.data?.message || "Invalid OTP.");
-        return;
+    AppToast(`OTP sent to your Gmail! ${response.data.otp}`);
+    setStep("otp");
+  } catch (error) {
+    console.log(error)
+  } finally {
+    setLoading(false);
+  }
+};
+
+// ── Verify OTP ────────────────────────────────────────────────────────────
+export const handleVerifymailOtp = async (email, otp, setLoading, router, dispatch) => {
+  const code = otp.join("");
+  if (code.length < 6) {
+    AppToast("Enter the 6-digit OTP");
+    return;
+  }
+  setLoading(true);
+  try {
+    const response = await axios.post(
+      "https://admastermarketplace.in/api/verify-mailotp", // 🔁 replace with your actual verify endpoint
+      { email: email, otp: code },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "*/*",
+          "X-CSRF-TOKEN": "",
+        },
       }
-      await AsyncStorage.setItem("user", JSON.stringify(response.data.user));
-      await AsyncStorage.setItem("authToken", response.data.access_token);
-      router.replace("/(tabs)");
-      AppToast("Login successful!");
-    } catch (error) {
-      const msg =
-        error.response?.data?.message ||
-        error.response?.data?.error ||
-        "Invalid OTP. Please try again.";
-      AppToast(msg);
-    } finally {
-      setLoading(false);
+    );
+
+    if (response.data?.success === false) {
+      AppToast(response.data?.message || "Invalid OTP.");
+      return;
     }
-  };
+    dispatch(setUser(response.data.user));
+    await AsyncStorage.setItem("user", JSON.stringify(response.data.user));
+    await AsyncStorage.setItem("authToken", response.data.access_token);
+    if (response.data.user.name === null) {
+      router.replace({
+        pathname: "/(auth)/loginFields",
+        params: {
+          user: JSON.stringify(response.data.user)
+        }
+      });
+    } else {
+      router.replace("/(tabs)");
+    }
+    AppToast("Login successful!");
+  } catch (error) {
+    const msg =
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      "Invalid OTP. Please try again.";
+    AppToast(msg);
+  } finally {
+    setLoading(false);
+  }
+};
 
 // ── Send OTP (Phone) ─────────────────────────────────────────────────────────
-export const handleSendPhoneOtp = async (phone, setLoading,setStep) => {
+export const handleSendPhoneOtp = async (phone, setLoading, setStep) => {
   setLoading(true);
   try {
     const response = await axios.post(
@@ -189,13 +202,13 @@ export const handleSendPhoneOtp = async (phone, setLoading,setStep) => {
       // Optionally, handle navigation or further state logic here
     }
   } catch (error) {
-   console.log(error)
+    console.log(error)
   } finally {
     setLoading(false);
   }
 };
 // ── Verify OTP (Phone) ────────────────────────────────────────────────────────
-export const handleVerifyPhoneOtp = async (phone, otp, setLoading, router) => {
+export const handleVerifyPhoneOtp = async (phone, otp, setLoading, router, dispatch) => {
   // Ensure 'otp' is sent as a string, not an array
   const otpString = Array.isArray(otp) ? otp.join("") : String(otp);
   setLoading(true);
@@ -204,18 +217,25 @@ export const handleVerifyPhoneOtp = async (phone, otp, setLoading, router) => {
       "https://admastermarketplace.in/api/verify-otp",
       { phone, otp: otpString },
       {
-        headers: {
-          // Accept: "application/json",
-          // "Content-Type": "application/json",
-          // "X-CSRF-TOKEN": "",
-        },
+        headers: {},
       }
     );
+    console.log(response.data, "response");
     if (response.data?.success) {
       AppToast("Login successful!");
+      dispatch(setUser(response.data.user));
       await AsyncStorage.setItem("user", JSON.stringify(response.data.user));
       await AsyncStorage.setItem("authToken", response.data.access_token);
-      router.replace("/(tabs)");
+      if (response.data.user.name === null) {
+        router.replace({
+          pathname: "/(auth)/loginFields",
+          params: {
+            user: JSON.stringify(response.data.user)
+          }
+        });
+      } else {
+        router.replace("/(tabs)");
+      }
     } else {
       const msg =
         response.data?.message ||
@@ -324,7 +344,7 @@ export const createOrderApi = async (plan_id) => {
         ...(authConfig.headers || {}),
         'accept': '*/*',
         'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': '', 
+        'X-CSRF-TOKEN': '',
       },
     };
     const response = await axios.post(
@@ -338,7 +358,7 @@ export const createOrderApi = async (plan_id) => {
   }
 };
 
-export const handleVerifyandAddProductApi= async (data) => {
+export const handleVerifyandAddProductApi = async (data) => {
   try {
     const authConfig = await getAuthToken();
     const config = {
@@ -519,6 +539,29 @@ export const getChildCategoriesApi = async (subCategoryId) => {
   }
 };
 
+export const addToFavoritesApi = async (product_id) => {
+  try {
+    const authConfig = await getAuthToken();
+    const config = {
+      ...authConfig,
+      headers: {
+        ...(authConfig.headers || {}),
+        'accept': 'application/json',
+        'X-CSRF-TOKEN': '',
+      },
+    };
+    const response = await axios.post(
+      `${baseUrl}/favorites`,
+      { product_id },
+      config
+    );
+    return response.data;
+  } catch (error) {
+    console.log(error?.response?.data || error, "error");
+    throw error;
+  }
+};
+
 export const getVerifyingWarningApi = async () => {
   try {
     const response = await axios.get(
@@ -530,4 +573,46 @@ export const getVerifyingWarningApi = async () => {
     console.log(error?.response?.data || error, "error");
     return [];
   }
+};
+
+
+export const getNotifications = async (
+  userId,
+  page = 1,
+  perPage = 15
+) => {
+  const response = await axios.get(
+    `${API_BASE_URL}/notifications/${userId}`,
+    {
+      params: {
+        is_read: false,
+        per_page: perPage,
+        page,
+      },
+      headers: {
+        accept: "application/json",
+        ...(await getAuthToken()).headers  },
+    }
+  );
+
+  return response.data;
+};
+
+export const markNotificationRead = async (
+  userId,
+  notificationId
+) => {
+  const response = await axios.put(
+    `${API_BASE_URL}/notifications/${userId}/${notificationId}/read`,
+    {
+      is_read: true,
+    },
+    {
+      headers: {
+        accept: "application/json",
+        ...(await getAuthToken()).headers  },
+    }
+  );
+
+  return response.data;
 };

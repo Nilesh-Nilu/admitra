@@ -19,6 +19,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useDispatch } from "react-redux";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type LoginType = "selection" | "mobile" | "gmail_otp" | "gmail_password";
@@ -212,11 +213,13 @@ function OrDivider() {
 // ─────────────────────────────────────────────────────────────────────────────
 function MobileLoginScreen({ onBack }: { onBack: () => void }) {
   const [step, setStep] = useState<MobileStep>("phone");
-  const [phone, setPhone] = useState("9876543210");
+  // const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(28);
   const otpRefs = useRef<(TextInput | null)[]>([]);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     if (step !== "otp") return;
@@ -269,7 +272,7 @@ function MobileLoginScreen({ onBack }: { onBack: () => void }) {
           <EditRow value={`+91 ${phone}`} color={PURPLE} onEdit={() => { setStep("phone"), setOtp(["", "", "", "", "", ""]) }} />
           <OtpBoxes otp={otp} refs={otpRefs} accent={PURPLE} accentBg="#F0EEFF" onChange={handleOtpChange} onKey={handleKey} />
           <ResendRow timer={timer} color={PURPLE} onResend={() => { setOtp(["", "", "", "", "", ""]); setStep("phone"); setTimeout(() => setStep("otp"), 100); }} />
-          <PrimaryBtn label="Verify & Login" loading={loading} disabled={otp.join("").length < 6} color={PURPLE} onPress={() => handleVerifyPhoneOtp(phone, otp, setLoading, router)} />
+          <PrimaryBtn label="Verify & Login" loading={loading} disabled={otp.join("").length < 6} color={PURPLE} onPress={() => handleVerifyPhoneOtp(phone, otp, setLoading, router,dispatch)} />
           <SecurityNote accent={PURPLE} />
         </>
       )}
@@ -282,11 +285,13 @@ function MobileLoginScreen({ onBack }: { onBack: () => void }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function GmailOtpScreen({ onBack }: { onBack: () => void }) {
   const [step, setStep] = useState<GmailOtpStep>("email");
-  const [email, setEmail] = useState("arv12@gmail.com");
+  const [email, setEmail] = useState("");
+  // const [email, setEmail] = useState("arv12@gmail.com");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(28);
   const otpRefs = useRef<(TextInput | null)[]>([]);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     if (step !== "otp") return;
@@ -390,7 +395,7 @@ function GmailOtpScreen({ onBack }: { onBack: () => void }) {
             loading={loading}
             disabled={otp.join("").length < 6}
             color={GOOGLE_RED}
-            onPress={() => handleVerifymailOtp(email, otp, setLoading, router)}
+            onPress={() => handleVerifymailOtp(email, otp, setLoading, router,dispatch)}
           />
           <SecurityNote accent={GOOGLE_RED} />
         </>

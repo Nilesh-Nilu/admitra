@@ -8,15 +8,17 @@ import {
   baseUrl,
   getCitiesUrl,
   getStatesUrl,
-  signupUrl
+  getLocalitiesUrl,
+  signupUrl,
+  updateUserProfileUrl
 } from "@/constants/functions";
-import { setUser } from "@/store/reducers/authReducer";
-import { getCitiesApi, getStatesApi } from "@/store/reducers/userReducer";
+import { setUser, updateUserProfile } from "@/store/reducers/authReducer";
+import { getCitiesApi, getStatesApi, getLocalitiesApi } from "@/store/reducers/userReducer";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -77,7 +79,8 @@ const PASSWORD_RULES = [
 
 const SignupScreen = () => {
   const insets = useSafeAreaInsets();
-  const {states,cities} = useSelector((state: any) => state.entities.userReducer);
+  const { user: userParam } = useLocalSearchParams<{ user?: any }>();
+  const {states,cities,localities} = useSelector((state: any) => state.entities.userReducer);
   const [selectedRole] = useState<"user" | "vendor">("user");
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
@@ -92,13 +95,24 @@ const SignupScreen = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [selectedState, setSelectedState] = useState<any>(null);
   const [selectedCity, setSelectedCity] = useState<any>(null);
+  const [selectedLocality, setSelectedLocality] = useState<any>(null);
   const dispatch = useDispatch();
   
   const config = ROLE_CONFIG[selectedRole];
 
+  if (typeof userParam === "object" && userParam !== null) {
+    console.log("userParam object:", JSON.stringify(userParam));
+  } else {
+    console.log("userParam value:", JSON.stringify(userParam));
+  }
+
   // Filter cities based on selected state
   const filteredCities = selectedState
     ? cities?.filter((city: any) => city.state_id === selectedState.id)
+    : [];
+
+  const filteredLocalities = selectedCity
+    ? localities?.filter((locality: any) => locality.city_id === selectedCity.id)
     : [];
 
   const handlePhoneChange = (text: string) => {
@@ -109,16 +123,43 @@ const SignupScreen = () => {
   const handleStateSelect = (state: any) => {
     setSelectedState(state);
     setSelectedCity(null); // Reset city when state changes
+    setSelectedLocality(null); // Reset locality when state changes
   };
 
   const handleCitySelect = (city: any) => {
     setSelectedCity(city);
+    setSelectedLocality(null); // Reset locality when city changes
+  };
+
+  const handleLocalitySelect = (locality: any) => {
+    setSelectedLocality(locality);
   };
 
   useEffect(() => {
     dispatch(getStatesApi(getStatesUrl));
     dispatch(getCitiesApi(getCitiesUrl));
-  }, [dispatch]);
+    dispatch(getLocalitiesApi(getLocalitiesUrl));
+
+    
+    let parsedUser = null;
+    if (userParam) {
+      try {
+        parsedUser = typeof userParam === 'string' ? JSON.parse(userParam) : userParam;
+      } catch (e) {
+        console.log("Error parsing userParam", e);
+      }
+    }
+
+    if(parsedUser){
+      setName(parsedUser.name || "");
+      setEmail(parsedUser.email || "");
+      setMobile(parsedUser.phone || "");
+      setAddress(parsedUser.address || "");
+      setAadharPhoto(parsedUser.AadharImage || "");
+      setSelfiePhoto(parsedUser.selfieverificationImage || "");
+    }
+
+  }, [dispatch, userParam]);
 
   const pickImage = async (type: "aadhar" | "selfie") => {
     try {
@@ -232,6 +273,7 @@ const SignupScreen = () => {
           AadharImage: aadharPhoto || "",
           state_id: selectedState?.id || null,
           city_id: selectedCity?.id || null,
+          locality_id: selectedLocality?.id || null,
           selfieverificationImage: selfiePhoto || "",
           Isagreeprivacy: true
         };
@@ -252,12 +294,36 @@ const SignupScreen = () => {
         }
       }
     } catch (error: any) {
-      console.log(error.response?.data, "errors");
-      AppToast(error.response?.data.message || "Signup failed");
+      console.log(error.response.data, "error");
+      AppToast(error.response.data.message || "Signup failed");
     } finally {
       setLoading(false);
     }
-  };
+  }
+
+  const handleUpdateProfile = async () => {
+    setLoading(true);
+    try {
+      await dispatch(updateUserProfile(updateUserProfileUrl, {
+        name: name.trim(),
+        email: email.trim() || "",
+        phone: mobile.trim(),
+        address: address.trim() || "",
+        AadharImage: aadharPhoto || "",
+        state_id: selectedState?.id || null,
+        city_id: selectedCity?.id || null,
+        locality_id: selectedLocality?.id || null,
+        selfieverificationImage: selfiePhoto || "",
+      }));
+      AppToast("Profile updated successfully!");
+      router.push("/(tabs)");
+    } catch (error: any) {
+      console.log(error, "error");
+      AppToast(error.response.data.message || "Failed to update profile");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const baseValidation =
     name.trim().length > 0 &&
@@ -269,9 +335,9 @@ const SignupScreen = () => {
     address.trim().length > 0 &&
     selectedState !== null &&
     selectedCity !== null &&
+    selectedLocality !== null &&
     aadharPhoto !== null &&
     selfiePhoto !== null;
-
 
   const isFormValid = baseValidation;
 
@@ -284,12 +350,13 @@ const SignupScreen = () => {
     address.trim().length > 0,
     selectedState !== null,
     selectedCity !== null,
+    selectedLocality !== null,
     aadharPhoto !== null,
     selfiePhoto !== null,
   ].filter(Boolean).length;
 
 
-  const totalFields = 10;
+  const totalFields = 11;
   const completedFields = baseCompletedFields;
   const progress = (completedFields / totalFields) * 100;
 
@@ -549,6 +616,19 @@ const SignupScreen = () => {
                   icon="business-outline"
                 />
               </View>
+              {/* Locality Dropdown */}
+              <View style={styles.inputGroup}>
+                <ThemeSelect
+                  label="Locality"
+                  placeholder={selectedLocality ? "Select Locality" : "Select City First"}
+                  value={selectedLocality}
+                  items={filteredLocalities}
+                  onSelect={handleLocalitySelect}
+                  disabled={loading || !selectedCity}
+                  required={true}
+                  icon="location-outline"
+                />
+              </View>
 
               {/* Address Input */}
               <View style={styles.inputGroup}>
@@ -650,7 +730,7 @@ const SignupScreen = () => {
       <View style={[styles.bottomSection, { paddingBottom: insets.bottom + 16 }]}>
         <Pressable
           style={[styles.submitButton, (!isFormValid || loading) && styles.submitButtonDisabled]}
-          onPress={handleSignup}
+          onPress={userParam ? handleUpdateProfile : handleSignup}
           disabled={!isFormValid || loading}
         >
           <LinearGradient

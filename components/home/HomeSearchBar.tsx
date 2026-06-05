@@ -41,9 +41,23 @@ export const HomeSearchBar = ({
       <TouchableOpacity onPress={onPressFavorites} activeOpacity={0.8}>
         <Ionicons name="heart-outline" size={22} color={COLORS.black} />
       </TouchableOpacity>
-      <TouchableOpacity onPress={onPressNotifications} activeOpacity={0.8}>
+      <TouchableOpacity onPress={onPressNotifications} activeOpacity={0.8} style={{ position: "relative" }}>
         <Ionicons name="notifications-outline" size={22} color={COLORS.black} />
+        <View
+          style={{
+            position: "absolute",
+            top: 2,
+            right: 2,
+            width: 9,
+            height: 9,
+            borderRadius: 4.5,
+            backgroundColor: "#FF3636",
+            borderWidth: 1,
+            borderColor: COLORS.white,
+          }}
+        />
       </TouchableOpacity>
+
     </View>
   );
 };

@@ -40,7 +40,7 @@ export default function Index() {
     );
   }
 
-  const route = user ? "/(tabs)" : "/(auth)";
+  const route = user ? user.name ? "/(tabs)" : "/(auth)/loginFields" : "/(auth)";
 
   return <Redirect href={route} />;
 }

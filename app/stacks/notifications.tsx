@@ -2,9 +2,11 @@ import ThemeHeader from "@/components/headers/ThemeHeader";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
+import { markNotificationRead, getNotifications } from "@/constants/functions";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
+import { ActivityIndicator } from "react-native";
 import {
   BackHandler,
   FlatList,
@@ -12,7 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSelector } from "react-redux";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 type NotifCategory =
@@ -21,7 +23,8 @@ type NotifCategory =
   | "system"
   | "message"
   | "payment"
-  | "alert";
+  | "alert"
+  | "general";
 
 interface Notification {
   id: string;
@@ -32,100 +35,6 @@ interface Notification {
   isRead: boolean;
   group: "Today" | "Yesterday" | "Earlier";
 }
-
-// ── Static demo data (replace with API/Redux later) ──────────────────────────
-const INITIAL_NOTIFICATIONS: Notification[] = [
-  {
-    id: "1",
-    category: "offer",
-    title: "Special Offer Just for You! 🎉",
-    body: "Post your Banner Ad for just ₹29 for 28 days. Reach more customers today!",
-    time: "2 min ago",
-    isRead: false,
-    group: "Today",
-  },
-  {
-    id: "2",
-    category: "product",
-    title: "Your Ad is Live",
-    body: "Your listing 'Samsung Galaxy S23' is now live and visible to buyers.",
-    time: "1 hr ago",
-    isRead: false,
-    group: "Today",
-  },
-  {
-    id: "3",
-    category: "message",
-    title: "New Message from Buyer",
-    body: "Rahul Kumar sent you a message: \"Is the price negotiable?\"",
-    time: "3 hrs ago",
-    isRead: false,
-    group: "Today",
-  },
-  {
-    id: "4",
-    category: "payment",
-    title: "Payment Successful ✅",
-    body: "₹299 paid for Featured Ad plan. Your ad will be promoted for 28 days.",
-    time: "5 hrs ago",
-    isRead: true,
-    group: "Today",
-  },
-  {
-    id: "5",
-    category: "product",
-    title: "Ad Approved",
-    body: "Your listing 'Honda Activa 6G' has been approved by our team.",
-    time: "Yesterday, 9:30 AM",
-    isRead: true,
-    group: "Yesterday",
-  },
-  {
-    id: "6",
-    category: "message",
-    title: "New Message from Seller",
-    body: "Priya Sharma replied: \"Yes, you can pick it up from Ranchi tomorrow.\"",
-    time: "Yesterday, 11:00 AM",
-    isRead: true,
-    group: "Yesterday",
-  },
-  {
-    id: "7",
-    category: "alert",
-    title: "Ad Expiring Soon ⚠️",
-    body: "Your ad 'Dell Laptop Core i5' expires in 2 days. Renew now to stay visible.",
-    time: "Yesterday, 6:00 PM",
-    isRead: false,
-    group: "Yesterday",
-  },
-  {
-    id: "8",
-    category: "system",
-    title: "App Updated Successfully",
-    body: "Admitra v2.1 is now installed. Enjoy faster performance and new features.",
-    time: "3 days ago",
-    isRead: true,
-    group: "Earlier",
-  },
-  {
-    id: "9",
-    category: "offer",
-    title: "Weekend Special Offer 🛍️",
-    body: "Get 50% off on Featured Ads this weekend only. Don't miss out!",
-    time: "5 days ago",
-    isRead: true,
-    group: "Earlier",
-  },
-  {
-    id: "10",
-    category: "system",
-    title: "Welcome to Admitra!",
-    body: "Thank you for joining. Post your first free ad and start selling today.",
-    time: "7 days ago",
-    isRead: true,
-    group: "Earlier",
-  },
-];
 
 // ── Category metadata ─────────────────────────────────────────────────────────
 const CATEGORY_META: Record<
@@ -138,15 +47,74 @@ const CATEGORY_META: Record<
   message: { icon: "chatbubble-ellipses-outline", bg: "#E3F2FD", color: "#1565C0" },
   payment: { icon: "card-outline", bg: "#E8F5E9", color: "#1B5E20" },
   alert: { icon: "warning-outline", bg: "#FFF8E1", color: "#F57F17" },
+  general: { icon: "notifications-outline", bg: "#E3F2FD", color: "#1565C0" },
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function NotificationsScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const [notifications, setNotifications] =
-    useState<Notification[]>(INITIAL_NOTIFICATIONS);
-
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const { user } = useSelector((state: any) => state.entities.authReducer) || {};
+ 
+    const [loading, setLoading] = useState(true);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
+    const [activeTab, setActiveTab] = useState<"All" | "Unread" | "Read">("All");
+    
+    const fetchNotifications = async (pageNo = 1) => {
+      try {
+        if (pageNo === 1) {
+          setLoading(true);
+        }
+    
+        const response = await getNotifications(user?.id, pageNo);
+    
+        const apiData = response.data;
+    
+        const formattedNotifications = apiData.data.map((item: any) => ({
+          id: item.id.toString(),
+          title: item.title,
+          body: item.message,
+          isRead: item.is_read,
+          time: new Date(item.created_at).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          group: getNotificationGroup(item.created_at),
+          category: "general",
+        }));
+    
+        if (pageNo === 1) {
+          setNotifications(formattedNotifications);
+        } else {
+          setNotifications((prev) => [...prev, ...formattedNotifications]);
+        }
+    
+        setHasMore(pageNo < apiData.last_page);
+        setPage(pageNo);
+      } catch (error) {
+        console.log("Notification Error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    const getNotificationGroup = (dateString: string) => {
+      const date = new Date(dateString);
+    
+      const today = new Date();
+      const yesterday = new Date();
+      yesterday.setDate(today.getDate() - 1);
+    
+      if (date.toDateString() === today.toDateString()) {
+        return "Today";
+      }
+    
+      if (date.toDateString() === yesterday.toDateString()) {
+        return "Yesterday";
+      }
+    
+      return "Earlier";
+    };
   useEffect(() => {
     const backAction = () => {
       router.back();
@@ -158,22 +126,53 @@ export default function NotificationsScreen() {
     );
     return () => backHandler.remove();
   }, [router]);
-
+  useEffect(() => {
+    fetchNotifications(1);
+  }, []);
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const markAllRead = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
   };
 
-  const markOneRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-    );
+  const onRefresh = () => {
+    fetchNotifications(1);
+  };
+
+  const loadMore = () => {
+    if (!loading && hasMore) {
+      fetchNotifications(page + 1);
+    }
+  };
+
+  const markOneRead = async (id: string) => {
+    try {
+      await markNotificationRead(user?.id, Number(id));
+  
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.id === id
+            ? {
+                ...n,
+                isRead: true,
+              }
+            : n
+        )
+      );
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   const deleteNotif = (id: string) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   };
+
+  const filteredNotifications = notifications.filter((n) => {
+    if (activeTab === "Unread") return !n.isRead;
+    if (activeTab === "Read") return n.isRead;
+    return true; // "All"
+  });
 
   // Group data into sections with headers
   const grouped = (() => {
@@ -184,7 +183,7 @@ export default function NotificationsScreen() {
     ];
     const items: (Notification | { type: "header"; label: string })[] = [];
     groups.forEach((g) => {
-      const section = notifications.filter((n) => n.group === g);
+      const section = filteredNotifications.filter((n) => n.group === g);
       if (section.length > 0) {
         items.push({ type: "header", label: g });
         items.push(...section);
@@ -239,14 +238,6 @@ export default function NotificationsScreen() {
           </ThemedText>
         </View>
 
-        {/* Delete */}
-        <TouchableOpacity
-          style={styles.deleteBtn}
-          onPress={() => deleteNotif(notif.id)}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="close" size={16} color={COLORS.gray} />
-        </TouchableOpacity>
       </TouchableOpacity>
     );
   };
@@ -268,37 +259,28 @@ export default function NotificationsScreen() {
       {/* Header */}
       <ThemeHeader onBackPress={() => router.back()} title="Notifications" />
 
-      {/* Sub-header: unread count + mark-all-read */}
-      {(unreadCount > 0) && (
-        <View style={styles.subHeader}>
-          <View style={styles.subHeaderLeft}>
-            <View style={styles.unreadBadge}>
-              <ThemedText style={styles.unreadBadgeText}>
-                {unreadCount} unread
-              </ThemedText>
-            </View>
-          </View>
-          <TouchableOpacity style={styles.markAllBtn} onPress={markAllRead} activeOpacity={0.75}>
-            <Ionicons name="checkmark-done-outline" size={16} color={COLORS.blue} />
-            <ThemedText style={styles.markAllText}>Mark all as read</ThemedText>
-          </TouchableOpacity>
-        </View>
-      )}
+      {/* Sub-header: tabs + mark-all-read */}
 
-      {/* List */}
-      <FlatList
-        data={grouped}
-        renderItem={renderItem}
-        keyExtractor={(item, i) =>
-          "type" in item ? `header-${i}` : (item as Notification).id
-        }
-        contentContainerStyle={[
-          styles.listContent,
-          notifications.length === 0 && styles.listEmpty,
-        ]}
-        ListEmptyComponent={renderEmpty}
-        showsVerticalScrollIndicator={false}
-      />
+      {loading && notifications.length === 0 ? (
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <ActivityIndicator size="large" />
+        </View>
+      ) : (
+        <FlatList
+          data={grouped}
+          renderItem={renderItem}
+          refreshing={loading}
+          onRefresh={onRefresh}
+          ListEmptyComponent={renderEmpty}
+          onEndReached={loadMore}
+        />
+      )}
     </ThemedView>
   );
 }
@@ -321,35 +303,35 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#EEF0F4",
   },
-  subHeaderLeft: {
+  tabsContainer: {
     flexDirection: "row",
-    alignItems: "center",
+    gap: 8,
   },
-  unreadBadge: {
-    backgroundColor: "#E3F2FD",
+  tab: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
     borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    backgroundColor: "#F0F2F5",
   },
-  unreadBadgeText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: COLORS.blue,
+  activeTab: {
+    backgroundColor: COLORS.blue,
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: COLORS.gray,
+  },
+  activeTabText: {
+    color: COLORS.white,
   },
   markAllBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: COLORS.blue,
-  },
-  markAllText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: COLORS.blue,
+    justifyContent: "center",
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#E3F2FD",
   },
 
   /* List */
@@ -393,17 +375,14 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   cardUnread: {
-    backgroundColor: "#EEF4FF",
-    borderLeftWidth: 3,
+    borderLeftWidth: 4,
     borderLeftColor: COLORS.blue,
+    backgroundColor: "#F8FBFF",
   },
   unreadDot: {
-    position: "absolute",
-    top: 14,
-    left: 6,
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: COLORS.blue,
   },
   iconBadge: {

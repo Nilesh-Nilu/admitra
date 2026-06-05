@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Modal,
   ScrollView,
@@ -17,147 +17,241 @@ type LocationModalProps = {
   onClose: () => void;
   states: any[];
   cities: any[];
+  localities: any[];
   onSelectCity: (city: any) => void;
+  onSelectLocality: (locality: any) => void;
 };
+
+// Step 1 → State, Step 2 → City, Step 3 → Locality
+type Step = "state" | "city" | "locality";
 
 export const LocationModal = ({
   visible,
   onClose,
   states,
   cities,
+  localities,
   onSelectCity,
+  onSelectLocality,
 }: LocationModalProps) => {
-  const [selectedLocationState, setSelectedLocationState] = useState<any>(null);
-  const [locationSearchQuery, setLocationSearchQuery] = useState("");
+  const [step, setStep] = useState<Step>("state");
+  const [selectedState, setSelectedState] = useState<any>(null);
+  const [selectedCity, setSelectedCity] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isLoadingLocalities, setIsLoadingLocalities] = useState(false);
+  const prevLocalitiesRef = useRef<any[]>([]);
+
+  // Stop loading spinner once new localities land from Redux
+  useEffect(() => {
+    if (isLoadingLocalities && localities !== prevLocalitiesRef.current) {
+      setIsLoadingLocalities(false);
+    }
+    prevLocalitiesRef.current = localities;
+  }, [localities]);
 
   const safeStates = Array.isArray(states) ? states : [];
   const safeCities = Array.isArray(cities) ? cities : [];
+  const safeLocalities = Array.isArray(localities) ? localities : [];
 
   const filteredStates = safeStates.filter((s: any) =>
-    s?.name?.toLowerCase().includes(locationSearchQuery.toLowerCase())
-  );
-  const filteredCities = safeCities.filter(
-    (c: any) =>
-      Number(c.state_id) === Number(selectedLocationState?.id) &&
-      c?.name?.toLowerCase().includes(locationSearchQuery.toLowerCase())
+    s?.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleCloseModal = () => {
-    if (selectedLocationState) {
-      setSelectedLocationState(null);
-      setLocationSearchQuery("");
+  const filteredCities = safeCities.filter(
+    (c: any) =>
+      Number(c.state_id) === Number(selectedState?.id) &&
+      c?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredLocalities = safeLocalities.filter(
+    (l: any) =>
+      Number(l.city_id) === Number(selectedCity?.id) &&
+      l?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const reset = () => {
+    setStep("state");
+    setSelectedState(null);
+    setSelectedCity(null);
+    setSearchQuery("");
+  };
+
+  const handleBack = () => {
+    if (step === "locality") {
+      setStep("city");
+      setSelectedCity(null);
+      setSearchQuery("");
+    } else if (step === "city") {
+      setStep("state");
+      setSelectedState(null);
+      setSearchQuery("");
     } else {
       onClose();
-      setLocationSearchQuery("");
+      reset();
     }
   };
 
-  const handleSelectCityObj = async (cityObj: any) => {
+  const handleSelectState = (s: any) => {
+    setSelectedState(s);
+    setSearchQuery("");
+    setStep("city");
+  };
+
+  const handleSelectCity = async (cityObj: any) => {
+    setSelectedCity(cityObj);
+    setSearchQuery("");
     onSelectCity(cityObj);
-    onClose();
-    setSelectedLocationState(null);
-    setLocationSearchQuery("");
     try {
       await AsyncStorage.setItem("selectedCity", JSON.stringify(cityObj));
     } catch (e) {
       console.log("Error saving selected city:", e);
     }
+    setStep("locality");
   };
 
+  const handleSelectLocality = (locality: any) => {
+    onSelectLocality(locality);
+    reset();
+    onClose();
+  };
+
+  const handleSkipLocality = () => {
+    reset();
+    onClose();
+  };
+
+  const headerTitle =
+    step === "locality"
+      ? selectedCity?.name ?? "Locality"
+      : step === "city"
+      ? selectedState?.name ?? "State"
+      : "Location";
+
+  const sectionLabel =
+    step === "locality" ? "CHOOSE LOCALITY" : step === "city" ? "CHOOSE CITY" : "CHOOSE STATE";
+
+  const searchPlaceholder =
+    step === "locality"
+      ? "Search locality, area or neighbourhood"
+      : step === "city"
+      ? "Search city"
+      : "Search state";
+
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      onRequestClose={handleCloseModal}
-    >
-      <View style={styles.locationModalContainer}>
+    <Modal visible={visible} animationType="slide" onRequestClose={handleBack}>
+      <View style={styles.container}>
         {/* Header */}
-        <View style={styles.locationModalHeader}>
-          <TouchableOpacity onPress={handleCloseModal} style={styles.locationModalBackBtn}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={24} color={COLORS.text} />
           </TouchableOpacity>
-          <ThemedText style={styles.locationModalTitle}>
-            {selectedLocationState ? selectedLocationState.name : "Location"}
-          </ThemedText>
+          <ThemedText style={styles.headerTitle}>{headerTitle}</ThemedText>
         </View>
 
-        {/* Search Bar */}
-        <View style={styles.locationModalSearchWrapper}>
-          <View style={styles.locationModalSearchBox}>
+        {/* Search */}
+        <View style={styles.searchWrapper}>
+          <View style={styles.searchBox}>
             <Ionicons name="search" size={20} color={COLORS.gray} />
             <TextInput
-              style={styles.locationModalSearchInput}
-              placeholder="Search city, area or neighbourhood"
-              value={locationSearchQuery}
-              onChangeText={setLocationSearchQuery}
+              style={styles.searchInput}
+              placeholder={searchPlaceholder}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
               placeholderTextColor={COLORS.gray}
+              autoCorrect={false}
             />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery("")}>
+                <Ionicons name="close-circle" size={18} color={COLORS.gray} />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
-        {/* List */}
         <ScrollView
-          style={styles.locationModalList}
-          contentContainerStyle={styles.locationModalListContent}
+          style={styles.list}
+          contentContainerStyle={styles.listContent}
           keyboardShouldPersistTaps="handled"
         >
-          <ThemedText style={styles.locationModalSectionTitle}>
-            {selectedLocationState ? "CHOOSE CITY" : "CHOOSE STATE"}
-          </ThemedText>
+          <ThemedText style={styles.sectionTitle}>{sectionLabel}</ThemedText>
 
-          {/* "All in ..." option */}
-          {!locationSearchQuery && (
+          {/* "All" quick-select */}
+          {!searchQuery && (
             <TouchableOpacity
-              style={styles.locationModalItem}
+              style={styles.item}
               onPress={() => {
-                let cityObj: any = {};
-                if (selectedLocationState) {
-                  cityObj = {
-                    id: "",
-                    name: `All in ${selectedLocationState.name}`,
-                    state_id: selectedLocationState.id,
-                  };
+                if (step === "state") {
+                  handleSelectCity({ id: "", name: "All India" });
+                } else if (step === "city") {
+                  handleSelectCity({ id: "", name: `All in ${selectedState?.name}`, state_id: selectedState?.id });
                 } else {
-                  cityObj = { id: "", name: "All India" };
+                  handleSkipLocality();
                 }
-                handleSelectCityObj(cityObj);
               }}
             >
-              <ThemedText style={styles.locationModalAllText}>
-                {selectedLocationState
-                  ? `All in ${selectedLocationState.name}`
-                  : "All in India"}
+              <ThemedText style={styles.allText}>
+                {step === "locality"
+                  ? `All in ${selectedCity?.name}`
+                  : step === "city"
+                  ? `All in ${selectedState?.name}`
+                  : "All India"}
               </ThemedText>
             </TouchableOpacity>
           )}
 
-          {/* State List */}
-          {!selectedLocationState &&
+          {/* Step 1 — States */}
+          {step === "state" &&
             filteredStates.map((s: any) => (
               <TouchableOpacity
                 key={s.id}
-                style={styles.locationModalItem}
-                onPress={() => {
-                  setSelectedLocationState(s);
-                  setLocationSearchQuery("");
-                }}
+                style={styles.item}
+                onPress={() => handleSelectState(s)}
               >
-                <ThemedText style={styles.locationModalItemText}>{s.name}</ThemedText>
-                <Ionicons name="chevron-forward" size={18} color={COLORS.text} />
+                <ThemedText style={styles.itemText}>{s.name}</ThemedText>
+                <Ionicons name="chevron-forward" size={18} color={COLORS.gray} />
               </TouchableOpacity>
             ))}
 
-          {/* City List */}
-          {selectedLocationState &&
+          {/* Step 2 — Cities */}
+          {step === "city" &&
             filteredCities.map((c: any) => (
               <TouchableOpacity
                 key={c.id}
-                style={styles.locationModalItem}
-                onPress={() => handleSelectCityObj(c)}
+                style={styles.item}
+                onPress={() => handleSelectCity(c)}
               >
-                <ThemedText style={styles.locationModalItemText}>{c.name}</ThemedText>
+                <ThemedText style={styles.itemText}>{c.name}</ThemedText>
+                <Ionicons name="chevron-forward" size={18} color={COLORS.gray} />
               </TouchableOpacity>
             ))}
+
+          {/* Step 3 — Localities */}
+          {step === "locality" && (
+            <>
+              {filteredLocalities.length === 0 && !searchQuery ? (
+                <View style={styles.emptyWrap}>
+                  <Ionicons name="location-outline" size={36} color={COLORS.gray} />
+                  <ThemedText style={styles.emptyText}>No localities found for this city</ThemedText>
+                  <TouchableOpacity style={styles.skipBtn} onPress={handleSkipLocality}>
+                    <ThemedText style={styles.skipBtnText}>Continue without locality</ThemedText>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                filteredLocalities.map((l: any) => (
+                  <TouchableOpacity
+                    key={l.id}
+                    style={styles.item}
+                    onPress={() => handleSelectLocality(l)}
+                  >
+                    <View style={styles.localityLeft}>
+                      <Ionicons name="location-outline" size={16} color={COLORS.primary} style={{ marginRight: 10 }} />
+                      <ThemedText style={styles.itemText}>{l.name}</ThemedText>
+                    </View>
+                  </TouchableOpacity>
+                ))
+              )}
+            </>
+          )}
         </ScrollView>
       </View>
     </Modal>
@@ -165,11 +259,11 @@ export const LocationModal = ({
 };
 
 const styles = StyleSheet.create({
-  locationModalContainer: {
+  container: {
     flex: 1,
     backgroundColor: COLORS.white,
   },
-  locationModalHeader: {
+  header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
@@ -177,21 +271,21 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#E0E0E0",
   },
-  locationModalBackBtn: {
+  backBtn: {
     marginRight: 16,
   },
-  locationModalTitle: {
+  headerTitle: {
     fontSize: 18,
     fontWeight: "600",
     color: COLORS.text,
   },
-  locationModalSearchWrapper: {
+  searchWrapper: {
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#E0E0E0",
   },
-  locationModalSearchBox: {
+  searchBox: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.white,
@@ -200,28 +294,29 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     height: 40,
+    gap: 8,
   },
-  locationModalSearchInput: {
+  searchInput: {
     flex: 1,
-    marginLeft: 8,
     fontSize: 14,
     color: COLORS.text,
   },
-  locationModalList: {
+  list: {
     flex: 1,
   },
-  locationModalListContent: {
-    paddingBottom: 20,
+  listContent: {
+    paddingBottom: 40,
   },
-  locationModalSectionTitle: {
+  sectionTitle: {
     fontSize: 12,
     fontWeight: "600",
     color: COLORS.gray,
     marginHorizontal: 16,
     marginTop: 16,
     marginBottom: 8,
+    letterSpacing: 0.5,
   },
-  locationModalItem: {
+  item: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -230,14 +325,41 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#F5F5F5",
   },
-  locationModalAllText: {
+  itemText: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: COLORS.text,
+  },
+  allText: {
     fontSize: 15,
     fontWeight: "500",
     color: "#1565C0",
   },
-  locationModalItemText: {
-    fontSize: 15,
-    fontWeight: "500",
-    color: COLORS.text,
+  localityLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  emptyWrap: {
+    alignItems: "center",
+    paddingTop: 48,
+    gap: 12,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: COLORS.gray,
+    textAlign: "center",
+  },
+  skipBtn: {
+    marginTop: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+  },
+  skipBtnText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.primary,
   },
 });

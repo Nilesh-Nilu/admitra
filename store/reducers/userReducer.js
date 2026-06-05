@@ -12,7 +12,9 @@ const initialState = {
   chatConversations: [],
   chatMessages: [],
   banners:[],
-  plans:[]
+  plans:[],
+  localities:[],
+  favorites:[]
 };
 
 const userReducer = createSlice({
@@ -77,6 +79,14 @@ const userReducer = createSlice({
       userReducer.loader = false;
       userReducer.featuredAds = action.payload.data;
     },
+    setLocalitiesRecieved: (userReducer, action) => {
+      userReducer.loader = false;
+      userReducer.localities = action.payload.data;
+    },
+    setFavoritesRecieved: (userReducer, action) => {
+      userReducer.loader = false;
+      userReducer.favorites = action.payload.data;
+    },
   }
 });
 
@@ -96,6 +106,8 @@ const {
   setPlansRecieved,
   setBannersRecieved,
   setFeaturedAdsRecieved,
+  setLocalitiesRecieved,
+  setFavoritesRecieved,
 } = userReducer.actions;
 export const getStatesApi = (url) =>
   apiCallBegan({
@@ -137,6 +149,14 @@ export const getProductsApiwithcityId = (url) =>
     onSuccess: setProductsRecieved.type,
     onError: userReducerDataRequestFailed.type,
   });
+export const getLocalitiesApi = (url) =>
+  apiCallBegan({
+    method: "get",
+    url,
+    onStart: userReducerDataRequested.type,
+    onSuccess: setLocalitiesRecieved.type,
+    onError: userReducerDataRequestFailed.type,
+  });
 export const getApprovedProductsApi = (url) =>
   apiCallBegan({
     method: "get",
@@ -167,6 +187,14 @@ export const getFeaturedAdsApi = (url) =>
     url,
     onStart: userReducerDataRequested.type,
     onSuccess: setFeaturedAdsRecieved.type,
+    onError: userReducerDataRequestFailed.type,
+  });
+export const getFavoritesApi = (url) =>
+  apiCallBegan({
+    method: "get",
+    url,
+    onStart: userReducerDataRequested.type,
+    onSuccess: setFavoritesRecieved.type,
     onError: userReducerDataRequestFailed.type,
   });
 export default userReducer.reducer;

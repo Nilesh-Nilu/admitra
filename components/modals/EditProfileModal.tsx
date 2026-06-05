@@ -27,6 +27,12 @@ interface City {
   state_id: number;
 }
 
+interface Locality {
+  id: number;
+  name: string;
+  city_id: number;
+}
+
 interface UserData {
   name?: string;
   email?: string;
@@ -36,6 +42,7 @@ interface UserData {
   pincode?: string;
   state_id?: number;
   city_id?: number;
+  locality_id?: number;
 }
 
 type EditProfileModalProps = {
@@ -50,10 +57,12 @@ type EditProfileModalProps = {
     pincode: string;
     state_id: number | null;
     city_id: number | null;
+    locality_id: number | null;
   }) => void;
   userData: UserData;
   states: State[];
   cities: City[];
+  localities: Locality[];
 };
 
 const EditProfileModal: React.FC<EditProfileModalProps> = ({
@@ -63,6 +72,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
   userData,
   states,
   cities,
+  localities,
 }) => {
   const [editForm, setEditForm] = useState({
     name: "",
@@ -74,9 +84,14 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
   });
   const [selectedState, setSelectedState] = useState<State | null>(null);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
+  const [selectedLocality, setSelectedLocality] = useState<Locality | null>(null);
 
   const filteredCities = selectedState
     ? cities.filter((city) => city.state_id === selectedState.id)
+    : [];
+
+  const filteredLocalities = selectedCity
+    ? (localities || []).filter((l) => l.city_id === selectedCity.id)
     : [];
 
   // Initialize form when modal opens
@@ -93,14 +108,22 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
       const userState = states.find((s) => s.id === userData.state_id) || null;
       const userCity = cities.find((c) => c.id === userData.city_id) || null;
+      const userLocality = (localities || []).find((l) => l.id === userData.locality_id) || null;
       setSelectedState(userState);
       setSelectedCity(userCity);
+      setSelectedLocality(userLocality);
     }
-  }, [isVisible, userData, states, cities]);
+  }, [isVisible, userData, states, cities, localities]);
 
   const handleStateChange = (state: State) => {
     setSelectedState(state);
     setSelectedCity(null);
+    setSelectedLocality(null);
+  };
+
+  const handleCityChange = (city: City) => {
+    setSelectedCity(city);
+    setSelectedLocality(null);
   };
 
   const handleSave = () => {
@@ -108,8 +131,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
       ...editForm,
       state_id: selectedState?.id || null,
       city_id: selectedCity?.id || null,
+      locality_id: selectedLocality?.id || null,
     });
-
   };
 
   const updateForm = (key: keyof typeof editForm, value: string) => {
@@ -195,9 +218,20 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                   placeholder={selectedState ? "Select City" : "Select State First"}
                   value={selectedCity}
                   items={filteredCities}
-                  onSelect={(city) => setSelectedCity(city as City)}
+                  onSelect={(city) => handleCityChange(city as City)}
                   disabled={!selectedState}
                   icon="business-outline"
+                />
+              </View>
+              <View style={styles.inputGroup}>
+                <ThemeSelect
+                  label="Locality"
+                  placeholder={selectedCity ? "Select Locality" : "Select City First"}
+                  value={selectedLocality}
+                  items={filteredLocalities}
+                  onSelect={(locality) => setSelectedLocality(locality as Locality)}
+                  disabled={!selectedCity}
+                  icon="location-outline"
                 />
               </View>
               <View style={styles.inputGroup}>

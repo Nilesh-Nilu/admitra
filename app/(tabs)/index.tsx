@@ -12,6 +12,7 @@ import {
   getCategoriesUrl,
   getCitiesUrl,
   getFeaturedAdsUrl,
+  getLocalitiesUrl,
   getProductsByLocationUrl,
   getPromotionBannerApi,
   getStatesUrl,
@@ -25,6 +26,7 @@ import {
   getCategoriesApi,
   getCitiesApi,
   getFeaturedAdsApi,
+  getLocalitiesApi,
   getProductsApiwithcityId,
   getStatesApi,
   getSubCategoriesApi,
@@ -53,15 +55,16 @@ const CARD_WIDTH = (SCREEN_WIDTH - SIZES.padding * 2 - 12) / 2;
 export default function HomeScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { loader, cities, categories, products, banners, featuredAds, states } =
+  const { loader, cities, categories, products, banners, featuredAds, states, localities } =
     useSelector((state: any) => state.entities.userReducer) || {};
   const { user } = useSelector((state: any) => state.entities.authReducer) || {};
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [selectedCity, setSelectedCity] = useState<any>(null);
+  const [selectedLocality, setSelectedLocality] = useState<any>(null);
   const [isCityInitialized, setIsCityInitialized] = useState(false);
   const [promotionBanners, setPromotionBanners] = useState<any>([]);
-
+  const safeLocalities = Array.isArray(localities) ? localities : [];
   const safeProducts = products || [];
   const safeCategories = categories || [];
   const safeCities = Array.isArray(cities) ? cities : [];
@@ -71,11 +74,10 @@ export default function HomeScreen() {
     ? safeProducts.filter((p: any) => p.category_id === selectedCategory)
     : safeProducts;
 
-  // Initialize city based on user profile, saved city, or default to first city
+  // Effect 1: Initialize city only (localities aren't loaded yet at this point)
   useEffect(() => {
     const initializeCity = async () => {
       if (safeCities.length === 0 || isCityInitialized) return;
-
       try {
         // Priority 1: User's city from profile
         if (user?.city_id) {
@@ -87,34 +89,60 @@ export default function HomeScreen() {
             return;
           }
         }
-
         // Priority 2: Saved city from AsyncStorage
         const savedCityJson = await AsyncStorage.getItem("selectedCity");
         if (savedCityJson) {
           const savedCity = JSON.parse(savedCityJson);
-          const stillExists = safeCities.some((c: any) => Number(c.id) === Number(savedCity.id));
-          if (stillExists) {
+          const cityExists = safeCities.some((c: any) => Number(c.id) === Number(savedCity.id));
+          if (cityExists) {
             setSelectedCity(savedCity);
             setIsCityInitialized(true);
             return;
           }
         }
-
         // Priority 3: Default to first city
         setSelectedCity(safeCities[0]);
         setIsCityInitialized(true);
       } catch (error) {
         console.log("Error initializing city:", error);
-        // Fallback to first city on error
         if (safeCities.length > 0) {
           setSelectedCity(safeCities[0]);
           setIsCityInitialized(true);
         }
       }
     };
-
     initializeCity();
   }, [safeCities, user, isCityInitialized]);
+
+  // Effect 2: Initialize locality once localities are fetched for the selected city
+  useEffect(() => {
+    if (safeLocalities.length === 0 || selectedLocality) return;
+    const initializeLocality = async () => {
+      try {
+        // Priority 1: User's locality from profile
+        if (user?.locality_id) {
+          const userLocality = safeLocalities.find((l: any) => Number(l.id) === Number(user.locality_id));
+          if (userLocality) {
+            setSelectedLocality(userLocality);
+            await AsyncStorage.setItem("selectedLocality", JSON.stringify(userLocality));
+            return;
+          }
+        }
+        // Priority 2: Saved locality from AsyncStorage
+        const savedLocalityJson = await AsyncStorage.getItem("selectedLocality");
+        if (savedLocalityJson) {
+          const savedLocality = JSON.parse(savedLocalityJson);
+          const localityExists = safeLocalities.some((l: any) => Number(l.id) === Number(savedLocality.id));
+          if (localityExists) {
+            setSelectedLocality(savedLocality);
+          }
+        }
+      } catch (error) {
+        console.log("Error initializing locality:", error);
+      }
+    };
+    initializeLocality();
+  }, [safeLocalities, user?.locality_id]);
 
   useEffect(() => {
     dispatch(getCategoriesApi(getCategoriesUrl));
@@ -129,6 +157,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (selectedCity?.id) {
+      dispatch(getLocalitiesApi(`${getLocalitiesUrl}?city_id=${selectedCity.id}`));
       dispatch(
         getProductsApiwithcityId(
           `${getProductsByLocationUrl}?city_id=${selectedCity.id}`
@@ -163,8 +192,8 @@ export default function HomeScreen() {
 
     while (productIndex < filteredProducts.length) {
       // 1. Add 5 normal products
-      const normalChunk = filteredProducts.slice(productIndex, productIndex + 5);
-      productIndex += 5;
+      const normalChunk = filteredProducts.slice(productIndex, productIndex + 20);
+      productIndex += 20;
 
       // Group normal products in rows of 2
       for (let i = 0; i < normalChunk.length; i += 2) {
@@ -236,7 +265,8 @@ export default function HomeScreen() {
     }
     return null;
   };
-
+  // console.log(selectedLocality.name,'selectedLocality')
+  const fullName = `${selectedCity?.name + ","}${selectedLocality?.name || ""}`
   return (
     <ThemedView style={styles.container}>
       {loader ? (
@@ -245,7 +275,13 @@ export default function HomeScreen() {
           contentContainerStyle={styles.scrollContent}
         >
           <HomeHeader
-            selectedCityName={selectedCity?.name || safeCities[0]?.name || "Select City"}
+            selectedCityName={
+              fullName
+                ? fullName
+                : selectedCity?.name
+                ? safeCities[0]?.name || "Select City"
+                : "Select City"
+            }
             onPressLocation={() => setShowLocationModal(true)}
           />
           <UserShimmerLoader />
@@ -260,7 +296,7 @@ export default function HomeScreen() {
           ListHeaderComponent={
             <>
               <HomeHeader
-                selectedCityName={selectedCity?.name || safeCities[0]?.name || "Select City"}
+                selectedCityName={fullName ? fullName : selectedCity?.name || safeCities[0]?.name || "Select City"}
                 onPressLocation={() => setShowLocationModal(true)}
               />
               <HomeSearchBar
@@ -300,7 +336,9 @@ export default function HomeScreen() {
         onClose={() => setShowLocationModal(false)}
         states={Array.isArray(states) ? states : []}
         cities={safeCities}
+        localities={safeLocalities}
         onSelectCity={setSelectedCity}
+        onSelectLocality={setSelectedLocality}
       />
     </ThemedView>
   );

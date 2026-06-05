@@ -18,7 +18,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { getBannerWarningApi, createConversationApi, reportProductApi } from "@/constants/functions";
+import { getBannerWarningApi, createConversationApi, reportProductApi, addToFavoritesApi } from "@/constants/functions";
 import AppToast from "@/components/toasts/AppToast";
 import { COLORS } from "@/constants/Colors";
 import ImageZoomModal from "@/components/modals/ImageZoomModal";
@@ -142,6 +142,25 @@ export default function BannerDetailsScreen() {
     }
   };
 
+  const handleToggleFavorite = async () => {
+    if (!product?.id) return;
+    const newState = !isFavorite;
+    setIsFavorite(newState); // optimistic update
+    try {
+      const response = await addToFavoritesApi(Number(product.id));
+      if (response?.status === false) {
+        setIsFavorite(!newState); // revert on failure
+        AppToast(response?.message || "Failed to update favorites.");
+      } else {
+        AppToast(response?.message || (newState ? "Added to favorites!" : "Removed from favorites."));
+      }
+    } catch (error) {
+      console.log(error, "error");
+      setIsFavorite(!newState); // revert on error
+      AppToast("Failed to update favorites. Please try again.");
+    }
+  };
+
   const handleReportProduct = async () => {
     const reason = reportReason.trim();
 
@@ -201,7 +220,7 @@ export default function BannerDetailsScreen() {
           {/* Favorite pill */}
           <TouchableOpacity
             style={styles.favPill}
-            onPress={() => setIsFavorite(f => !f)}
+            onPress={handleToggleFavorite}
             activeOpacity={0.8}
           >
             <Ionicons
@@ -340,7 +359,7 @@ export default function BannerDetailsScreen() {
           <TouchableOpacity
             style={styles.listRow}
             activeOpacity={0.8}
-            onPress={() => setIsFavorite(f => !f)}
+            onPress={handleToggleFavorite}
           >
             <View style={[styles.listRowIcon, { backgroundColor: "#FCE4EC" }]}>
               <Ionicons name={isFavorite ? "heart" : "heart-outline"} size={20} color="#E91E63" />

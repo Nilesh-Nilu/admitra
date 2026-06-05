@@ -13,6 +13,7 @@ export default function TabLayout() {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const router = useRouter();
   const [showWarning, setShowWarning] = useState(false);
+  const [agreed, setAgreed] = useState(false);
 
   const animateIcon = () => {
     Animated.sequence([
@@ -39,97 +40,107 @@ export default function TabLayout() {
 
   return (
     <>
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarActiveTintColor: COLORS.blue,
-        tabBarInactiveTintColor: '#404040',
-        tabBarShowLabel: true,
-        tabBarLabelStyle: styles.tabLabel,
-        tabBarStyle: [styles.tabBar, { bottom: bottomPosition }],
-        tabBarItemStyle: styles.tabItem,
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ focused }) => {
-            if (focused) animateIcon();
-            return <AnimatedIcon focused={focused} name={focused ? "home" : "home-outline"} />;
-          },
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarButton: HapticTab,
+          tabBarActiveTintColor: COLORS.blue,
+          tabBarInactiveTintColor: '#404040',
+          tabBarShowLabel: true,
+          tabBarLabelStyle: styles.tabLabel,
+          tabBarStyle: [styles.tabBar, { bottom: bottomPosition }],
+          tabBarItemStyle: styles.tabItem,
         }}
-      />
-            <Tabs.Screen
-        name="chat"
-        options={{
-          title: 'Chat',
-          tabBarIcon: ({ focused }) => {
-            if (focused) animateIcon();
-            return <AnimatedIcon focused={focused} name={focused ? "chatbubbles" : "chatbubbles-outline"} />;
-          },
-        }}
-      />
+      >
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Home',
+            tabBarIcon: ({ focused }) => {
+              if (focused) animateIcon();
+              return <AnimatedIcon focused={focused} name={focused ? "home" : "home-outline"} />;
+            },
+          }}
+        />
+        <Tabs.Screen
+          name="chat"
+          options={{
+            title: 'Chat',
+            tabBarIcon: ({ focused }) => {
+              if (focused) animateIcon();
+              return <AnimatedIcon focused={focused} name={focused ? "chatbubbles" : "chatbubbles-outline"} />;
+            },
+          }}
+        />
 
-      <Tabs.Screen
-        name="post"
-        options={{
-          title: 'Sell',
-          tabBarIcon: ({ focused }) => (
-            <View style={styles.postButtonWrapper}>
-              <View style={styles.postButtonOuter}>
-                <View style={[styles.postButton, focused && styles.postButtonActive]}>
-                  <Ionicons name="add" size={26} color={COLORS.secondaryBlue} />
+        <Tabs.Screen
+          name="post"
+          options={{
+            title: 'Sell',
+            tabBarIcon: ({ focused }) => (
+              <View style={styles.postButtonWrapper}>
+                <View style={styles.postButtonOuter}>
+                  <View style={[styles.postButton, focused && styles.postButtonActive]}>
+                    <Ionicons name="add" size={26} color={COLORS.secondaryBlue} />
+                  </View>
                 </View>
               </View>
-            </View>
-          ),
-        }}
-        listeners={{
-          tabPress: (e) => {
-            e.preventDefault();
-            setShowWarning(true);
-          },
-        }}
-      />
+            ),
+          }}
+          listeners={{
+            tabPress: (e) => {
+              e.preventDefault();
+              setAgreed(false);
+              setShowWarning(true);
+            },
+          }}
+        />
 
-      <Tabs.Screen
-        name="myListing"
-        options={{
-          title: 'My Ads',
-          tabBarIcon: ({ focused }) => {
-            if (focused) animateIcon();
-            return <AnimatedIcon focused={focused} name={focused ? "briefcase" : "briefcase-outline"} />;
-          },
-        }}
-      />
+        <Tabs.Screen
+          name="myListing"
+          options={{
+            title: 'My Ads',
+            tabBarIcon: ({ focused }) => {
+              if (focused) animateIcon();
+              return <AnimatedIcon focused={focused} name={focused ? "briefcase" : "briefcase-outline"} />;
+            },
+          }}
+        />
 
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ focused }) => {
-            if (focused) animateIcon();
-            return (
-              <AnimatedIcon
-                focused={focused}
-                name={focused ? "person" : "person-outline"}
-              />
-            );
-          },
-        }}
-      />
-    </Tabs>
+        <Tabs.Screen
+          name="profile"
+          options={{
+            title: "Profile",
+            tabBarIcon: ({ focused }) => {
+              if (focused) animateIcon();
+              return (
+                <AnimatedIcon
+                  focused={focused}
+                  name={focused ? "person" : "person-outline"}
+                />
+              );
+            },
+          }}
+        />
+      </Tabs>
 
       <Modal
         visible={showWarning}
         transparent
         animationType="slide"
-        onRequestClose={() => setShowWarning(false)}
+        onRequestClose={() => { setShowWarning(false); setAgreed(false); }}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.warningModal}>
+            {/* Close (X) button */}
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={() => { setShowWarning(false); setAgreed(false); }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="close" size={22} color="#555" />
+            </TouchableOpacity>
+
             <ScrollView
               contentContainerStyle={styles.warningScroll}
               showsVerticalScrollIndicator={false}
@@ -140,19 +151,42 @@ export default function TabLayout() {
                 style={styles.warningImage}
               />
             </ScrollView>
+
+            {/* Agreement checkbox */}
+            <TouchableOpacity
+              style={styles.agreementRow}
+              onPress={() => setAgreed(v => !v)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.checkbox, agreed && styles.checkboxChecked]}>
+                {agreed && <Ionicons name="checkmark" size={14} color="#fff" />}
+              </View>
+              <Text style={styles.agreementText}>
+                मैंने सभी नियम और शर्तों को पढ़ा और समझा है तथा मैं उनसे सहमत हूँ।{' '}
+                <Text style={styles.agreementTextEn}>I have read all the rules and terms and agree.</Text>
+              </Text>
+            </TouchableOpacity>
+
             <View style={[styles.warningActions, { paddingBottom: Math.max(insets.bottom, 16) }]}>
               <TouchableOpacity
                 style={styles.cancelBtn}
-                onPress={() => setShowWarning(false)}
-              >
-                <Text style={styles.cancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.proceedBtn}
                 onPress={() => {
                   setShowWarning(false);
+                  setAgreed(false);
                   router.push('/(tabs)/post');
                 }}
+              >
+                <Text style={styles.cancelBtnText}>Skip</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.proceedBtn, !agreed && styles.proceedBtnDisabled]}
+                onPress={() => {
+                  if (!agreed) return;
+                  setShowWarning(false);
+                  setAgreed(false);
+                  router.push('/(tabs)/post');
+                }}
+                activeOpacity={agreed ? 0.8 : 1}
               >
                 <Text style={styles.proceedBtnText}>I Understand, Proceed</Text>
               </TouchableOpacity>
@@ -281,6 +315,56 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#424242',
     lineHeight: 20,
+  },
+  modalCloseBtn: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    zIndex: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F0F0F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  agreementRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    gap: 10,
+    backgroundColor: '#fff',
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#999',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+    flexShrink: 0,
+  },
+  checkboxChecked: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  agreementText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#333',
+    lineHeight: 18,
+  },
+  agreementTextEn: {
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  proceedBtnDisabled: {
+    opacity: 0.4,
   },
   warningActions: {
     flexDirection: 'row',
