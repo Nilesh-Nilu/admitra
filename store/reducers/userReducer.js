@@ -87,11 +87,17 @@ const userReducer = createSlice({
       userReducer.loader = false;
       userReducer.favorites = action.payload.data;
     },
+    removeFavoriteById: (userReducer, action) => {
+      userReducer.favorites = userReducer.favorites.filter(
+        (fav) => fav.id !== action.payload
+      );
+    },
   }
 });
 
 export const {
-  setSubCategoriesClear
+  setSubCategoriesClear,
+  removeFavoriteById,
 } = userReducer.actions;
 
 const {

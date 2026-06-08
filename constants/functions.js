@@ -197,7 +197,7 @@ export const handleSendPhoneOtp = async (phone, setLoading, setStep) => {
     );
     console.log(response.data, "response");
     if (response.data?.success) {
-      AppToast(`OTP sent successfully! ${response.data.otp}`);
+      // AppToast(`OTP sent successfully! ${response.data.otp}`);
       setStep("otp");
       // Optionally, handle navigation or further state logic here
     }
@@ -555,6 +555,44 @@ export const addToFavoritesApi = async (product_id) => {
       { product_id },
       config
     );
+    return response.data;
+  } catch (error) {
+    console.log(error?.response?.data || error, "error");
+    throw error;
+  }
+};
+
+export const getFavoritesListApi = async () => {
+  try {
+    const authConfig = await getAuthToken();
+    const config = {
+      ...authConfig,
+      headers: {
+        ...(authConfig.headers || {}),
+        'accept': 'application/json',
+        'X-CSRF-TOKEN': '',
+      },
+    };
+    const response = await axios.get(`${baseUrl}/favorites`, config);
+    return response.data;
+  } catch (error) {
+    console.log(error?.response?.data || error, "error");
+    throw error;
+  }
+};
+
+export const removeFromFavoritesApi = async (id) => {
+  try {
+    const authConfig = await getAuthToken();
+    const config = {
+      ...authConfig,
+      headers: {
+        ...(authConfig.headers || {}),
+        'accept': 'application/json',
+        'X-CSRF-TOKEN': '',
+      },
+    };
+    const response = await axios.delete(`${baseUrl}/favorites/${id}`, config);
     return response.data;
   } catch (error) {
     console.log(error?.response?.data || error, "error");

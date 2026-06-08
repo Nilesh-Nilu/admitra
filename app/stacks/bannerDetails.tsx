@@ -5,7 +5,7 @@ import { ThemedView } from "@/components/ThemedView";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   BackHandler,
@@ -18,11 +18,14 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { getBannerWarningApi, createConversationApi, reportProductApi, addToFavoritesApi } from "@/constants/functions";
+import { getBannerWarningApi, createConversationApi, reportProductApi, addToFavoritesApi, getFavoritesListApi, removeFromFavoritesApi } from "@/constants/functions";
 import AppToast from "@/components/toasts/AppToast";
 import { COLORS } from "@/constants/Colors";
 import ImageZoomModal from "@/components/modals/ImageZoomModal";
 import RenderHTML from "react-native-render-html";
+import { useDispatch, useSelector } from "react-redux";
+import { getFavoritesApi, removeFavoriteById } from "@/store/reducers/userReducer";
+import { favoritesUrl } from "@/constants/functions";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -48,14 +51,23 @@ interface BannerData {
 export default function BannerDetailsScreen() {
   const params = useLocalSearchParams();
   const { width } = useWindowDimensions();
+  const dispatch = useDispatch();
   const [banner, setBanner] = useState<BannerData | null>(null);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [isReporting, setIsReporting] = useState(false);
   const [zoomModalVisible, setZoomModalVisible] = useState(false);
   const [bannerWarnings, setBannerWarnings] = useState<any[]>([]);
-  const [isFavorite, setIsFavorite] = useState(false);
   const [reportTarget, setReportTarget] = useState<"ad" | "user">("ad");
+
+  const favorites = useSelector((state: any) => state.entities.userReducer.favorites);
+  const product = banner?.product;
+
+  const favoriteEntry = useMemo(
+    () => favorites?.find((fav: any) => fav.product_id === product?.id || fav.product?.id === product?.id),
+    [favorites, product?.id]
+  );
+  const isFavorite = !!favoriteEntry;
 
   const initializeBanner = useCallback(() => {
     if (params.bannerData) {
@@ -66,7 +78,6 @@ export default function BannerDetailsScreen() {
       }
     }
   }, [params.bannerData]);
- console.log(banner,'banner')
 
  const handleCall = () => {
   if (product?.user?.phone) {
@@ -78,6 +89,7 @@ export default function BannerDetailsScreen() {
   useEffect(() => {
     initializeBanner();
     getBannerWarningApi().then(setBannerWarnings).catch(console.error);
+    dispatch(getFavoritesApi(favoritesUrl) as any);
   }, [initializeBanner]);
 
   useEffect(() => {
@@ -115,9 +127,6 @@ export default function BannerDetailsScreen() {
     if (!isReporting) setReportModalVisible(false);
   };
 
-  const product = banner?.product;
-  console.log(banner,'banner')
-
   const handleChat = async () => {
     try {
       const vendor_id = product?.user?.user_id ? product?.user?.user_id : product?.user_id;
@@ -144,19 +153,29 @@ export default function BannerDetailsScreen() {
 
   const handleToggleFavorite = async () => {
     if (!product?.id) return;
-    const newState = !isFavorite;
-    setIsFavorite(newState); // optimistic update
     try {
-      const response = await addToFavoritesApi(Number(product.id));
-      if (response?.status === false) {
-        setIsFavorite(!newState); // revert on failure
-        AppToast(response?.message || "Failed to update favorites.");
+      if (isFavorite && favoriteEntry) {
+        const entryId = favoriteEntry.id;
+        dispatch(removeFavoriteById(entryId));
+        const response = await removeFromFavoritesApi(entryId);
+        if (response?.status === false) {
+          dispatch(getFavoritesApi(favoritesUrl) as any);
+          AppToast(response?.message || "Failed to remove from favorites.");
+        } else {
+          AppToast(response?.message || "Removed from favorites.");
+        }
       } else {
-        AppToast(response?.message || (newState ? "Added to favorites!" : "Removed from favorites."));
+        const response = await addToFavoritesApi(Number(product.id));
+        if (response?.status === false) {
+          AppToast(response?.message || "Failed to add to favorites.");
+        } else {
+          dispatch(getFavoritesApi(favoritesUrl) as any);
+          AppToast(response?.message || "Added to favorites!");
+        }
       }
     } catch (error) {
       console.log(error, "error");
-      setIsFavorite(!newState); // revert on error
+      dispatch(getFavoritesApi(favoritesUrl) as any);
       AppToast("Failed to update favorites. Please try again.");
     }
   };
