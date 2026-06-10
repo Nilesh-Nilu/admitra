@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: "#0D47A1",
     fontWeight: "600",
-    lineHeight: 16,
+    // lineHeight: 16,
     flex: 1,
   },
   topTextBannerHighlight: {
@@ -263,11 +263,11 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#212121",
     textAlign: "center",
-    lineHeight: 15,
+    // lineHeight: 15,
   },
   topTextBannerRight: {
     flex: 1.1,
-    gap: 3,
+    // gap: 2,
   },
   topTextBannerRightItem: {
     flexDirection: "row",
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: "#5D4037",
     fontWeight: "600",
-    lineHeight: 16,
+    // lineHeight: 16,
   },
   bottomTextBannerHighlight: {
     backgroundColor: "#FDD835",

@@ -307,6 +307,8 @@ const SignupScreen = () => {
       await dispatch(updateUserProfile(updateUserProfileUrl, {
         name: name.trim(),
         email: email.trim() || "",
+        password: password.trim(),
+        role: "user",
         phone: mobile.trim(),
         address: address.trim() || "",
         AadharImage: aadharPhoto || "",
@@ -314,6 +316,7 @@ const SignupScreen = () => {
         city_id: selectedCity?.id || null,
         locality_id: selectedLocality?.id || null,
         selfieverificationImage: selfiePhoto || "",
+        Isagreeprivacy: true
       }));
       AppToast("Profile updated successfully!");
       router.push("/(tabs)");
@@ -374,21 +377,6 @@ const SignupScreen = () => {
         <View style={styles.patternCircle3} />
       </LinearGradient>
 
-      {/* Header */}
-      <View style={[styles.header]}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.white} />
-        </Pressable>
-        <View style={styles.headerCenter}>
-          <ThemedText style={styles.stepText}>Create Account</ThemedText>
-        </View>
-        <View style={styles.roleBadge}>
-          <Ionicons name={config.icon} size={14} color={COLORS.white} />
-          <ThemedText style={styles.roleBadgeText}>
-            {selectedRole === "vendor" ? "Vendor" : "User"}
-          </ThemedText>
-        </View>
-      </View>
 
       {/* Title Section */}
       <View style={styles.titleSection}>

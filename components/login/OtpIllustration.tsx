@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 import { StyleSheet } from "react-native";
+import { ThemedText } from "../ThemedText";
 
 
 
@@ -8,10 +9,10 @@ export default function OtpIllustration({ bg, accent, icon, bubble = "••• 
     return (
       <View style={shared.illuWrap}>
         <View style={[shared.illuBox, { backgroundColor: bg }]}>
-          <Text style={{ fontSize: 52 }}>{icon}</Text>
+          <ThemedText style={{ fontSize: 52 }}>{icon}</ThemedText>
         </View>
         <View style={[shared.illuBubble, { backgroundColor: accent }]}>
-          <Text style={shared.illuDots}>{bubble}</Text>
+          <ThemedText style={shared.illuDots}>{bubble}</ThemedText>
         </View>
         <View style={[shared.illuLock, { backgroundColor: accent }]}>
           <Ionicons name="lock-closed" size={13} color="#fff" />

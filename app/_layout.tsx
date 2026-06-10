@@ -2,13 +2,12 @@ import Splash from "@/components/Splash";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { store } from "@/store/configureStore";
 import {
-  Roboto_100Thin,
-  Roboto_300Light,
-  Roboto_400Regular,
-  Roboto_500Medium,
-  Roboto_700Bold,
-  Roboto_900Black,
-} from "@expo-google-fonts/roboto";
+  Poppins_300Light,
+  Poppins_400Regular,
+  Poppins_500Medium,
+  Poppins_600SemiBold,
+  Poppins_700Bold,
+} from "@expo-google-fonts/poppins";
 import {
   DarkTheme,
   DefaultTheme,
@@ -44,12 +43,11 @@ messaging().setBackgroundMessageHandler(async remoteMessage => {
 export default function RootLayout() {
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
-    "Roboto-Thin": Roboto_100Thin,
-    "Roboto-Light": Roboto_300Light,
-    "Roboto-Regular": Roboto_400Regular,
-    "Roboto-Medium": Roboto_500Medium,
-    "Roboto-Bold": Roboto_700Bold,
-    "Roboto-Black": Roboto_900Black,
+    "Poppins-Light": Poppins_300Light,
+    "Poppins-Regular": Poppins_400Regular,
+    "Poppins-Medium": Poppins_500Medium,
+    "Poppins-SemiBold": Poppins_600SemiBold,
+    "Poppins-Bold": Poppins_700Bold,
   });
   const [isSplashVisible, setSplashVisible] = useState(true);
 

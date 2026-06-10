@@ -33,9 +33,9 @@ export default function PostScreen() {
   const user = useSelector((state: any) => state.entities.authReducer?.user);
   const { categories, subCategories, plans } = useSelector((state: any) => state.entities.userReducer) || {};
   const [images, setImages] = useState<any[]>([]);
-  const [title, setTitle] = useState("test");
-  const [description, setDescription] = useState("test");
-  const [price, setPrice] = useState("100");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [selectedSubCategory, setSelectedSubCategory] = useState<number | null>(null);
   const [selectedChildCategory, setSelectedChildCategory] = useState<number | null>(null);
@@ -210,7 +210,7 @@ export default function PostScreen() {
         banner_image: adType?.id === 3 ? images[0] : null,
         banner_video_url: adType?.id === 3 ? videoLink : null,
         website_link: adType?.id === 3 ? websiteLink : null,
-        video: videoLink2 || null,
+        video:adType?.id === 3 ? videoLink2 : null,
       };
       console.log(payload, "payload");
 
@@ -327,7 +327,7 @@ export default function PostScreen() {
       setIsLoading(false);
     }
   };
-  console.log(plans, "plans");
+  console.log(plans[2], "plans");
 
   return (
     <ThemedView style={styles.container}>
@@ -350,7 +350,6 @@ export default function PostScreen() {
                 let iconColor = "#1976D2";
                 let iconBg = "#E3F2FD";
                 let subtitle = "Basic Listing";
-                let chatLabel = "Chat Enabled";
                 let features: string[] = [];
                 let badgeText = "Free limited time offer";
                 let badgeBg = "#E3F2FD";
@@ -361,7 +360,6 @@ export default function PostScreen() {
                   iconColor = "#FBC02D";
                   iconBg = "#FFF9C4";
                   subtitle = "Top Placement";
-                  chatLabel = "Call + Chat Enabled";
                   features = ["Top placement in category", "More visibility, more buyers"];
                   badgeText = "Recommended";
                   badgeBg = "#FBC02D";
@@ -371,7 +369,6 @@ export default function PostScreen() {
                   iconColor = "#D32F2F";
                   iconBg = "#FFEBEE";
                   subtitle = "Homepage Banner";
-                  chatLabel = "Call + Chat Enabled";
                   features = ["Homepage banner placement", "Maximum reach & visibility"];
                   badgeText = "";
                 }
@@ -407,23 +404,8 @@ export default function PostScreen() {
                         <ThemedText style={styles.adTypeSubtitleFixed}>{subtitle}</ThemedText>
                       </View>
 
-                      <View style={styles.adTypeMiddleCol}>
-                        <View style={styles.chatInfoRow}>
-                          {plan.id !== 1 && plan.type !== "free" && <Ionicons name="call" size={16} color="#4CAF50" style={{ marginRight: 4 }} />}
-                          <Ionicons
-                            name="chatbubble-ellipses-outline"
-                            size={16}
-                            color={plan.id === 1 || plan.type === "free" ? "#1976D2" : "#4CAF50"}
-                            style={{ marginRight: 6 }}
-                          />
-                          <View>
-                            <ThemedText style={styles.chatLabel}>{chatLabel}</ThemedText>
-                          </View>
-                        </View>
-                      </View>
-
                       <View style={styles.adTypeRightCol}>
-                        <ThemedText style={styles.durationText}>/ {plan.duration_days} days</ThemedText>
+                        <ThemedText style={styles.durationText}>{plan.duration_days} days</ThemedText>
                         {!!badgeText && (
                           <View style={[styles.planBadge, { backgroundColor: badgeBg }]}>
                             <ThemedText style={[styles.planBadgeText, { color: badgeColor }]}>

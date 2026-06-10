@@ -6,7 +6,7 @@ import { useThemeColor } from '@/hooks/useThemeColor';
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
   darkColor?: string;
-  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link';
+  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link' | 'poppins' | 'poppinsMedium' | 'poppinsSemiBold' | 'poppinsBold';
 };
 
 export function ThemedText({
@@ -28,6 +28,10 @@ export function ThemedText({
         type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
         type === 'subtitle' ? styles.subtitle : undefined,
         type === 'link' ? styles.link : undefined,
+        type === 'poppins' ? styles.poppins : undefined,
+        type === 'poppinsMedium' ? styles.poppinsMedium : undefined,
+        type === 'poppinsSemiBold' ? styles.poppinsSemiBold : undefined,
+        type === 'poppinsBold' ? styles.poppinsBold : undefined,
         style,
       ]}
       {...rest}
@@ -40,29 +44,45 @@ export function ThemedText({
 const styles = StyleSheet.create({
   default: {
     fontSize: SIZES.fontSize.lg,
-    fontFamily: 'Roboto-Regular',
+    fontFamily: 'Poppins-Regular',
   },
   defaultSemiBold: {
     fontSize: SIZES.fontSize.lg,
     lineHeight: 24,
     fontWeight: '600',
-    fontFamily: 'Roboto-Medium',
+    fontFamily: 'Poppins-Medium',
   },
   title: {
     fontSize: SIZES.fontSize32,
     fontWeight: 'bold',
     lineHeight: 32,
-    fontFamily: 'Roboto-Bold',
+    fontFamily: 'Poppins-Bold',
   },
   subtitle: {
     fontSize: SIZES.fontSize['2xl'],
     fontWeight: 'bold',
-    fontFamily: 'Roboto-Bold',
+    fontFamily: 'Poppins-Bold',
   },
   link: {
     lineHeight: 30,
     fontSize: SIZES.fontSize.lg,
     color: '#0a7ea4',
-    fontFamily: 'Roboto-Regular',
+    fontFamily: 'Poppins-Regular',
+  },
+  poppins: {
+    fontSize: SIZES.fontSize.lg,
+    fontFamily: 'Poppins-Regular',
+  },
+  poppinsMedium: {
+    fontSize: SIZES.fontSize.lg,
+    fontFamily: 'Poppins-Medium',
+  },
+  poppinsSemiBold: {
+    fontSize: SIZES.fontSize.lg,
+    fontFamily: 'Poppins-SemiBold',
+  },
+  poppinsBold: {
+    fontSize: SIZES.fontSize.lg,
+    fontFamily: 'Poppins-Bold',
   },
 });

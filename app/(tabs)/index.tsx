@@ -265,7 +265,6 @@ export default function HomeScreen() {
     }
     return null;
   };
-  // console.log(selectedLocality.name,'selectedLocality')
   const fullName = `${selectedCity?.name + ","}${selectedLocality?.name || ""}`
   return (
     <ThemedView style={styles.container}>

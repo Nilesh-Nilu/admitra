@@ -72,7 +72,6 @@ const userReducer = createSlice({
     },
     setPlansRecieved: (userReducer, action) => {
       userReducer.loader = false;
-      console.log(action.payload.data, "setPlansRecieved");
       userReducer.plans = action.payload.data;
     },
     setFeaturedAdsRecieved: (userReducer, action) => {

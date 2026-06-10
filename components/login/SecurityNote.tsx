@@ -1,12 +1,13 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { ThemedText } from "../ThemedText";
 export default function SecurityNote({ accent }: { accent: string }) {
     return (
       <View style={shared.secNote}>
         <Ionicons name="shield-checkmark" size={18} color={accent} />
         <View>
-          <Text style={shared.secTitle}>Keep your account safe</Text>
-          <Text style={shared.secSub}>Never share your OTP with anyone.</Text>
+          <ThemedText style={shared.secTitle}>Keep your account safe</ThemedText>
+          <ThemedText style={shared.secSub}>Never share your OTP with anyone.</ThemedText>
         </View>
       </View>
     );

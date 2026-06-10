@@ -1,6 +1,7 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import { ThemedText } from "../ThemedText";
 export default function PrimaryBtn({
     label, loading, disabled, color, onPress, arrow = false,
   }: { label: string; loading: boolean; disabled?: boolean; color: string; onPress: () => void; arrow?: boolean }) {
@@ -18,7 +19,7 @@ export default function PrimaryBtn({
             <ActivityIndicator size="small" color="#fff" />
           ) : (
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-              <Text style={shared.primaryBtnText}>{label}</Text>
+              <ThemedText style={shared.primaryBtnText}>{label}</ThemedText>
               {arrow && (
                 <View style={shared.arrowCircle}>
                   <Ionicons name="arrow-forward" size={16} color={color} />

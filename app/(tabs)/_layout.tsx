@@ -1,10 +1,11 @@
 import { HapticTab } from '@/components/HapticTab';
+import { ThemedText } from '@/components/ThemedText';
 import { COLORS } from '@/constants/Colors';
 import { SIZES, SIZES_WITH_ALIASES } from '@/constants/Sizes';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Animated, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Image, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
@@ -161,10 +162,10 @@ export default function TabLayout() {
               <View style={[styles.checkbox, agreed && styles.checkboxChecked]}>
                 {agreed && <Ionicons name="checkmark" size={14} color="#fff" />}
               </View>
-              <Text style={styles.agreementText}>
+              <ThemedText style={styles.agreementText}>
                 मैंने सभी नियम और शर्तों को पढ़ा और समझा है तथा मैं उनसे सहमत हूँ।{' '}
-                <Text style={styles.agreementTextEn}>I have read all the rules and terms and agree.</Text>
-              </Text>
+                <ThemedText style={styles.agreementTextEn}>I have read all the rules and terms and agree.</ThemedText>
+              </ThemedText>
             </TouchableOpacity>
 
             <View style={[styles.warningActions, { paddingBottom: Math.max(insets.bottom, 16) }]}>
@@ -176,7 +177,7 @@ export default function TabLayout() {
                   router.push('/(tabs)/post');
                 }}
               >
-                <Text style={styles.cancelBtnText}>Skip</Text>
+                <ThemedText style={styles.cancelBtnText}>Skip</ThemedText>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.proceedBtn, !agreed && styles.proceedBtnDisabled]}
@@ -188,7 +189,7 @@ export default function TabLayout() {
                 }}
                 activeOpacity={agreed ? 0.8 : 1}
               >
-                <Text style={styles.proceedBtnText}>I Understand, Proceed</Text>
+                <ThemedText style={styles.proceedBtnText}>I Understand, Proceed</ThemedText>
               </TouchableOpacity>
             </View>
           </View>
