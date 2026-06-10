@@ -69,8 +69,7 @@ export default function SearchScreen() {
     return () => backHandler.remove();
   }, [router]);
 
-  // Auto-filter when products, category, or search query changes (but NOT price range - that's manual)
-  useEffect(() => {
+ useEffect(() => {
     if (safeProducts.length > 0) {
       filterResults();
     }

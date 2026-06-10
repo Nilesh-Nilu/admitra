@@ -3,8 +3,8 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
-import { favoritesUrl, ImageUrl } from "@/constants/functions";
-import { getFavoritesApi } from "@/store/reducers/userReducer";
+import { favoritesUrl, getMyBannerAdsUrl, getMyFeaturedAdsUrl, ImageUrl } from "@/constants/functions";
+import { getFavoritesApi, getMyBannerAdsApi, getMyFeaturedAdsApi } from "@/store/reducers/userReducer";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -69,7 +69,7 @@ const getStatusConfig = (status: string) => {
 export default function MyListingsScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { approvedProducts, favorites } = useSelector((state: any) => state.entities.userReducer) || {};
+  const { approvedProducts, favorites ,myFeaturedAds,myBannerAds} = useSelector((state: any) => state.entities.userReducer) || {};
   const safeProducts = approvedProducts || [];
   const safeFavorites = Array.isArray(favorites) ? favorites : [];
   const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -119,6 +119,8 @@ export default function MyListingsScreen() {
 
   useEffect(() => {
     dispatch(getFavoritesApi(`${favoritesUrl}`));
+    dispatch(getMyFeaturedAdsApi(`${getMyFeaturedAdsUrl}`));
+    dispatch(getMyBannerAdsApi(`${getMyBannerAdsUrl}`));
   }, []);
 
   const renderStats = () => {
@@ -228,6 +230,132 @@ export default function MyListingsScreen() {
           </View>
         </View>
       </TouchableOpacity>
+    );
+  };
+
+  const isBannerTab = selectedFilter === 'banner';
+  const isFeaturedTab = selectedFilter === 'featured';
+
+  const renderFeaturedAdCard = ({ item }: { item: any }) => {
+    const statusConfig = getStatusConfig(item.approve);
+    const rawImage = Array.isArray(item?.images) && item.images.length > 0 ? item.images[0]?.image_path : null;
+    const firstImage = rawImage
+      ? rawImage.startsWith('http') ? rawImage : `${ImageUrl}/${rawImage}`
+      : null;
+
+    return (
+      <TouchableOpacity style={styles.listingCard} activeOpacity={0.8} onPress={() => openDetailModal(item)}>
+        {firstImage ? (
+          <Image source={{ uri: firstImage }} style={styles.productImage} resizeMode="cover" />
+        ) : (
+          <View style={styles.imagePlaceholder}>
+            <LinearGradient colors={['#E65100', '#FFB74D']} style={styles.imagePlaceholderGradient}>
+              <Ionicons name="star" size={32} color={COLORS.white} />
+            </LinearGradient>
+          </View>
+        )}
+
+        <View style={styles.listingInfo}>
+          <View style={styles.listingHeader}>
+            <ThemedText style={styles.listingTitle} numberOfLines={1}>{item.name}</ThemedText>
+            <View style={[styles.statusBadge, { backgroundColor: '#FFF3E0' }]}>
+              <Ionicons name="star" size={12} color="#E65100" />
+              <ThemedText style={[styles.statusText, { color: '#E65100' }]}>Featured</ThemedText>
+            </View>
+          </View>
+
+          {(item.category || item.sub_category) && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 2 }}>
+              <Ionicons name="folder-outline" size={12} color={COLORS.gray} />
+              <ThemedText style={styles.listingDescription} numberOfLines={1}>
+                {[item.category?.name, item.sub_category?.name].filter(Boolean).join(' › ')}
+              </ThemedText>
+            </View>
+          )}
+
+          <ThemedText style={styles.listingDescription} numberOfLines={1}>
+            {item.description || 'No description'}
+          </ThemedText>
+
+          <View style={styles.listingFooter}>
+            <ThemedText style={styles.listingPrice}>{formatPrice(item.price)}</ThemedText>
+            <View style={[styles.statusBadge, { backgroundColor: statusConfig.bgColor }]}>
+              <Ionicons name={statusConfig.icon as any} size={12} color={statusConfig.color} />
+              <ThemedText style={[styles.statusText, { color: statusConfig.color }]}>{statusConfig.label}</ThemedText>
+            </View>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderBannerAdCard = ({ item }: { item: any }) => {
+    const product = item.product;
+    const expiryDate = item.expiry_date ? formatDate(item.expiry_date) : null;
+    const isExpired = item.expiry_date && new Date(item.expiry_date) < new Date();
+
+    return (
+      <View style={styles.bannerCard}>
+        {/* Banner Image */}
+        {item.banner_image ? (
+          <Image
+            source={{ uri: item.banner_image }}
+            style={styles.bannerImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={styles.bannerImagePlaceholder}>
+            <LinearGradient colors={['#7B1FA2', '#E1BEE7']} style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+              <Ionicons name="images-outline" size={40} color={COLORS.white} />
+            </LinearGradient>
+          </View>
+        )}
+
+        {/* Expiry Badge */}
+        {expiryDate && (
+          <View style={[styles.expiryBadge, { backgroundColor: isExpired ? COLORS.error + 'DD' : '#1565C0DD' }]}>
+            <Ionicons name="time-outline" size={12} color={COLORS.white} />
+            <ThemedText style={styles.expiryBadgeText}>
+              {isExpired ? 'Expired' : `Expires ${expiryDate}`}
+            </ThemedText>
+          </View>
+        )}
+
+        <View style={styles.bannerBody}>
+          {/* Product info */}
+          {product && (
+            <View style={styles.bannerProductRow}>
+              <Ionicons name="cube-outline" size={16} color={COLORS.gray} />
+              <ThemedText style={styles.bannerProductName} numberOfLines={1}>
+                {product.name}
+              </ThemedText>
+              <ThemedText style={styles.bannerProductPrice}>
+                ₹{product.price?.toLocaleString('en-IN')}
+              </ThemedText>
+            </View>
+          )}
+
+          {/* Links */}
+          <View style={styles.bannerLinksRow}>
+            {item.banner_video_url ? (
+              <View style={styles.bannerLinkChip}>
+                <Ionicons name="play-circle-outline" size={14} color='#7B1FA2' />
+                <ThemedText style={[styles.bannerLinkText, { color: '#7B1FA2' }]} numberOfLines={1}>
+                  Video linked
+                </ThemedText>
+              </View>
+            ) : null}
+            {item.website_link ? (
+              <View style={styles.bannerLinkChip}>
+                <Ionicons name="link-outline" size={14} color='#1565C0' />
+                <ThemedText style={[styles.bannerLinkText, { color: '#1565C0' }]} numberOfLines={1}>
+                  Website linked
+                </ThemedText>
+              </View>
+            ) : null}
+          </View>
+        </View>
+      </View>
     );
   };
 
@@ -454,11 +582,11 @@ export default function MyListingsScreen() {
       <ThemeHeader onBackPress={() => router.back()} title="My Listings" />
       {renderFilters()}
       <FlatList
-        data={filteredProducts}
-        renderItem={renderListingCard}
+        data={isBannerTab ? (myBannerAds || []) : isFeaturedTab ? (myFeaturedAds || []) : filteredProducts}
+        renderItem={isBannerTab ? renderBannerAdCard : isFeaturedTab ? renderFeaturedAdCard : renderListingCard}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContent}
-        ListHeaderComponent={!isFavoritesTab && safeProducts.length > 0 ? renderStats : null}
+        ListHeaderComponent={!isFavoritesTab && !isBannerTab && !isFeaturedTab && safeProducts.length > 0 ? renderStats : null}
         ListEmptyComponent={renderEmptyState}
         refreshControl={
           <RefreshControl
@@ -732,6 +860,83 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     color: COLORS.white,
+  },
+
+  /* Banner Ad Card */
+  bannerCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  bannerImage: {
+    width: '100%',
+    height: 180,
+  },
+  bannerImagePlaceholder: {
+    width: '100%',
+    height: 180,
+    overflow: 'hidden',
+  },
+  expiryBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+  },
+  expiryBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.white,
+  },
+  bannerBody: {
+    padding: 14,
+    gap: 10,
+  },
+  bannerProductRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  bannerProductName: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  bannerProductPrice: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#11998e',
+  },
+  bannerLinksRow: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  bannerLinkChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  bannerLinkText: {
+    fontSize: 12,
+    fontWeight: '500',
   },
 
   /* Modal */

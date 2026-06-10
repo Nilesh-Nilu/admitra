@@ -363,6 +363,7 @@ const styles = StyleSheet.create({
   agreementTextEn: {
     color: COLORS.primary,
     fontWeight: '600',
+    fontSize: 13,
   },
   proceedBtnDisabled: {
     opacity: 0.4,
@@ -382,7 +383,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#E0E0E0',
-    alignItems: 'center',
+    alignItems: 'center', 
+    justifyContent: 'center',
   },
   cancelBtnText: {
     fontSize: 14,
@@ -395,6 +397,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   proceedBtnText: {
     fontSize: 14,

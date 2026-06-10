@@ -100,12 +100,6 @@ const SignupScreen = () => {
   
   const config = ROLE_CONFIG[selectedRole];
 
-  if (typeof userParam === "object" && userParam !== null) {
-    console.log("userParam object:", JSON.stringify(userParam));
-  } else {
-    console.log("userParam value:", JSON.stringify(userParam));
-  }
-
   // Filter cities based on selected state
   const filteredCities = selectedState
     ? cities?.filter((city: any) => city.state_id === selectedState.id)
@@ -145,6 +139,7 @@ const SignupScreen = () => {
     if (userParam) {
       try {
         parsedUser = typeof userParam === 'string' ? JSON.parse(userParam) : userParam;
+        console.log(parsedUser, "parsedUser");
       } catch (e) {
         console.log("Error parsing userParam", e);
       }
@@ -295,7 +290,15 @@ const SignupScreen = () => {
       }
     } catch (error: any) {
       console.log(error.response.data, "error");
-      AppToast(error.response.data.message || "Signup failed");
+      // Check if backend response has 'errors' object with fields (e.g., email error)
+      if (error.response?.data?.errors) {
+        const errors = error.response.data.errors;
+        const firstFieldWithError = Object.keys(errors)[0];
+        const firstErrorMsg = Array.isArray(errors[firstFieldWithError]) ? errors[firstFieldWithError][0] : "Signup failed";
+        AppToast(firstErrorMsg);
+      } else {
+        AppToast(error.response?.data?.message || "Signup failed");
+      }
     } finally {
       setLoading(false);
     }
@@ -473,9 +476,10 @@ const SignupScreen = () => {
                   onChangeText={handlePhoneChange}
                   keyboardType="phone-pad"
                   maxLength={10}
-                  editable={!loading}
+                  editable={userParam !== undefined ? false : true}
                   containerStyle={styles.inputContainer}
                 />
+          
               </View>
               {/* Email Input */}
               <View style={styles.inputGroup}>

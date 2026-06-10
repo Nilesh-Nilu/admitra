@@ -49,6 +49,8 @@ export const getProductsByLocationUrl = "products/filter/location"
 export const reportProductUrl = "product/report"
 export const getPlansListUrl = "admin/plans"
 export const favoritesUrl = "favorites"
+export const getMyFeaturedAdsUrl = "ads/my-featured"
+export const getMyBannerAdsUrl = "ads/my-banners"
 //payment
 export const createOrderUrl = "payment/create-order";
 export const verifyAndStorePaymentUrl = "payment/verify-and-store";
@@ -391,7 +393,7 @@ export const createConversationApi = async (data) => {
     );
     return response.data.data;
   } catch (error) {
-    console.log(error?.response?.data || error, "error");
+    AppToast(error?.response?.data?.message || "Failed to create conversation");
     throw error;
   }
 };

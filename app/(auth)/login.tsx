@@ -11,6 +11,7 @@ import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -140,13 +141,14 @@ function SelectionScreen({
       <ScrollView contentContainerStyle={sel.scroll} showsVerticalScrollIndicator={false}>
         {/* Logo */}
         <View style={sel.logoWrap}>
-          <ThemedText style={sel.logoText}>
+          <Image source={require("../../assets/images/splashImage.png")} style={sel.logoImage} />
+          {/* <ThemedText style={sel.logoText}>
             <ThemedText style={{ color: "#4285F4" }}>G</ThemedText>
             <ThemedText style={{ color: GOOGLE_RED }}>A</ThemedText>
             <ThemedText style={{ color: "#FBBC04" }}>X</ThemedText>
             <ThemedText style={{ color: "#34A853" }}>A</ThemedText>
             <ThemedText style={{ fontSize: 36 }}> 📣</ThemedText>
-          </ThemedText>
+          </ThemedText> */}
           <ThemedText style={sel.logoTagline}>AN ADVERTISEMENTS PLATFORM</ThemedText>
         </View>
 
@@ -577,6 +579,7 @@ const sel = StyleSheet.create({
     backgroundColor: "#FFFFFF", borderRadius: 16, paddingHorizontal: 20, paddingVertical: 16, marginBottom: 32,
     shadowColor: "#7C6FCD", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4, width: "100%",
   },
+  logoImage: { width: 150, height: 140, resizeMode: "contain" },
   taglineLine: { fontSize: 14, color: "#475569", textAlign: "center", lineHeight: 22 },
   taglineBold: { fontWeight: "700", color: "#1E293B" },
   loginCard: {

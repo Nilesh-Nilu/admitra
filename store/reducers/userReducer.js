@@ -11,10 +11,12 @@ const initialState = {
   approvedProducts: [],
   chatConversations: [],
   chatMessages: [],
-  banners:[],
-  plans:[],
-  localities:[],
-  favorites:[]
+  banners: [],
+  plans: [],
+  localities: [],
+  favorites: [],
+  myFeaturedAds: [],
+  myBannerAds: []
 };
 
 const userReducer = createSlice({
@@ -46,6 +48,7 @@ const userReducer = createSlice({
     },
     setProductsRecieved: (userReducer, action) => {
       userReducer.loader = false;
+      console.log(action.payload.data.data.length,"action.payload.data");
       const raw = action.payload.data;
       const list = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
       userReducer.products = list.filter((product) => product.approve === "approved");
@@ -91,6 +94,14 @@ const userReducer = createSlice({
         (fav) => fav.id !== action.payload
       );
     },
+    setMyFeaturedAdsRecieved: (userReducer, action) => {
+      userReducer.loader = false;
+      userReducer.myFeaturedAds = action.payload.data;
+    },
+    setMyBannerAdsRecieved: (userReducer, action) => {
+      userReducer.loader = false;
+      userReducer.myBannerAds = action.payload.data;
+    },
   }
 });
 
@@ -113,6 +124,8 @@ const {
   setFeaturedAdsRecieved,
   setLocalitiesRecieved,
   setFavoritesRecieved,
+  setMyFeaturedAdsRecieved,
+  setMyBannerAdsRecieved,
 } = userReducer.actions;
 export const getStatesApi = (url) =>
   apiCallBegan({
@@ -202,4 +215,21 @@ export const getFavoritesApi = (url) =>
     onSuccess: setFavoritesRecieved.type,
     onError: userReducerDataRequestFailed.type,
   });
+export const getMyFeaturedAdsApi = (url) =>
+  apiCallBegan({
+    method: "get",
+    url,
+    onStart: userReducerDataRequested.type,
+    onSuccess: setMyFeaturedAdsRecieved.type,
+    onError: userReducerDataRequestFailed.type,
+  });
+export const getMyBannerAdsApi = (url) =>
+  apiCallBegan({
+    method: "get",
+    url,
+    onStart: userReducerDataRequested.type,
+    onSuccess: setMyBannerAdsRecieved.type,
+    onError: userReducerDataRequestFailed.type,
+  });
+
 export default userReducer.reducer;

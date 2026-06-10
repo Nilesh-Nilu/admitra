@@ -42,7 +42,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
   const { user }: { user: User } = useSelector((state: any) => state.entities.authReducer);
-  console.log(user, "user");
+
   const { states, cities, localities } = useSelector((state: any) => state.entities.userReducer);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);

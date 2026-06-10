@@ -96,7 +96,6 @@ export default function PostScreen() {
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      // Collect both uri and base64 like in loginFields.tsx (but here for multiple images)
       const newImages = result.assets
         .filter(asset => asset.base64 || asset.uri)
         .map(asset => {
@@ -305,7 +304,7 @@ export default function PostScreen() {
       };
       console.log(options, "options");
 
-      RazorpayCheckout.open(options)
+      RazorpayCheckout.open(options as any)
         .then(async (paymentResponse: any) => {
           console.log("Payment successful:", paymentResponse);
           await submitProduct(paymentResponse);
@@ -327,7 +326,6 @@ export default function PostScreen() {
       setIsLoading(false);
     }
   };
-  console.log(plans[2], "plans");
 
   return (
     <ThemedView style={styles.container}>
