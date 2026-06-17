@@ -2,9 +2,9 @@ import ThemeHeader from "@/components/headers/ThemeHeader";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
-import { getBannerAdsUrl } from "@/constants/functions";
+import { addToFavoritesApi, getBannerAdsUrl, removeFromFavoritesApi } from "@/constants/functions";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
-import { getBannersApi } from "@/store/reducers/userReducer";
+import { addFavoriteItem, getBannersApi, removeFavoriteById } from "@/store/reducers/userReducer";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect } from "react";
@@ -27,8 +27,31 @@ const BANNER_WIDTH = SCREEN_WIDTH - SIZES.padding * 2;
 export default function SeeAllBannersScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { banners } = useSelector((state: any) => state.entities.userReducer) || {};
+  const { banners, favorites } = useSelector((state: any) => state.entities.userReducer) || {};
   const safeBanners = Array.isArray(banners) ? banners : [];
+  const safeFavorites = Array.isArray(favorites) ? favorites : [];
+
+  const isFavorited = (item: any) =>
+    safeFavorites.some((fav: any) => fav.product?.id === item.product?.id);
+
+  const handleToggleFavorite = async (e: any, item: any) => {
+    e.stopPropagation();
+    const productId = item.product?.id;
+    if (!productId) return;
+    const favRecord = safeFavorites.find((fav: any) => fav.product?.id === productId);
+    if (favRecord) {
+      dispatch(removeFavoriteById(favRecord.id));
+      try { await removeFromFavoritesApi(favRecord.id); } catch { dispatch(addFavoriteItem(favRecord)); }
+    } else {
+      const tempRecord = { id: `temp_${productId}`, product: item.product };
+      dispatch(addFavoriteItem(tempRecord));
+      try {
+        const res = await addToFavoritesApi(productId);
+        dispatch(removeFavoriteById(`temp_${productId}`));
+        if (res?.data) dispatch(addFavoriteItem(res.data));
+      } catch { dispatch(removeFavoriteById(`temp_${productId}`)); }
+    }
+  };
 
   useEffect(() => {
     dispatch(getBannersApi(getBannerAdsUrl));
@@ -95,11 +118,31 @@ export default function SeeAllBannersScreen() {
         <View style={styles.bannerBadge}>
           <ThemedText style={styles.bannerBadgeText}>Banner</ThemedText>
         </View>
+        <TouchableOpacity
+          style={styles.heartBtn}
+          onPress={(e) => handleToggleFavorite(e, item)}
+          activeOpacity={0.8}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons
+            name={isFavorited(item) ? "heart" : "heart-outline"}
+            size={22}
+            color={isFavorited(item) ? "#E91E63" : "#fff"}
+          />
+        </TouchableOpacity>
       </ImageBackground>
       <View style={styles.bannerDescriptionContainer}>
         <ThemedText style={styles.bannerDescriptionText} numberOfLines={2}>
           {item.product.description}
         </ThemedText>
+        {(item.product?.user?.city?.name || item.product?.user?.state?.name) && (
+          <View style={styles.locationRow}>
+            <Ionicons name="location-outline" size={13} color="#64748B" />
+            <ThemedText style={styles.locationText}>
+              {[item.product?.user?.city?.name, item.product?.user?.state?.name].filter(Boolean).join(", ")}
+            </ThemedText>
+          </View>
+        )}
       </View>
       <View style={styles.bannerActions}>
         <TouchableOpacity
@@ -126,7 +169,7 @@ export default function SeeAllBannersScreen() {
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
-  ), []);
+  ), [safeFavorites]);
 
   return (
     <ThemedView style={[styles.container]}>
@@ -166,9 +209,20 @@ const styles = StyleSheet.create({
   },
   bannerImage: {
     width: "100%",
-    height: 140,
+    height: 180,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
+  },
+  heartBtn: {
+    position: "absolute",
+    bottom: 8,
+    right: 8,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   bannerBadge: {
     position: "absolute",
@@ -194,6 +248,17 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: COLORS.black,
     lineHeight: 20,
+  },
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 6,
+  },
+  locationText: {
+    fontSize: 12,
+    color: "#64748B",
+    fontWeight: "500",
   },
   bannerActions: {
     flexDirection: "row",

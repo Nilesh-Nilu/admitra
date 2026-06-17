@@ -247,7 +247,7 @@ export default function ChatScreen() {
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.chatList}
         />
-      ) : (
+      ) : ( 
         renderEmptyState()
       )}
 

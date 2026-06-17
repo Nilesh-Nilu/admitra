@@ -1,12 +1,13 @@
+import CropModal from "@/components/modals/CropModal";
 import ThemeHeader from "@/components/headers/ThemeHeader";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import AppToast from "@/components/toasts/AppToast";
 import { COLORS } from "@/constants/Colors";
-import { createOrderApi, getApprovedProductsUrl, getChildCategoriesApi, getPlansListUrl, handleVerifyandAddProductApi, RAZORPAY_KEY } from "@/constants/functions";
+import { createOrderApi, getApprovedProductsUrl, getChildCategoriesApi, getPlansListUrl, handleVerifyandAddProductApi, RAZORPAY_KEY, favoritesUrl, getMyBannerAdsUrl, getMyFeaturedAdsUrl, getMyProductsUrl, } from "@/constants/functions";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 import { setClearData } from "@/store/reducers/paymentReducer";
-import { getApprovedProductsApi, getPlansListApi } from "@/store/reducers/userReducer";
+import { getApprovedProductsApi, getPlansListApi, getFavoritesApi, getMyBannerAdsApi, getMyFeaturedAdsApi, getMyProductsApi } from "@/store/reducers/userReducer";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -49,12 +50,12 @@ export default function PostScreen() {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [categorySearchQuery, setCategorySearchQuery] = useState("");
   const [tempSelectedCategory, setTempSelectedCategory] = useState<any>(null);
-
   const [isNegotiable, setIsNegotiable] = useState(false);
   const [condition, setCondition] = useState("New");
   const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
   const [customFields, setCustomFields] = useState<{ name: string; value: string }[]>([{ name: "Warranty", value: "" }]);
   const [videoLink2, setVideoLink2] = useState("");
+  const [cropImage, setCropImage] = useState<{ uri: string; width: number; height: number } | null>(null);
 
   const dispatch = useDispatch();
   // Filter sub-categories based on selected category
@@ -80,6 +81,24 @@ export default function PostScreen() {
       setCategorySearchQuery("");
     }
   };
+  // Clear form fields
+  const clearForm = () => {
+    dispatch(setClearData(null));
+    setImages([]);
+    setTitle("");
+    setDescription("");
+    setPrice("");
+    setSelectedCategory(null);
+    setSelectedSubCategory(null);
+    setSelectedChildCategory(null);
+    setChildCategories([]);
+    setIsNegotiable(false);
+    setCondition("New");
+    setCustomFields([{ name: "", value: "" }]);
+    setVideoLink2("");
+    setWebsiteLink("")
+  };
+
   const pickImage = async () => {
     if (images.length >= 8) {
       Alert.alert("Maximum Images", "You can only upload up to 8 images");
@@ -88,23 +107,14 @@ export default function PostScreen() {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      quality: 0.8,
-      selectionLimit: 8 - images.length,
-      base64: true,
-      allowsEditing: true,
-      aspect: [1, 1],
+      quality: 1,
+      selectionLimit: 1,
+      allowsEditing: false,
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      const newImages = result.assets
-        .filter(asset => asset.base64 || asset.uri)
-        .map(asset => {
-          if (asset.base64) {
-            const mimeType = asset.mimeType || "image/jpeg";
-            return `data:${mimeType};base64,${asset.base64}`;
-          }
-        });
-      setImages([...images, ...newImages]);
+      const asset = result.assets[0];
+      setCropImage({ uri: asset.uri, width: asset.width, height: asset.height });
     }
   };
   useEffect(() => {
@@ -121,6 +131,7 @@ export default function PostScreen() {
       // When this screen is unfocused (navigated away from), clear images
       return () => {
         setImages([]);
+        clearForm()
       };
     }, [])
   );
@@ -138,14 +149,13 @@ export default function PostScreen() {
     }
 
     const result = await ImagePicker.launchCameraAsync({
-      quality: 0.8,
-      base64: true,
-      allowsEditing: true,
-      aspect: [1, 1],
+      quality: 1,
+      allowsEditing: false,
     });
 
     if (!result.canceled) {
-      setImages([...images, `data:${result.assets[0].mimeType};base64,${result.assets[0].base64}`]);
+      const asset = result.assets[0];
+      setCropImage({ uri: asset.uri, width: asset.width, height: asset.height });
     }
   };
 
@@ -209,7 +219,7 @@ export default function PostScreen() {
         banner_image: adType?.id === 3 ? images[0] : null,
         banner_video_url: adType?.id === 3 ? videoLink : null,
         website_link: adType?.id === 3 ? websiteLink : null,
-        video:adType?.id === 3 ? videoLink2 : null,
+        video: adType?.id === 3 ? videoLink2 : null,
       };
       console.log(payload, "payload");
 
@@ -221,13 +231,16 @@ export default function PostScreen() {
         return;
       }
 
+      dispatch(getFavoritesApi(`${favoritesUrl}`));
+      dispatch(getMyFeaturedAdsApi(`${getMyFeaturedAdsUrl}`));
+      dispatch(getMyBannerAdsApi(`${getMyBannerAdsUrl}`));
+      dispatch(getApprovedProductsApi(getApprovedProductsUrl));
+      dispatch(getMyProductsApi(`${getMyProductsUrl}`));
       Alert.alert(
         "Listing Submitted!",
         "Your ad has been submitted for review. It will be live shortly.",
         [{ text: "OK", onPress: () => router.push("/(tabs)") }]
       );
-
-      dispatch(getApprovedProductsApi(getApprovedProductsUrl));
       clearForm();
     } catch (error) {
       console.log(error, "error");
@@ -235,22 +248,6 @@ export default function PostScreen() {
     }
   };
 
-  // Clear form fields
-  const clearForm = () => {
-    dispatch(setClearData(null));
-    setImages([]);
-    setTitle("");
-    setDescription("");
-    setPrice("");
-    setSelectedCategory(null);
-    setSelectedSubCategory(null);
-    setSelectedChildCategory(null);
-    setChildCategories([]);
-    setIsNegotiable(false);
-    setCondition("New");
-    setCustomFields([{ name: "", value: "" }]);
-    setVideoLink2("");
-  };
 
   // Handle submit with payment
   const handleSubmit = async () => {
@@ -353,12 +350,14 @@ export default function PostScreen() {
                 let badgeBg = "#E3F2FD";
                 let badgeColor = "#1976D2";
 
-                if (plan.id === 2 || plan.type === "featured") {
+                if (plan.id === 1 || plan.type === "basic" || plan.type === "free") {
+                  features = ["Chat with buyers", "Standard listing visibility", "28-day active period"];
+                } else if (plan.id === 2 || plan.type === "featured") {
                   iconName = "star";
                   iconColor = "#FBC02D";
                   iconBg = "#FFF9C4";
                   subtitle = "Top Placement";
-                  features = ["Top placement in category", "More visibility, more buyers"];
+                  features = ["Chat & call with buyers", "Top placement in category", "More visibility, more buyers"];
                   badgeText = "Recommended";
                   badgeBg = "#FBC02D";
                   badgeColor = "#000";
@@ -367,7 +366,7 @@ export default function PostScreen() {
                   iconColor = "#D32F2F";
                   iconBg = "#FFEBEE";
                   subtitle = "Homepage Banner";
-                  features = ["Homepage banner placement", "Maximum reach & visibility"];
+                  features = ["Chat & call with buyers", "Homepage banner placement", "Maximum reach & visibility"];
                   badgeText = "";
                 }
 
@@ -403,7 +402,7 @@ export default function PostScreen() {
                       </View>
 
                       <View style={styles.adTypeRightCol}>
-                        <ThemedText style={styles.durationText}>{plan.duration_days} days</ThemedText>
+                        <ThemedText style={styles.durationText}>/ {plan.duration_days} days</ThemedText>
                         {!!badgeText && (
                           <View style={[styles.planBadge, { backgroundColor: badgeBg }]}>
                             <ThemedText style={[styles.planBadgeText, { color: badgeColor }]}>
@@ -413,12 +412,42 @@ export default function PostScreen() {
                         )}
                       </View>
                     </View>
+
+                    {features.length > 0 && (
+                      <View style={styles.featureList}>
+                        {features.map((f, fi) => (
+                          <View key={fi} style={styles.featureRow}>
+                            <Ionicons name="checkmark-circle" size={15} color="#2E7D32" />
+                            <ThemedText style={styles.featureText}>{f}</ThemedText>
+                          </View>
+                        ))}
+                      </View>
+                    )}
                   </TouchableOpacity>
                 );
               })}
             </View>
           </View>
 
+
+          {/* Warning Notice */}
+          <View style={styles.warningBox}>
+            <Ionicons name="warning" size={32} color="#D32F2F" style={{ marginTop: 2 }} />
+            <View style={styles.warningContent}>
+              <ThemedText style={styles.warningTitle}>Important Notice</ThemedText>
+              <ThemedText style={styles.warningText}>
+                {'Illegal link या illegal video post करने पर users आपको report कर सकते हैं।\nअगर multiple reports मिलते हैं तो:'}
+              </ThemedText>
+              <View style={styles.warningBullet}>
+                <ThemedText style={styles.warningDot}>•</ThemedText>
+                <ThemedText style={styles.warningBulletText}>आपका ad remove हो सकता है।</ThemedText>
+              </View>
+              <View style={styles.warningBullet}>
+                <ThemedText style={styles.warningDot}>•</ThemedText>
+                <ThemedText style={styles.warningBulletText}>आपका account temporary या permanent ban/block हो सकता है।</ThemedText>
+              </View>
+            </View>
+          </View>
 
           {/* Image Upload Section */}
           <View style={styles.section}>
@@ -466,6 +495,28 @@ export default function PostScreen() {
                 </ScrollView>
               )}
             </View>
+          </View>
+
+          {/* Category */}
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Category & Sub Category *</ThemedText>
+            <TouchableOpacity
+              style={styles.categorySelectorBtn}
+              onPress={() => setShowCategoryModal(true)}
+              activeOpacity={0.8}
+            >
+              <ThemedText style={selectedCategory ? styles.categorySelectedText : styles.categoryPlaceholderText}>
+                {selectedCategory
+                  ? (() => {
+                    const catName = categories.find((c: any) => c.id === selectedCategory)?.name || "";
+                    const subCatName = subCategories.find((sc: any) => sc.id === selectedSubCategory)?.name || "";
+                    const childName = childCategories.find((cc: any) => cc.id === selectedChildCategory)?.name || "";
+                    return [catName, subCatName, childName].filter(Boolean).join(" > ");
+                  })()
+                  : "Select Category"}
+              </ThemedText>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
+            </TouchableOpacity>
           </View>
 
           {/* Product Price */}
@@ -643,28 +694,6 @@ export default function PostScreen() {
             )}
           </View>
 
-          {/* Category */}
-          <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Category & Sub Category *</ThemedText>
-            <TouchableOpacity
-              style={styles.categorySelectorBtn}
-              onPress={() => setShowCategoryModal(true)}
-              activeOpacity={0.8}
-            >
-              <ThemedText style={selectedCategory ? styles.categorySelectedText : styles.categoryPlaceholderText}>
-                {selectedCategory
-                  ? (() => {
-                    const catName = categories.find((c: any) => c.id === selectedCategory)?.name || "";
-                    const subCatName = subCategories.find((sc: any) => sc.id === selectedSubCategory)?.name || "";
-                    const childName = childCategories.find((cc: any) => cc.id === selectedChildCategory)?.name || "";
-                    return [catName, subCatName, childName].filter(Boolean).join(" > ");
-                  })()
-                  : "Select Category"}
-              </ThemedText>
-              <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
-            </TouchableOpacity>
-          </View>
-
           {/* Website Link - Required for Banner */}
           {adType?.id === 3 && (
             <View style={styles.section}>
@@ -725,6 +754,9 @@ export default function PostScreen() {
                 </>
               ) : (
                 <>
+                  {adType && parseFloat(adType.price) > 0 && (
+                    <ThemedText style={styles.submitBtnPrice}>₹{adType.price}</ThemedText>
+                  )}
                   <ThemedText style={styles.submitBtnText}>Pay & Post Ad</ThemedText>
                   <Ionicons name="arrow-forward" size={20} color={COLORS.white} />
                 </>
@@ -736,6 +768,21 @@ export default function PostScreen() {
         {/* Submit Button */}
         <View style={{ height: 100 }} />
       </KeyboardAvoidingView>
+
+      {/* Crop Modal */}
+      {cropImage && (
+        <CropModal
+          visible={!!cropImage}
+          imageUri={cropImage.uri}
+          imageWidth={cropImage.width}
+          imageHeight={cropImage.height}
+          onClose={() => setCropImage(null)}
+          onCrop={(croppedUri) => {
+            setImages(prev => [...prev, croppedUri]);
+            setCropImage(null);
+          }}
+        />
+      )}
 
       {/* Category Modal */}
       <Modal
@@ -1372,15 +1419,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.gray,
   },
-  featureRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 4,
-  },
-  featureText: {
-    fontSize: 11,
-    color: COLORS.gray,
-  },
+
   adTypeRightCol: {
     alignItems: "flex-end",
     justifyContent: "center",
@@ -1401,6 +1440,21 @@ const styles = StyleSheet.create({
   planBadgeText: {
     fontSize: 10,
     fontWeight: "700",
+  },
+  featureList: {
+    marginTop: 10,
+    marginLeft: 30,
+    gap: 5,
+  },
+  featureRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  featureText: {
+    fontSize: 12,
+    color: "#2E7D32",
+    fontWeight: "500",
   },
 
   /* Link Inputs */
@@ -1565,6 +1619,54 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: COLORS.white,
+  },
+  warningBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#FFEBEE",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#FFCDD2",
+    padding: 12,
+    marginBottom: 12,
+    gap: 10,
+  },
+  warningContent: { flex: 1 },
+  warningTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#D32F2F",
+    // marginBottom: 4,
+  },
+  warningText: {
+    fontSize: 10,
+    color: "#424242",
+    // lineHeight: 18,
+    // marginBottom: 6,
+  },
+  warningBullet: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    // marginBottom: 2,
+    gap: 6,
+  },
+  warningDot: {
+    fontSize: 14,
+    color: "#D32F2F",
+    // lineHeight: 18,
+  },
+  warningBulletText: {
+    flex: 1,
+    fontSize: 10,
+    color: "#424242",
+    // lineHeight: 18,
+  },
+  submitBtnPrice: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: COLORS.white,
+    marginRight: 4,
+    opacity: 0.9,
   },
 });
 

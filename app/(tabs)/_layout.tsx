@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Animated, Image, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import ImageViewer from 'react-native-image-zoom-viewer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
@@ -15,6 +16,7 @@ export default function TabLayout() {
   const router = useRouter();
   const [showWarning, setShowWarning] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const [showImageZoom, setShowImageZoom] = useState(false);
 
   const animateIcon = () => {
     Animated.sequence([
@@ -147,11 +149,36 @@ export default function TabLayout() {
               showsVerticalScrollIndicator={false}
               bounces={false}
             >
-              <Image
-                source={require('@/assets/images/warning.png')}
-                style={styles.warningImage}
-              />
+              <TouchableOpacity activeOpacity={0.9} onPress={() => setShowImageZoom(true)}>
+                <Image
+                  source={require('@/assets/images/warning.png')}
+                  style={styles.warningImage}
+                />
+                <View style={styles.zoomHint}>
+                  <Ionicons name="search" size={14} color="#fff" />
+                  <ThemedText style={styles.zoomHintText}>Tap to zoom</ThemedText>
+                </View>
+              </TouchableOpacity>
             </ScrollView>
+
+            {/* Full-screen zoom viewer */}
+            <Modal visible={showImageZoom} transparent animationType="fade">
+              <ImageViewer
+                imageUrls={[{ url: '', props: { source: require('@/assets/images/warning.png') } }]}
+                enableSwipeDown
+                onSwipeDown={() => setShowImageZoom(false)}
+                renderHeader={() => (
+                  <TouchableOpacity
+                    style={styles.zoomCloseBtn}
+                    onPress={() => setShowImageZoom(false)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons name="close" size={24} color="#fff" />
+                  </TouchableOpacity>
+                )}
+                backgroundColor="rgba(0,0,0,0.95)"
+              />
+            </Modal>
 
             {/* Agreement checkbox */}
             <TouchableOpacity
@@ -289,6 +316,35 @@ const styles = StyleSheet.create({
     width: SIZES_WITH_ALIASES.width * 0.9,
     alignSelf: 'center',
     resizeMode: 'contain',
+  },
+  zoomHint: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  zoomHintText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  zoomCloseBtn: {
+    position: 'absolute',
+    top: 48,
+    right: 16,
+    zIndex: 100,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   warningText: {
     fontSize: 13,

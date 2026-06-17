@@ -16,7 +16,8 @@ const initialState = {
   localities: [],
   favorites: [],
   myFeaturedAds: [],
-  myBannerAds: []
+  myBannerAds: [],
+  myProducts: []
 };
 
 const userReducer = createSlice({
@@ -48,10 +49,16 @@ const userReducer = createSlice({
     },
     setProductsRecieved: (userReducer, action) => {
       userReducer.loader = false;
-      console.log(action.payload.data.data.length,"action.payload.data");
       const raw = action.payload.data;
       const list = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
       userReducer.products = list.filter((product) => product.approve === "approved");
+    },
+    appendProductsRecieved: (userReducer, action) => {
+      userReducer.loader = false;
+      const raw = action.payload.data;
+      const list = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
+      const newItems = list.filter((product) => product.approve === "approved");
+      userReducer.products = [...userReducer.products, ...newItems];
     },
     setSubCategoriesClear: (userReducer, action) => {
       userReducer.loader = false;
@@ -94,6 +101,9 @@ const userReducer = createSlice({
         (fav) => fav.id !== action.payload
       );
     },
+    addFavoriteItem: (userReducer, action) => {
+      userReducer.favorites = [...userReducer.favorites, action.payload];
+    },
     setMyFeaturedAdsRecieved: (userReducer, action) => {
       userReducer.loader = false;
       userReducer.myFeaturedAds = action.payload.data;
@@ -102,12 +112,17 @@ const userReducer = createSlice({
       userReducer.loader = false;
       userReducer.myBannerAds = action.payload.data;
     },
+    setMyProductsRecieved: (userReducer, action) => {
+      userReducer.loader = false;
+      userReducer.myProducts = action.payload.data;
+    },
   }
 });
 
 export const {
   setSubCategoriesClear,
   removeFavoriteById,
+  addFavoriteItem,
 } = userReducer.actions;
 
 const {
@@ -118,6 +133,7 @@ const {
   setCategoriesRecieved,
   setSubCategoriesRecieved,
   setProductsRecieved,
+  appendProductsRecieved,
   setApprovedProductsRecieved,
   setPlansRecieved,
   setBannersRecieved,
@@ -126,6 +142,7 @@ const {
   setFavoritesRecieved,
   setMyFeaturedAdsRecieved,
   setMyBannerAdsRecieved,
+  setMyProductsRecieved,
 } = userReducer.actions;
 export const getStatesApi = (url) =>
   apiCallBegan({
@@ -165,6 +182,15 @@ export const getProductsApiwithcityId = (url) =>
     url,
     onStart: userReducerDataRequested.type,
     onSuccess: setProductsRecieved.type,
+    onError: userReducerDataRequestFailed.type,
+  });
+
+export const appendProductsApi = (url) =>
+  apiCallBegan({
+    method: "get",
+    url,
+    onStart: userReducerDataRequested.type,
+    onSuccess: appendProductsRecieved.type,
     onError: userReducerDataRequestFailed.type,
   });
 export const getLocalitiesApi = (url) =>
@@ -229,6 +255,15 @@ export const getMyBannerAdsApi = (url) =>
     url,
     onStart: userReducerDataRequested.type,
     onSuccess: setMyBannerAdsRecieved.type,
+    onError: userReducerDataRequestFailed.type,
+  });
+
+export const getMyProductsApi = (url) =>
+  apiCallBegan({
+    method: "get",
+    url,
+    onStart: userReducerDataRequested.type,
+    onSuccess: setMyProductsRecieved.type,
     onError: userReducerDataRequestFailed.type,
   });
 

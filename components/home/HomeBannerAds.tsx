@@ -100,7 +100,7 @@ export const HomeBannerAds = ({ promotionBanners, banners, onPressSeeAll }: Home
             </View>
 
             <View style={styles.topTextBannerRight}>
-              {banner.features?.map((feature: any, index: number) => (
+              {banner.features?.slice(0, 3).map((feature: any, index: number) => (
                 <View key={index} style={styles.topTextBannerRightItem}>
                   <Ionicons name="checkmark-circle" size={13} color="#1565C0" />
                   <ThemedText style={styles.topTextBannerRightText}>{feature}</ThemedText>
@@ -272,6 +272,8 @@ const styles = StyleSheet.create({
   topTextBannerRightItem: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    textAlign: "center",
     gap: 4,
   },
   topTextBannerRightText: {

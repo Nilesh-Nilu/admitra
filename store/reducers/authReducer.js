@@ -37,7 +37,6 @@ const authReducer = createSlice({
     },
     updateProfileSuccess: (authReducer, action) => {
       authReducer.loader = false;
-      console.log(action.payload.data, "action.payload.data");
       authReducer.user = action.payload.data;
     },
     setLoadingfalse: (authReducer) => {

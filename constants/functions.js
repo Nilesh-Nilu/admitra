@@ -41,7 +41,7 @@ export const getCitiesUrl = "cities";
 export const getLocalitiesUrl = "localities";
 
 //products
-export const getProductsUrl = "products/all"
+export const getProductsUrl = "products?"
 export const getApprovedProductsUrl = "vendor/products"
 export const getFeaturedAdsUrl = "ads/featured"
 export const getBannerAdsUrl = "ads/banner"
@@ -51,6 +51,7 @@ export const getPlansListUrl = "admin/plans"
 export const favoritesUrl = "favorites"
 export const getMyFeaturedAdsUrl = "ads/my-featured"
 export const getMyBannerAdsUrl = "ads/my-banners"
+export const getMyProductsUrl = "products/my-products"
 //payment
 export const createOrderUrl = "payment/create-order";
 export const verifyAndStorePaymentUrl = "payment/verify-and-store";
@@ -109,7 +110,6 @@ export const getAuthManagementListApi = async () => {
 
 // ── Send OTP ──────────────────────────────────────────────────────────────
 export const handleSendmailOtp = async (email, setLoading, setStep) => {
-  console.log(email, "email");
   setLoading(true);
   try {
     const response = await axios.post(
@@ -127,7 +127,7 @@ export const handleSendmailOtp = async (email, setLoading, setStep) => {
       return;
     }
 
-    AppToast(`OTP sent to your Gmail! ${response.data.otp}`);
+    // AppToast(`OTP sent to your Gmail! ${response.data.otp}`);
     setStep("otp");
   } catch (error) {
     console.log(error)

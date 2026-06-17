@@ -3,8 +3,8 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
-import { favoritesUrl, getMyBannerAdsUrl, getMyFeaturedAdsUrl, ImageUrl } from "@/constants/functions";
-import { getFavoritesApi, getMyBannerAdsApi, getMyFeaturedAdsApi } from "@/store/reducers/userReducer";
+import { favoritesUrl, getMyBannerAdsUrl, getMyFeaturedAdsUrl, getMyProductsUrl, ImageUrl } from "@/constants/functions";
+import { getFavoritesApi, getMyBannerAdsApi, getMyFeaturedAdsApi, getMyProductsApi } from "@/store/reducers/userReducer";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -25,7 +25,6 @@ import { useDispatch, useSelector } from "react-redux";
 const { width } = Dimensions.get("window");
 
 const filterOptions = [
-  { id: 'all', label: 'All Ads', icon: 'reader-outline', color: '#1565C0', bgColor: '#E8F0FE', borderColor: '#BBDEFB' },
   { id: 'normal', label: 'Normal Ads', icon: 'card-outline', color: '#2E7D32', bgColor: '#E8F5E9', borderColor: '#C8E6C9' },
   { id: 'featured', label: 'Features Ads', icon: 'star-outline', color: '#E65100', bgColor: '#FFF3E0', borderColor: '#FFE0B2' },
   { id: 'banner', label: 'Baner Ads', icon: 'images-outline', color: '#7B1FA2', bgColor: '#F3E5F5', borderColor: '#E1BEE7' },
@@ -69,14 +68,13 @@ const getStatusConfig = (status: string) => {
 export default function MyListingsScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { approvedProducts, favorites ,myFeaturedAds,myBannerAds} = useSelector((state: any) => state.entities.userReducer) || {};
-  const safeProducts = approvedProducts || [];
+  const { favorites, myFeaturedAds, myBannerAds, myProducts } = useSelector((state: any) => state.entities.userReducer) || {};
+  const safeProducts = Array.isArray(myProducts) ? myProducts : (myProducts?.data || []);
   const safeFavorites = Array.isArray(favorites) ? favorites : [];
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState('all');
-  const [showFilters, setShowFilters] = useState(true);
-  const isFavoritesTab = selectedFilter === 'favorites';
+  const [selectedFilter, setSelectedFilter] = useState('normal');
+  const isFavoritesTab = selectedFilter === 'favorites'; 
 
   const filteredProducts = isFavoritesTab
     ? safeFavorites
@@ -90,7 +88,6 @@ export default function MyListingsScreen() {
       if (selectedFilter === 'banner') return p.is_banner || p.banner;
       return true;
     });
-
   const openDetailModal = (item: any) => {
     setSelectedItem(item);
     setModalVisible(true);
@@ -121,6 +118,7 @@ export default function MyListingsScreen() {
     dispatch(getFavoritesApi(`${favoritesUrl}`));
     dispatch(getMyFeaturedAdsApi(`${getMyFeaturedAdsUrl}`));
     dispatch(getMyBannerAdsApi(`${getMyBannerAdsUrl}`));
+    dispatch(getMyProductsApi(`${getMyProductsUrl}`));
   }, []);
 
   const renderStats = () => {
@@ -519,14 +517,10 @@ export default function MyListingsScreen() {
   };
 
   const renderFilters = () => {
-    if (!showFilters) return null;
     return (
       <View style={styles.filterSection}>
         <View style={styles.filterHeader}>
           <ThemedText style={styles.filterTitle}>My Ads</ThemedText>
-          <TouchableOpacity onPress={() => setShowFilters(false)}>
-            <Ionicons name="close" size={20} color={COLORS.text} />
-          </TouchableOpacity>
         </View>
         <FlatList
           data={filterOptions}
@@ -576,7 +570,6 @@ export default function MyListingsScreen() {
       </View>
     );
   };
-
   return (
     <ThemedView style={styles.container}>
       <ThemeHeader onBackPress={() => router.back()} title="My Listings" />

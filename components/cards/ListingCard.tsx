@@ -2,9 +2,12 @@ import React from "react";
 import { Dimensions, Image, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { useDispatch, useSelector } from "react-redux";
 import { ThemedText } from "@/components/ThemedText";
 import { COLORS } from "@/constants/Colors";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
+import { addToFavoritesApi, removeFromFavoritesApi } from "@/constants/functions";
+import { addFavoriteItem, removeFavoriteById } from "@/store/reducers/userReducer";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 export const CARD_WIDTH = (SCREEN_WIDTH - SIZES.padding * 2 - 12) / 2;
@@ -19,6 +22,27 @@ export const formatPrice = (price: number) => {
 };
 
 export const ListingCard = ({ item }: ListingCardProps) => {
+  const dispatch = useDispatch();
+  const favorites = useSelector((state: any) => state.entities.userReducer.favorites) || [];
+  const favRecord = favorites.find((fav: any) => fav.product?.id === item.id);
+  const isFavorited = !!favRecord;
+
+  const handleToggleFavorite = async (e: any) => {
+    e.stopPropagation();
+    if (isFavorited) {
+      dispatch(removeFavoriteById(favRecord.id));
+      try { await removeFromFavoritesApi(favRecord.id); } catch { dispatch(addFavoriteItem(favRecord)); }
+    } else {
+      const tempRecord = { id: `temp_${item.id}`, product: item };
+      dispatch(addFavoriteItem(tempRecord));
+      try {
+        const res = await addToFavoritesApi(item.id);
+        dispatch(removeFavoriteById(`temp_${item.id}`));
+        if (res?.data) dispatch(addFavoriteItem(res.data));
+      } catch { dispatch(removeFavoriteById(`temp_${item.id}`)); }
+    }
+  };
+
   return (
     <TouchableOpacity
       style={styles.listingCard}
@@ -35,12 +59,18 @@ export const ListingCard = ({ item }: ListingCardProps) => {
           source={{ uri: item.images?.[0]?.image_path || item.images?.[0]?.image }}
           style={styles.listingImg}
         />
+        <View style={styles.typeBadge}>
+          <ThemedText style={styles.typeBadgeText}>Normal</ThemedText>
+        </View>
         {item.approve === "approved" && (
           <View style={styles.verifiedBadge}>
             <Ionicons name="checkmark-circle" size={12} color={COLORS.white} />
             <ThemedText style={styles.verifiedText}>Verified</ThemedText>
           </View>
         )}
+        <TouchableOpacity style={styles.heartBtn} onPress={handleToggleFavorite} activeOpacity={0.8}>
+          <Ionicons name={isFavorited ? "heart" : "heart-outline"} size={18} color={isFavorited ? "#E91E63" : COLORS.white} />
+        </TouchableOpacity>
       </View>
       <View style={styles.listingInfo}>
         <ThemedText style={styles.listingPrice}>
@@ -73,14 +103,37 @@ const styles = StyleSheet.create({
     height: CARD_WIDTH * 0.85,
     position: "relative",
   },
+  heartBtn: {
+    position: "absolute",
+    bottom: SIZES.padding6,
+    right: SIZES.padding6,
+    backgroundColor: "rgba(0,0,0,0.25)",
+    borderRadius: 20,
+    padding: SIZES.padding4,
+  },
   listingImg: {
     width: "100%",
     height: "100%",
     resizeMode: "cover",
   },
-  verifiedBadge: {
+  typeBadge: {
     position: "absolute",
     top: SIZES.padding8,
+    left: SIZES.padding8,
+    zIndex: 2,
+    backgroundColor: "#43A047",
+    paddingHorizontal: SIZES.padding6,
+    paddingVertical: SIZES.padding2,
+    borderRadius: SIZES.radius2,
+  },
+  typeBadgeText: {
+    fontSize: SIZES.fontSize10 - 1,
+    fontWeight: "700",
+    color: COLORS.white,
+  },
+  verifiedBadge: {
+    position: "absolute",
+    top: SIZES.padding8 + 22,
     left: SIZES.padding8,
     flexDirection: "row",
     alignItems: "center",

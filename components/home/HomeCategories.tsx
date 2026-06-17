@@ -22,6 +22,8 @@ export const HomeCategories = ({
 }: HomeCategoriesProps) => {
   return (
     <View style={styles.categoriesSection}>
+       <ThemedText style={styles.sectionTitle}>Product Category</ThemedText>
+       
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -102,6 +104,12 @@ export const HomeCategories = ({
 };
 
 const styles = StyleSheet.create({
+  sectionTitle: {
+    fontSize: SIZES.fontSize14,
+    fontWeight: "700",
+    color: COLORS.text,
+    marginBottom: SIZES.padding12,
+  },
   categoriesSection: { marginBottom: SIZES.padding16 },
   categoriesScroll: { gap: SIZES.padding14, paddingRight: SIZES.padding8 },
   categoryItem: { alignItems: "center", width: ICON_SIZE_LARGE + 28 },

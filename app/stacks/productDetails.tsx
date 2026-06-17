@@ -167,7 +167,7 @@ export default function ProductDetailsScreen() {
       {/* Header */}
       <ThemeHeader onBackPress={() => router.push("/(tabs)")} title="Ad Details" />
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]}
         nestedScrollEnabled={true}
         keyboardShouldPersistTaps="handled"
       >
@@ -241,21 +241,47 @@ export default function ProductDetailsScreen() {
           </View>
         )}
           {/* Seller Row */}
-          <View style={styles.sellerRow}>
+          <TouchableOpacity
+            style={styles.sellerRow}
+            activeOpacity={0.8}
+            onPress={() =>
+              router.push({
+                pathname: "/stacks/userProfile",
+                params: { userData: JSON.stringify(product?.user) },
+              })
+            }
+          >
             <View style={styles.sellerAvatar}>
-              <Ionicons name="person-outline" size={24} color={COLORS.text} />
+              {product?.user?.profile_image ? (
+                <Image source={{ uri: product.user.profile_image }} style={{ width: 44, height: 44, borderRadius: 22 }} />
+              ) : (
+                <Ionicons name="person-outline" size={24} color={COLORS.text} />
+              )}
             </View>
-            <View>
+            <View style={{ flex: 1 }}>
               <ThemedText style={styles.sellerName}>{product?.user?.name}</ThemedText>
               <ThemedText style={styles.sellerLocation}>
-                {product?.user?.city?.name || product?.city}
+                {[product?.user?.city?.name, product?.user?.state?.name].filter(Boolean).join(", ") || product?.city}
               </ThemedText>
             </View>
-          </View>
+            <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
+          </TouchableOpacity>
         </View>
 
         {/* Product Details */}
         <View style={styles.cardSection}>
+          {product?.user?.city?.name && (
+            <View style={styles.detailRow}>
+              <ThemedText style={styles.detailLabel}>City:</ThemedText>
+              <ThemedText style={styles.detailValue}>{product.user.city.name}</ThemedText>
+            </View>
+          )}
+          {product?.user?.state?.name && (
+            <View style={styles.detailRow}>
+              <ThemedText style={styles.detailLabel}>State:</ThemedText>
+              <ThemedText style={styles.detailValue}>{product.user.state.name}</ThemedText>
+            </View>
+          )}
           {product?.condition && (
             <View style={styles.detailRow}>
               <ThemedText style={styles.detailLabel}>Condition:</ThemedText>
@@ -379,7 +405,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: SIZES.padding,
     paddingTop: SIZES.padding16,
-    paddingBottom: SIZES.padding20 * 6,
   },
 
   /* Image Card */

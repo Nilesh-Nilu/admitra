@@ -2,9 +2,9 @@ import ThemeHeader from "@/components/headers/ThemeHeader";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
-import { getApprovedProductsUrl } from "@/constants/functions";
+import { addToFavoritesApi, getApprovedProductsUrl, removeFromFavoritesApi } from "@/constants/functions";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
-import { getApprovedProductsApi } from "@/store/reducers/userReducer";
+import { addFavoriteItem, getApprovedProductsApi, removeFavoriteById } from "@/store/reducers/userReducer";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect } from "react";
@@ -25,8 +25,10 @@ const CARD_WIDTH = (SCREEN_WIDTH - SIZES.padding * 2 - 12) / 2;
 export default function SeeAllFreshScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { products } = useSelector((state: any) => state.entities.userReducer) || {};
+  const { products, favorites } = useSelector((state: any) => state.entities.userReducer) || {};
   const safeProducts = Array.isArray(products) ? products : [];
+  const safeFavorites = Array.isArray(favorites) ? favorites : [];
+
   useEffect(() => {
     dispatch(getApprovedProductsApi(getApprovedProductsUrl));
   }, []);
@@ -40,12 +42,29 @@ export default function SeeAllFreshScreen() {
     return () => backHandler.remove();
   }, [router]);
 
-  const formatPrice = (price: number) => {
-    if (price >= 100000) {
-      return "₹" + (price / 100000).toFixed(1) + "L";
-    } else if (price >= 1000) {
-      return "₹" + (price / 1000).toFixed(1) + "K";
+  const isFavorited = (item: any) =>
+    safeFavorites.some((fav: any) => fav.product?.id === item.id);
+
+  const handleToggleFavorite = async (e: any, item: any) => {
+    e.stopPropagation();
+    const favRecord = safeFavorites.find((fav: any) => fav.product?.id === item.id);
+    if (favRecord) {
+      dispatch(removeFavoriteById(favRecord.id));
+      try { await removeFromFavoritesApi(favRecord.id); } catch { dispatch(addFavoriteItem(favRecord)); }
+    } else {
+      const tempRecord = { id: `temp_${item.id}`, product: item };
+      dispatch(addFavoriteItem(tempRecord));
+      try {
+        const res = await addToFavoritesApi(item.id);
+        dispatch(removeFavoriteById(`temp_${item.id}`));
+        if (res?.data) dispatch(addFavoriteItem(res.data));
+      } catch { dispatch(removeFavoriteById(`temp_${item.id}`)); }
     }
+  };
+
+  const formatPrice = (price: number) => {
+    if (price >= 100000) return "₹" + (price / 100000).toFixed(1) + "L";
+    if (price >= 1000) return "₹" + (price / 1000).toFixed(1) + "K";
     return "₹" + price;
   };
 
@@ -74,6 +93,18 @@ export default function SeeAllFreshScreen() {
             <ThemedText style={styles.verifiedText}>Verified</ThemedText>
           </View>
         )}
+        <TouchableOpacity
+          style={styles.heartBtn}
+          onPress={(e) => handleToggleFavorite(e, item)}
+          activeOpacity={0.8}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons
+            name={isFavorited(item) ? "heart" : "heart-outline"}
+            size={18}
+            color={isFavorited(item) ? "#E91E63" : "#fff"}
+          />
+        </TouchableOpacity>
       </View>
       <View style={styles.productInfo}>
         <ThemedText style={styles.productPrice}>
@@ -84,12 +115,11 @@ export default function SeeAllFreshScreen() {
         </ThemedText>
       </View>
     </TouchableOpacity>
-  ), []);
+  ), [safeFavorites]);
 
   return (
     <ThemedView style={[styles.container]}>
       <ThemeHeader onBackPress={() => router.back()} title="Fresh Recommendations" />
-      
       {safeProducts.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="cube-outline" size={64} color={COLORS.gray} />
@@ -158,6 +188,17 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: COLORS.white,
     fontWeight: "600",
+  },
+  heartBtn: {
+    position: "absolute",
+    bottom: 8,
+    right: 8,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   productInfo: {
     padding: 10,

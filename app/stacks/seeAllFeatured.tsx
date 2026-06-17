@@ -2,12 +2,11 @@ import ThemeHeader from "@/components/headers/ThemeHeader";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
-import { getFeaturedAdsUrl } from "@/constants/functions";
+import { addToFavoritesApi, getFeaturedAdsUrl, removeFromFavoritesApi } from "@/constants/functions";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
-import { getFeaturedAdsApi } from "@/store/reducers/userReducer";
+import { addFavoriteItem, getFeaturedAdsApi, removeFavoriteById } from "@/store/reducers/userReducer";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { router } from "expo-router";
 import { useCallback, useEffect } from "react";
 import {
   BackHandler,
@@ -18,7 +17,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -27,8 +25,9 @@ const CARD_WIDTH = (SCREEN_WIDTH - SIZES.padding * 2 - 12) / 2;
 export default function SeeAllFeaturedScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { featuredAds } = useSelector((state: any) => state.entities.userReducer) || {};
+  const { featuredAds, favorites } = useSelector((state: any) => state.entities.userReducer) || {};
   const safeFeatured = Array.isArray(featuredAds) ? featuredAds : [];
+  const safeFavorites = Array.isArray(favorites) ? favorites : [];
 
   useEffect(() => {
     dispatch(getFeaturedAdsApi(getFeaturedAdsUrl));
@@ -43,12 +42,29 @@ export default function SeeAllFeaturedScreen() {
     return () => backHandler.remove();
   }, [router]);
 
-  const formatPrice = (price: number) => {
-    if (price >= 100000) {
-      return "₹" + (price / 100000).toFixed(1) + "L";
-    } else if (price >= 1000) {
-      return "₹" + (price / 1000).toFixed(1) + "K";
+  const isFavorited = (item: any) =>
+    safeFavorites.some((fav: any) => fav.product?.id === item.id);
+
+  const handleToggleFavorite = async (e: any, item: any) => {
+    e.stopPropagation();
+    const favRecord = safeFavorites.find((fav: any) => fav.product?.id === item.id);
+    if (favRecord) {
+      dispatch(removeFavoriteById(favRecord.id));
+      try { await removeFromFavoritesApi(favRecord.id); } catch { dispatch(addFavoriteItem(favRecord)); }
+    } else {
+      const tempRecord = { id: `temp_${item.id}`, product: item };
+      dispatch(addFavoriteItem(tempRecord));
+      try {
+        const res = await addToFavoritesApi(item.id);
+        dispatch(removeFavoriteById(`temp_${item.id}`));
+        if (res?.data) dispatch(addFavoriteItem(res.data));
+      } catch { dispatch(removeFavoriteById(`temp_${item.id}`)); }
     }
+  };
+
+  const formatPrice = (price: number) => {
+    if (price >= 100000) return "₹" + (price / 100000).toFixed(1) + "L";
+    if (price >= 1000) return "₹" + (price / 1000).toFixed(1) + "K";
     return "₹" + price;
   };
 
@@ -74,6 +90,18 @@ export default function SeeAllFeaturedScreen() {
         <View style={styles.featuredBadge}>
           <ThemedText style={styles.featuredBadgeText}>⭐</ThemedText>
         </View>
+        <TouchableOpacity
+          style={styles.heartBtn}
+          onPress={(e) => handleToggleFavorite(e, item)}
+          activeOpacity={0.8}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons
+            name={isFavorited(item) ? "heart" : "heart-outline"}
+            size={18}
+            color={isFavorited(item) ? "#E91E63" : "#fff"}
+          />
+        </TouchableOpacity>
       </View>
       <View style={styles.featuredInfo}>
         <ThemedText style={styles.featuredTitle} numberOfLines={1}>
@@ -84,12 +112,12 @@ export default function SeeAllFeaturedScreen() {
         </ThemedText>
       </View>
     </TouchableOpacity>
-  ), []);
+  ), [safeFavorites]);
 
   return (
     <ThemedView style={[styles.container]}>
       <ThemeHeader onBackPress={() => router.back()} title="All Featured Ads" />
-        {safeFeatured.length === 0 ? (
+      {safeFeatured.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="star-outline" size={64} color={COLORS.gray} />
           <ThemedText style={styles.emptyText}>No featured ads available</ThemedText>
@@ -152,6 +180,17 @@ const styles = StyleSheet.create({
   },
   featuredBadgeText: {
     fontSize: 12,
+  },
+  heartBtn: {
+    position: "absolute",
+    bottom: 8,
+    right: 8,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   featuredInfo: {
     padding: 10,

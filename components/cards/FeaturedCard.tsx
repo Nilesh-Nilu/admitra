@@ -1,9 +1,13 @@
 import React from "react";
 import { Dimensions, Image, StyleSheet, TouchableOpacity, View } from "react-native";
 import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { useDispatch, useSelector } from "react-redux";
 import { ThemedText } from "@/components/ThemedText";
 import { COLORS } from "@/constants/Colors";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
+import { addToFavoritesApi, removeFromFavoritesApi } from "@/constants/functions";
+import { addFavoriteItem, removeFavoriteById } from "@/store/reducers/userReducer";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const FEATURED_CARD_WIDTH = SCREEN_WIDTH * 0.38;
@@ -29,6 +33,27 @@ const timeAgo = (dateStr: string) => {
 };
 
 export const FeaturedCard = ({ item, isInline = false }: FeaturedCardProps) => {
+  const dispatch = useDispatch();
+  const favorites = useSelector((state: any) => state.entities.userReducer.favorites) || [];
+  const favRecord = favorites.find((fav: any) => fav.product?.id === item.id);
+  const isFavorited = !!favRecord;
+
+  const handleToggleFavorite = async (e: any) => {
+    e.stopPropagation();
+    if (isFavorited) {
+      dispatch(removeFavoriteById(favRecord.id));
+      try { await removeFromFavoritesApi(favRecord.id); } catch { dispatch(addFavoriteItem(favRecord)); }
+    } else {
+      const tempRecord = { id: `temp_${item.id}`, product: item };
+      dispatch(addFavoriteItem(tempRecord));
+      try {
+        const res = await addToFavoritesApi(item.id);
+        dispatch(removeFavoriteById(`temp_${item.id}`));
+        if (res?.data) dispatch(addFavoriteItem(res.data));
+      } catch { dispatch(removeFavoriteById(`temp_${item.id}`)); }
+    }
+  };
+
   if (isInline) {
     return (
       <TouchableOpacity
@@ -46,6 +71,9 @@ export const FeaturedCard = ({ item, isInline = false }: FeaturedCardProps) => {
         <View style={styles.featuredBadge}>
           <ThemedText style={styles.featuredBadgeText}>Featured</ThemedText>
         </View>
+        <TouchableOpacity style={styles.heartBtn} onPress={handleToggleFavorite} activeOpacity={0.8}>
+          <Ionicons name={isFavorited ? "heart" : "heart-outline"} size={18} color={isFavorited ? "#E91E63" : COLORS.white} />
+        </TouchableOpacity>
         <Image
           source={{
             uri: item.images?.[0]?.image_path || item.images?.[0]?.image,
@@ -78,6 +106,9 @@ export const FeaturedCard = ({ item, isInline = false }: FeaturedCardProps) => {
       <View style={styles.featuredBadge}>
         <ThemedText style={styles.featuredBadgeText}>Featured</ThemedText>
       </View>
+      <TouchableOpacity style={styles.heartBtn} onPress={handleToggleFavorite} activeOpacity={0.8}>
+        <Ionicons name={isFavorited ? "heart" : "heart-outline"} size={18} color={isFavorited ? "#E91E63" : COLORS.white} />
+      </TouchableOpacity>
       <Image
         source={{ uri: item.images?.[0]?.image_path || item.images?.[0]?.image }}
         style={styles.featuredImg}
@@ -122,6 +153,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: SIZES.padding8,
     paddingVertical: SIZES.padding2,
     borderRadius: SIZES.radius2,
+  },
+  heartBtn: {
+    position: "absolute",
+    top: SIZES.padding8,
+    right: SIZES.padding8,
+    zIndex: 2,
+    backgroundColor: "rgba(0,0,0,0.25)",
+    borderRadius: 20,
+    padding: SIZES.padding4,
   },
   featuredBadgeText: {
     fontSize: SIZES.fontSize10 - 1,

@@ -11,12 +11,15 @@ import {
   getBannerAdsUrl,
   getCategoriesUrl,
   getCitiesUrl,
+  favoritesUrl,
   getFeaturedAdsUrl,
   getLocalitiesUrl,
+  getMyFeaturedAdsUrl,
   getProductsByLocationUrl,
   getPromotionBannerApi,
   getStatesUrl,
-  getSubCategoriesUrl
+  getSubCategoriesUrl,
+  getProductsUrl
 } from "@/constants/functions";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 import { setClearData } from "@/store/reducers/paymentReducer";
@@ -24,23 +27,29 @@ import {
   getApprovedProductsApi,
   getBannersApi,
   getCategoriesApi,
+  appendProductsApi,
   getCitiesApi,
   getFeaturedAdsApi,
+  getFavoritesApi,
   getLocalitiesApi,
+  getMyFeaturedAdsApi,
   getProductsApiwithcityId,
   getStatesApi,
   getSubCategoriesApi,
 } from "@/store/reducers/userReducer";
 import { useRouter } from "expo-router";
-import { useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import {
+  ActivityIndicator,
   Dimensions,
   FlatList,
   Linking,
   ScrollView,
   StyleSheet,
+  TouchableOpacity,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { HomeHeader } from "@/components/home/HomeHeader";
@@ -64,6 +73,10 @@ export default function HomeScreen() {
   const [selectedLocality, setSelectedLocality] = useState<any>(null);
   const [isCityInitialized, setIsCityInitialized] = useState(false);
   const [promotionBanners, setPromotionBanners] = useState<any>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMoreProducts, setHasMoreProducts] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const prevCityIdRef = useRef<any>(null);
   const safeLocalities = Array.isArray(localities) ? localities : [];
   const safeProducts = products || [];
   const safeCategories = categories || [];
@@ -153,21 +166,48 @@ export default function HomeScreen() {
     dispatch(getApprovedProductsApi(getApprovedProductsUrl));
     dispatch(getBannersApi(getBannerAdsUrl));
     dispatch(getFeaturedAdsApi(getFeaturedAdsUrl));
+    dispatch(getFavoritesApi(favoritesUrl));
   }, []);
 
   useEffect(() => {
     if (selectedCity?.id) {
+      // Reset pagination when city changes
+      if (prevCityIdRef.current !== selectedCity.id) {
+        prevCityIdRef.current = selectedCity.id;
+        setCurrentPage(1);
+        setHasMoreProducts(true);
+      }
       dispatch(getLocalitiesApi(`${getLocalitiesUrl}?city_id=${selectedCity.id}`));
       dispatch(
         getProductsApiwithcityId(
-          `${getProductsByLocationUrl}?city_id=${selectedCity.id}`
+          `${getProductsUrl}per_page=10&page=1`
         )
       );
     }
+    dispatch(getMyFeaturedAdsApi(`${getMyFeaturedAdsUrl}`));
     getPromotionBannerApi().then((res) => {
       setPromotionBanners(res);
     });
   }, [selectedCity?.id]);
+
+  const loadMoreProducts = useCallback(async () => {
+    if (!hasMoreProducts || isLoadingMore || !selectedCity?.id) return;
+    setIsLoadingMore(true);
+    const nextPage = currentPage + 1;
+    try {
+      const result = await dispatch(
+        appendProductsApi(`${getProductsUrl}per_page=10&page=${nextPage}`) as any
+      );
+      // If returned fewer than 10, no more pages
+      const raw = result?.payload?.data;
+      const list = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
+      if (list.length < 10) setHasMoreProducts(false);
+      setCurrentPage(nextPage);
+    } catch {
+      // swallow
+    }
+    setIsLoadingMore(false);
+  }, [hasMoreProducts, isLoadingMore, currentPage, selectedCity?.id]);
 
   const handleCategoryPress = (categoryId: number | null) => {
     setSelectedCategory(categoryId);
@@ -323,10 +363,20 @@ export default function HomeScreen() {
                 <ThemedText style={styles.sectionTitle}>
                   Fresh Recommendations
                 </ThemedText>
+                <TouchableOpacity style={styles.seeAllBtn} onPress={() => router.push({ pathname: "/stacks/seeAllFresh" })}>
+                  <ThemedText style={styles.seeAllText}>See All</ThemedText>
+                  <Ionicons name="arrow-forward" size={15} color="#1565C0" />
+                </TouchableOpacity>
               </View>
             </>
           }
-          ListFooterComponent={<View style={{ height: 100 }} />}
+          onEndReached={loadMoreProducts}
+          onEndReachedThreshold={0.4}
+          ListFooterComponent={
+            <View style={{ height: 100, alignItems: "center", justifyContent: "center" }}>
+              {isLoadingMore && <ActivityIndicator size="small" color={COLORS.primary} />}
+            </View>
+          }
           showsVerticalScrollIndicator={false}
         />
       )}
@@ -354,4 +404,6 @@ const styles = StyleSheet.create({
     marginBottom: SIZES.padding12,
   },
   sectionTitle: { fontSize: SIZES.fontSize16, fontWeight: "700", color: COLORS.text },
+  seeAllBtn: { flexDirection: "row", alignItems: "center", gap: 2 },
+  seeAllText: { fontSize: SIZES.fontSize12, fontWeight: "600", color: "#1565C0" },
 });

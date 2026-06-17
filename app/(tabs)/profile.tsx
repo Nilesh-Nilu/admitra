@@ -60,6 +60,14 @@ export default function ProfileScreen() {
     GMAIL_HELP: "gmail_help",
     REPORT: "report_ad_user",
   };
+  const details = [
+    { icon: "person-outline", label: "Full Name", value: user?.name || "—" },
+    { icon: "call-outline", label: "Mobile No.", value: user?.phone ? `+91  ${user?.phone}` : "—" },
+    { icon: "mail-outline", label: "Email", value: user?.email || "—" },
+    { icon: "location-outline", label: "Address", value: user?.address || "—" },
+    { icon: "card-outline", label: "ID Proof", value: user?.AadharImage ? "Aadhaar Card" : "—" },
+    { icon: "camera-outline", label: "Selfie", value: user?.selfieverificationImage ? "Verified" : "Not Verified" },
+  ];
 
   const menuItems = [
     {
@@ -169,7 +177,7 @@ export default function ProfileScreen() {
     try {
       await dispatch(updateUserProfile(updateUserProfileUrl, data));
       setShowEditModal(false);
-      await AsyncStorage.setItem("user", JSON.stringify({...user, ...data}));
+      await AsyncStorage.setItem("user", JSON.stringify({ ...user, ...data }));
     } catch (error: any) {
       console.log(error, "error");
       Alert.alert(
@@ -207,7 +215,7 @@ export default function ProfileScreen() {
       };
 
       await dispatch(updateUserProfile(updateUserProfileUrl, updateData));
-      await AsyncStorage.setItem("user", JSON.stringify({...user, ...updateData, is_verify: 2}));
+      await AsyncStorage.setItem("user", JSON.stringify({ ...user, ...updateData, is_verify: 2 }));
       setShowVerificationModal(false);
       router.push("/stacks/verificationPending" as any);
     } catch (error: any) {
@@ -242,11 +250,11 @@ export default function ProfileScreen() {
                   />
                 ) : (
                   <View style={styles.avatarPlaceholder}>
-                  <Ionicons name="person-outline" size={24} color={COLORS.text} />
+                    <Ionicons name="person-outline" size={24} color={COLORS.text} />
                   </View>
                 )}
                 {isVerified && (
-          
+
                   <View style={styles.verifiedBadge}>
                     <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
                   </View>
@@ -332,7 +340,28 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={20} color="#1565C0" />
           </TouchableOpacity>
         )}
-
+        {isVerified && (
+        <View style={styles.infoCard}>
+          {details.map((item, index) => (
+            <View
+              key={item.label}
+              style={[styles.detailRow, index < details.length - 1 && styles.detailRowBorder]}
+            >
+              <View style={styles.detailLeft}>
+                <View style={styles.detailIconBox}>
+                  <Ionicons name={item.icon as any} size={16} color="#1565C0" />
+                </View>
+                <ThemedText style={styles.detailLabel}>{item.label}</ThemedText>
+              </View>
+              <ThemedText style={styles.detailValue} numberOfLines={1}>{item.value}</ThemedText>
+              <View style={styles.verifiedPill}>
+                <Ionicons name="checkmark-circle" size={12} color="#2E7D32" />
+                <ThemedText style={styles.verifiedPillText}>Verified</ThemedText>
+              </View>
+            </View>
+          ))}
+        </View>
+        )}
         {/* My Information Section */}
         <View style={styles.infoCard}>
           <View style={styles.infoHeader}>
@@ -420,7 +449,7 @@ export default function ProfileScreen() {
               <Ionicons name="person-outline" size={18} color={COLORS.gray} />
               <View>
                 <ThemedText style={styles.infoLabel}>Selfie</ThemedText>
-                <ThemedText style={styles.infoSubLabel}>{user?.selfieverificationImage==="1" ? "Verified" : "Not Verified"}</ThemedText>
+                <ThemedText style={styles.infoSubLabel}>{user?.selfieverificationImage === "1" ? "Verified" : "Not Verified"}</ThemedText>
               </View>
             </View>
             {user?.selfieverificationImage ? (
@@ -916,4 +945,58 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
     marginTop: 16,
   },
+
+
+  detailsCard: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    marginBottom: 16,
+    overflow: "hidden",
+  },
+  detailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 5,
+    paddingVertical: 10,
+    // gap: 5,
+  },
+  detailRowBorder: { borderBottomWidth: 1, borderBottomColor: "#F3F4F6" },
+  detailLeft: { flexDirection: "row", alignItems: "center", gap: 7, flex: 1 },
+  detailIconBox: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: "#EFF6FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  detailLabel: { fontSize: 12, color: "#6B7280", fontWeight: "500" },
+  detailValue: { fontSize: 12, color: "#111827", fontWeight: "600", flex: 1 },
+  verifiedPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "#DCFCE7",
+    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  verifiedPillText: { fontSize: 11, fontWeight: "700", color: "#2E7D32" },
+
+  fullVerifiedBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    backgroundColor: "#EFF6FF",
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    marginBottom: 14,
+  },
+  fullVerifiedTitle: { fontSize: 13, fontWeight: "700", color: "#1565C0", marginBottom: 2 },
+  fullVerifiedSub: { fontSize: 12, color: "#1E40AF", lineHeight: 17 },
+
 });

@@ -9,7 +9,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   BackHandler,
-  Dimensions,
   Image,
   Linking,
   ScrollView,
@@ -26,8 +25,6 @@ import RenderHTML from "react-native-render-html";
 import { useDispatch, useSelector } from "react-redux";
 import { getFavoritesApi, removeFavoriteById } from "@/store/reducers/userReducer";
 import { favoritesUrl } from "@/constants/functions";
-
-const { width: screenWidth } = Dimensions.get("window");
 
 interface BannerData {
   id: number;
@@ -293,6 +290,16 @@ export default function BannerDetailsScreen() {
           {!!product?.description && (
             <ThemedText style={styles.description}>{product.description}</ThemedText>
           )}
+
+          {/* Location row */}
+          {(product?.user?.city?.name || product?.user?.state?.name) && (
+            <View style={styles.locationRow}>
+              <Ionicons name="location-outline" size={14} color="#64748B" />
+              <ThemedText style={styles.locationText}>
+                {[product?.user?.city?.name, product?.user?.state?.name].filter(Boolean).join(", ")}
+              </ThemedText>
+            </View>
+          )}
         </View>
 
         {/* ── CTA Buttons ── */}
@@ -345,6 +352,41 @@ export default function BannerDetailsScreen() {
         {/* ── Seller Actions ── */}
         <View style={styles.sectionCard}>
           <ThemedText style={styles.sectionLabel}>Contact Seller</ThemedText>
+
+          {/* Seller identity */}
+          <TouchableOpacity
+            style={styles.sellerRow}
+            activeOpacity={0.8}
+            onPress={() =>
+              router.push({
+                pathname: "/stacks/userProfile",
+                params: { userData: JSON.stringify(product?.user) },
+              })
+            }
+          >
+            <View style={styles.sellerAvatar}>
+              {product?.user?.profile_image ? (
+                <Image source={{ uri: product.user.profile_image }} style={{ width: 38, height: 38, borderRadius: 19 }} />
+              ) : (
+                <Ionicons name="person-outline" size={22} color="#64748B" />
+              )}
+            </View>
+            <View style={{ flex: 1 }}>
+              {!!product?.user?.name && (
+                <ThemedText style={styles.sellerName}>{product.user.name}</ThemedText>
+              )}
+              {(product?.user?.city?.name || product?.user?.state?.name) && (
+                <View style={styles.sellerLocationRow}>
+                  <Ionicons name="location-outline" size={12} color="#94A3B8" />
+                  <ThemedText style={styles.sellerLocationText}>
+                    {[product?.user?.city?.name, product?.user?.state?.name].filter(Boolean).join(", ")}
+                  </ThemedText>
+                </View>
+              )}
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
+          </TouchableOpacity>
+
           <View style={styles.contactRow}>
             <TouchableOpacity
               style={[styles.contactBtn, styles.contactBtnCall]}
@@ -580,6 +622,48 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: "#6B7280",
     marginTop: 4,
+  },
+
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 8,
+  },
+  locationText: {
+    fontSize: 13,
+    color: "#64748B",
+    fontWeight: "500",
+  },
+  sellerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  sellerAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sellerName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1E293B",
+  },
+  sellerLocationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    marginTop: 2,
+  },
+  sellerLocationText: {
+    fontSize: 12,
+    color: "#94A3B8",
   },
 
   /* CTA Buttons */

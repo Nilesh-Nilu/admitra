@@ -93,6 +93,8 @@ const SignupScreen = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isMobileFromParam, setIsMobileFromParam] = useState(false);
+  const [isEmailFromParam, setIsEmailFromParam] = useState(false);
   const [selectedState, setSelectedState] = useState<any>(null);
   const [selectedCity, setSelectedCity] = useState<any>(null);
   const [selectedLocality, setSelectedLocality] = useState<any>(null);
@@ -149,6 +151,8 @@ const SignupScreen = () => {
       setName(parsedUser.name || "");
       setEmail(parsedUser.email || "");
       setMobile(parsedUser.phone || "");
+      if (parsedUser.phone) setIsMobileFromParam(true);
+      if (parsedUser.email) setIsEmailFromParam(true);
       setAddress(parsedUser.address || "");
       setAadharPhoto(parsedUser.AadharImage || "");
       setSelfiePhoto(parsedUser.selfieverificationImage || "");
@@ -476,7 +480,7 @@ const SignupScreen = () => {
                   onChangeText={handlePhoneChange}
                   keyboardType="phone-pad"
                   maxLength={10}
-                  editable={userParam !== undefined ? false : true}
+                  editable={!isMobileFromParam}
                   containerStyle={styles.inputContainer}
                 />
           
@@ -493,7 +497,7 @@ const SignupScreen = () => {
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
-                  editable={!loading}
+                  editable={!isEmailFromParam}
                   containerStyle={styles.inputContainer}
                 />
               </View>
