@@ -41,11 +41,10 @@ export const getCitiesUrl = "cities";
 export const getLocalitiesUrl = "localities";
 
 //products
-export const getProductsUrl = "products?"
+export const getProductsUrl = "products"
 export const getApprovedProductsUrl = "vendor/products"
 export const getFeaturedAdsUrl = "ads/featured"
 export const getBannerAdsUrl = "ads/banner"
-export const getProductsByLocationUrl = "products/filter/location"
 export const reportProductUrl = "product/report"
 export const getPlansListUrl = "admin/plans"
 export const favoritesUrl = "favorites"
@@ -67,8 +66,8 @@ export const getTermsAndConditionsUrl = "pages?page_type=terms_and_conditions"
 export const getRefundPolicyUrl = "pages?page_type=refund_policy"
 
 export const ImageUrl = "https://admastermarketplace.in/storage"
-export const RAZORPAY_KEY = "rzp_test_RmeHXdBQXDWzp9"
-export const RAZORPAY_SECRET = "ktPiQoi6ak9Lwv7KkhOrcSns"
+export const RAZORPAY_KEY = "rzp_live_T2fhltsbtA4p7F"
+export const RAZORPAY_SECRET = "2oBi1D8Wae98kGE7tr957Oek"
 
 // verifing warning
 export const getVerifyingWarningUrl = "getverifywarning"
@@ -161,6 +160,7 @@ export const handleVerifymailOtp = async (email, otp, setLoading, router, dispat
       AppToast(response.data?.message || "Invalid OTP.");
       return;
     }
+    console.log(response.data, "handleVerifymailOtp");
     dispatch(setUser(response.data.user));
     await AsyncStorage.setItem("user", JSON.stringify(response.data.user));
     await AsyncStorage.setItem("authToken", response.data.access_token);

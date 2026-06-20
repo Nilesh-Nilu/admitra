@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
   },
   searchPlaceholder: {
     flex: 1,
-    fontSize: SIZES.fontSize12,
+    fontSize: SIZES.fontSize10,
     color: COLORS.gray,
   },
   whatsappBtn: {

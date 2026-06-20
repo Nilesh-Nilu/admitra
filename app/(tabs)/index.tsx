@@ -1,44 +1,53 @@
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
 import { BannerCard } from "@/components/cards/BannerCard";
 import { FeaturedCard } from "@/components/cards/FeaturedCard";
 import { ListingCard } from "@/components/cards/ListingCard";
+import { HomeBannerAds } from "@/components/home/HomeBannerAds";
+import { HomeCategories } from "@/components/home/HomeCategories";
+import { HomeFeaturedAds } from "@/components/home/HomeFeaturedAds";
+import { HomeHeader } from "@/components/home/HomeHeader";
+import { HomeSearchBar } from "@/components/home/HomeSearchBar";
 import { UserShimmerLoader } from "@/components/loader/UserShimmerLoader";
 import { LocationModal } from "@/components/modals/LocationModal";
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
 import {
+  favoritesUrl,
   getApprovedProductsUrl,
   getBannerAdsUrl,
   getCategoriesUrl,
   getCitiesUrl,
-  favoritesUrl,
   getFeaturedAdsUrl,
   getLocalitiesUrl,
   getMyFeaturedAdsUrl,
-  getProductsByLocationUrl,
+  getProductsUrl,
   getPromotionBannerApi,
   getStatesUrl,
   getSubCategoriesUrl,
-  getProductsUrl
+  baseUrl,
+  getAuthToken,
 } from "@/constants/functions";
+import axios from "axios";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 import { setClearData } from "@/store/reducers/paymentReducer";
 import {
+  appendProductsRecieved,
+  getAllProducts,
   getApprovedProductsApi,
   getBannersApi,
   getCategoriesApi,
-  appendProductsApi,
   getCitiesApi,
-  getFeaturedAdsApi,
   getFavoritesApi,
+  getFeaturedAdsApi,
   getLocalitiesApi,
   getMyFeaturedAdsApi,
-  getProductsApiwithcityId,
   getStatesApi,
   getSubCategoriesApi,
 } from "@/store/reducers/userReducer";
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -49,14 +58,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { HomeHeader } from "@/components/home/HomeHeader";
-import { HomeSearchBar } from "@/components/home/HomeSearchBar";
-import { HomeCategories } from "@/components/home/HomeCategories";
-import { HomeBannerAds } from "@/components/home/HomeBannerAds";
-import { HomeFeaturedAds } from "@/components/home/HomeFeaturedAds";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = (SCREEN_WIDTH - SIZES.padding * 2 - 12) / 2;
@@ -77,6 +79,9 @@ export default function HomeScreen() {
   const [hasMoreProducts, setHasMoreProducts] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const prevCityIdRef = useRef<any>(null);
+  const isLoadingMoreRef = useRef(false);
+  const currentPageRef = useRef(1);
+  const hasMoreRef = useRef(true);
   const safeLocalities = Array.isArray(localities) ? localities : [];
   const safeProducts = products || [];
   const safeCategories = categories || [];
@@ -176,11 +181,14 @@ export default function HomeScreen() {
         prevCityIdRef.current = selectedCity.id;
         setCurrentPage(1);
         setHasMoreProducts(true);
+        currentPageRef.current = 1;
+        hasMoreRef.current = true;
+        isLoadingMoreRef.current = false;
       }
       dispatch(getLocalitiesApi(`${getLocalitiesUrl}?city_id=${selectedCity.id}`));
       dispatch(
-        getProductsApiwithcityId(
-          `${getProductsUrl}per_page=10&page=1`
+        getAllProducts(
+          `${getProductsUrl}?per_page=20&page=1`
         )
       );
     }
@@ -191,23 +199,36 @@ export default function HomeScreen() {
   }, [selectedCity?.id]);
 
   const loadMoreProducts = useCallback(async () => {
-    if (!hasMoreProducts || isLoadingMore || !selectedCity?.id) return;
+    console.log('[Pagination] onEndReached fired — hasMore:', hasMoreRef.current, 'isLoading:', isLoadingMoreRef.current, 'page:', currentPageRef.current);
+    if (!hasMoreRef.current || isLoadingMoreRef.current) return;
+    isLoadingMoreRef.current = true;
     setIsLoadingMore(true);
-    const nextPage = currentPage + 1;
+    const nextPage = currentPageRef.current + 1;
     try {
-      const result = await dispatch(
-        appendProductsApi(`${getProductsUrl}per_page=10&page=${nextPage}`) as any
-      );
-      // If returned fewer than 10, no more pages
-      const raw = result?.payload?.data;
-      const list = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
-      if (list.length < 10) setHasMoreProducts(false);
+      const authHeaders = await getAuthToken();
+      const url = `${baseUrl}/${getProductsUrl}?per_page=20&page=${nextPage}`;
+      console.log('[Pagination] fetching:', url);
+      const response = await axios.get(url, authHeaders);
+      const raw = response.data;
+      // API shape: { status, data: { current_page, data: [...], last_page, next_page_url } }
+      const paginator = raw?.data;
+      const list = Array.isArray(paginator) ? paginator : Array.isArray(paginator?.data) ? paginator.data : [];
+      console.log('[Pagination] page', nextPage, '— items:', list.length, '— last_page:', paginator?.last_page);
+      dispatch(appendProductsRecieved({ data: list }) as any);
+      const noMore = !paginator?.next_page_url
+        || (paginator?.last_page != null && nextPage >= paginator.last_page);
+      if (noMore) {
+        hasMoreRef.current = false;
+        setHasMoreProducts(false);
+      }
+      currentPageRef.current = nextPage;
       setCurrentPage(nextPage);
-    } catch {
-      // swallow
+    } catch (e: any) {
+      console.log('[Pagination] error:', e?.message, e?.response?.status);
     }
+    isLoadingMoreRef.current = false;
     setIsLoadingMore(false);
-  }, [hasMoreProducts, isLoadingMore, currentPage, selectedCity?.id]);
+  }, [dispatch]);
 
   const handleCategoryPress = (categoryId: number | null) => {
     setSelectedCategory(categoryId);
@@ -219,31 +240,28 @@ export default function HomeScreen() {
     }
   };
 
-  const createMixedFeed = () => {
+  const mixedFeed = useMemo(() => {
     const rows: any[] = [];
     if (!filteredProducts || filteredProducts.length === 0) return rows;
+
+    const safeBannersArr = Array.isArray(safeBanners) ? safeBanners : [];
+    const featuredAdsArr = Array.isArray(featuredAds) ? featuredAds : [];
 
     let productIndex = 0;
     let bannerIndex = 0;
     let featuredIndex = 0;
 
-    const safeBannersArr = Array.isArray(safeBanners) ? safeBanners : [];
-    const featuredAdsArr = Array.isArray(featuredAds) ? featuredAds : [];
-
     while (productIndex < filteredProducts.length) {
-      // 1. Add 5 normal products
+      // 20 products per chunk (matches per_page)
       const normalChunk = filteredProducts.slice(productIndex, productIndex + 20);
       productIndex += 20;
 
-      // Group normal products in rows of 2
+      // Group products in rows of 2
       for (let i = 0; i < normalChunk.length; i += 2) {
-        rows.push({
-          type: "products_row",
-          data: normalChunk.slice(i, i + 2),
-        });
+        rows.push({ type: "products_row", data: normalChunk.slice(i, i + 2) });
       }
 
-      // 2. Add 1 banner ad
+      // 1 banner ad after each chunk
       if (safeBannersArr.length > 0) {
         rows.push({
           type: "banner_row",
@@ -252,31 +270,17 @@ export default function HomeScreen() {
         bannerIndex++;
       }
 
-      // 3. Add 2 featured ads in a single row
+      // 2 featured ads after each chunk
       if (featuredAdsArr.length > 0) {
-        const fChunk: any[] = [];
+        const fChunk: any[] = [featuredAdsArr[featuredIndex % featuredAdsArr.length]];
+        featuredIndex++;
         fChunk.push(featuredAdsArr[featuredIndex % featuredAdsArr.length]);
         featuredIndex++;
-
-        if (featuredAdsArr.length > 1) {
-          fChunk.push(featuredAdsArr[featuredIndex % featuredAdsArr.length]);
-          featuredIndex++;
-        } else {
-          fChunk.push(featuredAdsArr[0]);
-        }
-
-        rows.push({
-          type: "featured_row",
-          data: fChunk,
-        });
+        rows.push({ type: "featured_row", data: fChunk });
       }
     }
 
     return rows;
-  };
-
-  const mixedFeed = useMemo(() => {
-    return createMixedFeed();
   }, [filteredProducts, safeBanners, featuredAds]);
 
   const renderMixedRow = ({ item }: { item: any }) => {
@@ -371,10 +375,17 @@ export default function HomeScreen() {
             </>
           }
           onEndReached={loadMoreProducts}
-          onEndReachedThreshold={0.4}
+          onEndReachedThreshold={0.15}
           ListFooterComponent={
-            <View style={{ height: 100, alignItems: "center", justifyContent: "center" }}>
-              {isLoadingMore && <ActivityIndicator size="small" color={COLORS.primary} />}
+            <View style={styles.footerLoader}>
+              {isLoadingMore ? (
+                <>
+                  <ActivityIndicator size="small" color={COLORS.primary} />
+                  <ThemedText style={styles.footerLoaderText}>Loading more...</ThemedText>
+                </>
+              ) : !hasMoreProducts ? (
+                <ThemedText style={styles.footerEndText}>You're all caught up</ThemedText>
+              ) : null}
             </View>
           }
           showsVerticalScrollIndicator={false}
@@ -397,6 +408,24 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F5F5F5", top: -SIZES.padding8 },
   scrollView: { flex: 1 },
   scrollContent: { paddingHorizontal: SIZES.padding },
+  footerLoader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 20,
+    marginBottom: 80,
+  },
+  footerLoaderText: {
+    fontSize: 13,
+    color: COLORS.primary,
+    fontWeight: "500",
+  },
+  footerEndText: {
+    fontSize: 12,
+    color: "#94A3B8",
+    fontWeight: "500",
+  },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",

@@ -100,6 +100,12 @@ export const BannerCard = ({ item, isInline = false }: BannerCardProps) => {
         <TouchableOpacity style={styles.heartBtn} onPress={handleToggleFavorite} activeOpacity={0.8}>
           <Ionicons name={isFavorited ? "heart" : "heart-outline"} size={20} color={isFavorited ? "#E91E63" : COLORS.white} />
         </TouchableOpacity>
+        {item.product?.user?.is_verify === 1 && (
+          <View style={styles.verifiedBadge}>
+            <Ionicons name="checkmark-circle" size={12} color={COLORS.white} />
+            <ThemedText style={styles.verifiedText}>Verified</ThemedText>
+          </View>
+        )}
         <View style={styles.bannerActions}>
           {(item.product?.user?.city?.name || item.product?.user?.state?.name) && (
             <View style={styles.locationRow}>
@@ -143,7 +149,7 @@ export default BannerCard;
 
 const styles = StyleSheet.create({
   bannerCard: {
-    height: SIZES.padding20 * 15,
+    height: SIZES.padding20 * 17,
     borderRadius: 8,
     overflow: "hidden",
   },
@@ -184,6 +190,25 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.3)",
     borderRadius: 20,
     padding: SIZES.padding6,
+  },
+  verifiedBadge: {
+    position: "absolute",
+    bottom: 0,
+    left: SIZES.padding10,
+    zIndex: 2,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "#22C55E",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderTopLeftRadius: 4,
+    borderTopRightRadius: 4,
+  },
+  verifiedText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: COLORS.white,
   },
   bannerActions: {
     flexDirection: "column",

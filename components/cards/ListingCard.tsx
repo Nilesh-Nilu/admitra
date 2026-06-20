@@ -62,7 +62,7 @@ export const ListingCard = ({ item }: ListingCardProps) => {
         <View style={styles.typeBadge}>
           <ThemedText style={styles.typeBadgeText}>Normal</ThemedText>
         </View>
-        {item.approve === "approved" && (
+        {item.user.is_verify === 1 && (
           <View style={styles.verifiedBadge}>
             <Ionicons name="checkmark-circle" size={12} color={COLORS.white} />
             <ThemedText style={styles.verifiedText}>Verified</ThemedText>

@@ -29,7 +29,6 @@ const userReducer = createSlice({
     },
     userReducerDataRequestFailed: (userReducer, action) => {
       userReducer.loader = false;
-      console.log(action.payload, "userReducerDataRequestFailed");
     },
     setStatesRecieved: (userReducer, action) => {
       userReducer.loader = false;
@@ -49,14 +48,16 @@ const userReducer = createSlice({
     },
     setProductsRecieved: (userReducer, action) => {
       userReducer.loader = false;
+      // API: { status, data: { data: [...items], last_page, ... } }
       const raw = action.payload.data;
-      const list = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
+      const paginator = raw?.data ?? raw;
+      const list = Array.isArray(paginator) ? paginator : Array.isArray(paginator?.data) ? paginator.data : [];
       userReducer.products = list.filter((product) => product.approve === "approved");
     },
     appendProductsRecieved: (userReducer, action) => {
       userReducer.loader = false;
       const raw = action.payload.data;
-      const list = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
+      const list = Array.isArray(raw) ? raw : [];
       const newItems = list.filter((product) => product.approve === "approved");
       userReducer.products = [...userReducer.products, ...newItems];
     },
@@ -123,6 +124,7 @@ export const {
   setSubCategoriesClear,
   removeFavoriteById,
   addFavoriteItem,
+  appendProductsRecieved,
 } = userReducer.actions;
 
 const {
@@ -133,7 +135,6 @@ const {
   setCategoriesRecieved,
   setSubCategoriesRecieved,
   setProductsRecieved,
-  appendProductsRecieved,
   setApprovedProductsRecieved,
   setPlansRecieved,
   setBannersRecieved,
@@ -176,7 +177,7 @@ export const getSubCategoriesApi = (url) =>
     onSuccess: setSubCategoriesRecieved.type,
     onError: userReducerDataRequestFailed.type,
   });
-export const getProductsApiwithcityId = (url) =>
+export const getAllProducts = (url) =>
   apiCallBegan({
     method: "get",
     url,

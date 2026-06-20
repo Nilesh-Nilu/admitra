@@ -74,6 +74,12 @@ export const FeaturedCard = ({ item, isInline = false }: FeaturedCardProps) => {
         <TouchableOpacity style={styles.heartBtn} onPress={handleToggleFavorite} activeOpacity={0.8}>
           <Ionicons name={isFavorited ? "heart" : "heart-outline"} size={18} color={isFavorited ? "#E91E63" : COLORS.white} />
         </TouchableOpacity>
+        {item.user?.is_verify === 1 && (
+          <View style={styles.verifiedBadge}>
+            <Ionicons name="checkmark-circle" size={12} color={COLORS.white} />
+            <ThemedText style={styles.verifiedText}>Verified</ThemedText>
+          </View>
+        )}
         <Image
           source={{
             uri: item.images?.[0]?.image_path || item.images?.[0]?.image,
@@ -109,6 +115,12 @@ export const FeaturedCard = ({ item, isInline = false }: FeaturedCardProps) => {
       <TouchableOpacity style={styles.heartBtn} onPress={handleToggleFavorite} activeOpacity={0.8}>
         <Ionicons name={isFavorited ? "heart" : "heart-outline"} size={18} color={isFavorited ? "#E91E63" : COLORS.white} />
       </TouchableOpacity>
+      {item.user?.is_verify === 1 && (
+        <View style={styles.verifiedBadge}>
+          <Ionicons name="checkmark-circle" size={12} color={COLORS.white} />
+          <ThemedText style={styles.verifiedText}>Verified</ThemedText>
+        </View>
+      )}
       <Image
         source={{ uri: item.images?.[0]?.image_path || item.images?.[0]?.image }}
         style={styles.featuredImg}
@@ -162,6 +174,24 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.25)",
     borderRadius: 20,
     padding: SIZES.padding4,
+  },
+  verifiedBadge: {
+    position: "absolute",
+    bottom: SIZES.padding8,
+    left: SIZES.padding8,
+    zIndex: 2,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "#22C55E",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  verifiedText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: COLORS.white,
   },
   featuredBadgeText: {
     fontSize: SIZES.fontSize10 - 1,

@@ -299,7 +299,6 @@ export default function PostScreen() {
           color: COLORS.primary,
         },
       };
-      console.log(options, "options");
 
       RazorpayCheckout.open(options as any)
         .then(async (paymentResponse: any) => {

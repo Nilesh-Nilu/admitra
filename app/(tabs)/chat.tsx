@@ -15,7 +15,6 @@ import {
   View,
 } from "react-native";
 import { useSelector } from "react-redux";
-import SafetyTipsModal from "@/components/SafetyTipsModal";
 
 
 // Shimmer skeleton component
@@ -94,14 +93,13 @@ export default function ChatScreen() {
   const router = useRouter();
   const [conversations, setConversations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
   const currentUser = useSelector((state: any) => state.entities.authReducer?.user);
-
+  
   const getMessages = async () => {
     try {
       const response = await getConversationApi();
       if (response) {
-        setConversations(response);
+        setConversations(response.filter((item: any) => item.user.phone === currentUser.phone));
       }
     } catch (error) {
       console.log(error, "error");
@@ -149,7 +147,7 @@ export default function ChatScreen() {
 
   const renderChatItem = ({ item }: { item: any }) => {
     const otherUser = getOtherUser(item);
-
+    // console.log(otherUser, "otherUser");
     return (
       <TouchableOpacity
         style={styles.chatItem}
