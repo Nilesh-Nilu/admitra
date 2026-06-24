@@ -88,12 +88,11 @@ export default function UserProfileScreen() {
     ? new Date(user.created_at).toLocaleDateString("en-IN", { month: "long", year: "numeric" })
     : null;
 
-  const isVerified = !!user?.is_verified || !!user?.verified;
+  const isVerified = user?.is_verify === 1;
 
   return (
     <ThemedView style={styles.container}>
       <ThemeHeader onBackPress={() => router.back()} title="User Profile" />
-
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 24 }]}
         showsVerticalScrollIndicator={false}
@@ -133,6 +132,12 @@ export default function UserProfileScreen() {
           <View style={styles.idBadge}>
             <ThemedText style={styles.idText}>User ID: #{user?.id}</ThemedText>
           </View>
+
+          {user?.email && (
+            <View style={styles.emailBadge}>
+              <ThemedText style={styles.emailText}>Email: {user?.email}</ThemedText>
+            </View>
+          )}
 
           {/* Location */}
           {!!location && (
@@ -282,7 +287,14 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   idText: { fontSize: 13, fontWeight: "600", color: COLORS.primary },
-
+  emailBadge: {
+    backgroundColor: "#DBEAFE",
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    marginBottom: 10,
+  },
+  emailText: { fontSize: 13, fontWeight: "600", color: COLORS.primary },
   locationRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 14 },
   locationText: { fontSize: 14, color: "#475569", fontWeight: "500" },
 

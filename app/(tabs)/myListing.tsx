@@ -155,12 +155,18 @@ export default function MyListingsScreen() {
     );
   };
 
+  const buildImageUrl = (imagePath: string | null | undefined) => {
+    if (!imagePath) return null;
+    if (imagePath.startsWith("http")) return imagePath;
+    const clean = imagePath.startsWith("/") ? imagePath.slice(1) : imagePath;
+    return `${ImageUrl}/${clean}`;
+  };
+
   const renderListingCard = ({ item }: { item: any }) => {
     const statusConfig = getStatusConfig(item.approve);
-    const rawImage = Array.isArray(item?.images) && item.images.length > 0 ? item.images[0]?.image_path : null;
-    const firstImage = rawImage
-      ? rawImage.startsWith("http") ? rawImage : `${ImageUrl}/${rawImage}`
-      : null;
+    const images = Array.isArray(item?.images) ? item.images : [];
+    const rawImage = images.length > 0 ? (images[0]?.image_path || images[0]?.path || images[0].image) : null;
+    const firstImage = buildImageUrl(typeof rawImage === "string" ? rawImage : rawImage?.image_path);
 
     return (
       <TouchableOpacity
@@ -236,10 +242,9 @@ export default function MyListingsScreen() {
 
   const renderFeaturedAdCard = ({ item }: { item: any }) => {
     const statusConfig = getStatusConfig(item.approve);
-    const rawImage = Array.isArray(item?.images) && item.images.length > 0 ? item.images[0]?.image_path : null;
-    const firstImage = rawImage
-      ? rawImage.startsWith('http') ? rawImage : `${ImageUrl}/${rawImage}`
-      : null;
+    const featuredImages = Array.isArray(item?.images) ? item.images : [];
+    const featuredRaw = featuredImages.length > 0 ? (featuredImages[0]?.image_path || featuredImages[0]?.path || featuredImages[0]) : null;
+    const firstImage = buildImageUrl(typeof featuredRaw === "string" ? featuredRaw : featuredRaw?.image_path);
 
     return (
       <TouchableOpacity style={styles.listingCard} activeOpacity={0.8} onPress={() => openDetailModal(item)}>
@@ -376,7 +381,6 @@ export default function MyListingsScreen() {
       </ThemedText>
     </View>
   );
-
   const renderDetailModal = () => {
     if (!selectedItem) return null;
     const statusConfig = getStatusConfig(selectedItem.approve);
@@ -400,62 +404,43 @@ export default function MyListingsScreen() {
 
             <ScrollView>
               {/* Product Images */}
-              {selectedItem.images && selectedItem.images.length > 0 ? (
-                <ScrollView
-                  horizontal
-                  pagingEnabled
-                  showsHorizontalScrollIndicator={false}
-                  style={styles.modalImageScroll}
-                >
-                  {selectedItem.images.map((img: any, index: number) => (
-                    <Image
-                      key={index}
-                      source={{ uri: img.image_path?.startsWith("http") ? img.image_path : `${ImageUrl}/${img.image_path}` }}
-                      style={styles.modalImage}
-                      resizeMode="cover"
-                    />
-                  ))}
-                </ScrollView>
-              ) : (
-                <View style={styles.modalImagePlaceholder}>
-                  <LinearGradient
-                    colors={["#11998e", "#38ef7d"]}
-                    style={styles.modalImagePlaceholderGradient}
-                  >
-                    <Ionicons name="cube" size={48} color={COLORS.white} />
-                  </LinearGradient>
-                </View>
-              )}
-
-              {
-                selectedItem?.product?.images && selectedItem?.product?.images?.length > 0 && (
+              {(() => {
+                const modalImages = selectedItem?.images?.length > 0
+                  ? selectedItem.images
+                  : selectedItem?.product?.images?.length > 0
+                  ? selectedItem.product.images
+                  : [];
+                return modalImages.length > 0 ? (
                   <ScrollView
                     horizontal
                     pagingEnabled
                     showsHorizontalScrollIndicator={false}
                     style={styles.modalImageScroll}
                   >
-                    {selectedItem?.product?.images?.map((img: any, index: number) => (
-                      <Image
-                        key={index}
-                        source={{ uri: ImageUrl + "/" + img.image_path }}
-                        style={styles.modalImage}
-                        resizeMode="cover"
-                      />
-                    ))}
+                    {modalImages.map((img: any, index: number) => {
+                      const uri = buildImageUrl(img.image_path || img.path || img.image);
+                      return uri ? (
+                        <Image
+                          key={index}
+                          source={{ uri }}
+                          style={styles.modalImage}
+                          resizeMode="cover"
+                        />
+                      ) : null;
+                    })}
                   </ScrollView>
-                )
-              }
+                ) : (
+                  <View style={styles.modalImagePlaceholder}>
+                    <LinearGradient
+                      colors={["#11998e", "#38ef7d"]}
+                      style={styles.modalImagePlaceholderGradient}
+                    >
+                      <Ionicons name="cube" size={48} color={COLORS.white} />
+                    </LinearGradient>
+                  </View>
+                );
+              })()}
 
-              {/* Image Count Indicator */}
-              {selectedItem?.images && selectedItem?.images?.length > 1 && (
-                <View style={styles.imageCountBadge}>
-                  <Ionicons name="images" size={12} color={COLORS.white} />
-                  <ThemedText style={styles.imageCountText}>
-                    {selectedItem?.images?.length} photos
-                  </ThemedText>
-                </View>
-              )}
 
               {/* Product Info */}
               <View style={styles.modalBody}>

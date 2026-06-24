@@ -43,6 +43,7 @@ const apiMiddleware =
       if (onSuccess) {
         dispatch({ type: onSuccess, payload: response.data });
       }
+      return response.data;
     } catch (error) {
       if(error.response?.status===401){
        dispatch(logoutFromReducer());
@@ -55,6 +56,7 @@ const apiMiddleware =
       if (onError) {
         dispatch({ type: onError, payload: errorMessage });
       }
+      throw error;
     }
   };
 

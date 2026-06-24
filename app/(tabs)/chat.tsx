@@ -99,8 +99,8 @@ export default function ChatScreen() {
     try {
       const response = await getConversationApi();
       if (response) {
-        setConversations(response.filter((item: any) => item.user.phone === currentUser.phone));
-      }
+        setConversations(response);
+       }
     } catch (error) {
       console.log(error, "error");
     } finally {
@@ -112,9 +112,10 @@ export default function ChatScreen() {
     getMessages();
   }, []);
 
-  // Get the other user based on current user's role
   const getOtherUser = (item: any) => {
-    return currentUser?.role === "vendor" ? item.user : item.vendor;
+    if (!currentUser?.id) return item.vendor ?? item.user;
+    if (item.user?.id === currentUser.id) return item.vendor;
+    return item.user;
   };
   // Format time to relative format
   const formatTime = (dateString: string | null) => {
@@ -147,7 +148,6 @@ export default function ChatScreen() {
 
   const renderChatItem = ({ item }: { item: any }) => {
     const otherUser = getOtherUser(item);
-    // console.log(otherUser, "otherUser");
     return (
       <TouchableOpacity
         style={styles.chatItem}
@@ -176,19 +176,8 @@ export default function ChatScreen() {
             <View style={styles.userInfo}>
               <ThemedText style={styles.userName}>{otherUser?.name || "Unknown User"}</ThemedText>
               {otherUser?.is_verify === 1 && (
-                <Ionicons name="checkmark-circle" size={14} color={COLORS.primary} />
+                <Ionicons name="checkmark-circle" size={14} color={COLORS.green} />
               )}
-              <View style={[
-                styles.roleBadge,
-                { backgroundColor: otherUser?.role === "vendor" ? COLORS.primary + "20" : COLORS.success + "20" }
-              ]}>
-                <ThemedText style={[
-                  styles.roleText,
-                  { color: otherUser?.role === "vendor" ? COLORS.primary : COLORS.success }
-                ]}>
-                  {otherUser?.role === "vendor" ? "Seller" : "Buyer"}
-                </ThemedText>
-              </View>
             </View>
             {item.last_message_at && (
               <ThemedText style={styles.chatTime}>{formatTime(item.last_message_at)}</ThemedText>

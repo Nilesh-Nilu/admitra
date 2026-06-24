@@ -15,6 +15,7 @@ import {
 import { setUser, updateUserProfile } from "@/store/reducers/authReducer";
 import { getCitiesApi, getStatesApi, getLocalitiesApi } from "@/store/reducers/userReducer";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
@@ -80,7 +81,7 @@ const PASSWORD_RULES = [
 const SignupScreen = () => {
   const insets = useSafeAreaInsets();
   const { user: userParam } = useLocalSearchParams<{ user?: any }>();
-  const {states,cities,localities} = useSelector((state: any) => state.entities.userReducer);
+  const { states, cities, localities } = useSelector((state: any) => state.entities.userReducer);
   const [selectedRole] = useState<"user" | "vendor">("user");
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
@@ -99,7 +100,7 @@ const SignupScreen = () => {
   const [selectedCity, setSelectedCity] = useState<any>(null);
   const [selectedLocality, setSelectedLocality] = useState<any>(null);
   const dispatch = useDispatch();
-  
+
   const config = ROLE_CONFIG[selectedRole];
 
   // Filter cities based on selected state
@@ -136,7 +137,7 @@ const SignupScreen = () => {
     dispatch(getCitiesApi(getCitiesUrl));
     dispatch(getLocalitiesApi(getLocalitiesUrl));
 
-    
+
     let parsedUser = null;
     if (userParam) {
       try {
@@ -147,7 +148,7 @@ const SignupScreen = () => {
       }
     }
 
-    if(parsedUser){
+    if (parsedUser) {
       setName(parsedUser.name || "");
       setEmail(parsedUser.email || "");
       setMobile(parsedUser.phone || "");
@@ -163,7 +164,7 @@ const SignupScreen = () => {
   const pickImage = async (type: "aadhar" | "selfie") => {
     try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
+
       if (permissionResult.granted === false) {
         Alert.alert("Permission Required", "Please allow access to your photo library");
         return;
@@ -198,7 +199,7 @@ const SignupScreen = () => {
   const takePhoto = async (type: "aadhar" | "selfie") => {
     try {
       const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-      
+
       if (permissionResult.granted === false) {
         Alert.alert("Permission Required", "Please allow access to your camera");
         return;
@@ -261,7 +262,7 @@ const SignupScreen = () => {
     try {
       if (name.trim() && mobile.trim() && passwordRulesPassed) {
         setLoading(true);
-        
+
         const payload = {
           name: name.trim(),
           email: email.trim() || "",
@@ -286,11 +287,14 @@ const SignupScreen = () => {
             },
           }
         );
-        dispatch(setUser(response.data.data));
         if (response.data) {
           AppToast("Signup successful!");
           router.push({ pathname: "/(auth)/login", params: { role: "user" } });
         }
+        dispatch(setUser(response.data.data));
+        await AsyncStorage.setItem("user", JSON.stringify(response.data.user));
+        await AsyncStorage.setItem("authToken", response.data.access_token);
+        router.replace("/(tabs)");
       }
     } catch (error: any) {
       console.log(error.response.data, "error");
@@ -311,7 +315,7 @@ const SignupScreen = () => {
   const handleUpdateProfile = async () => {
     setLoading(true);
     try {
-      await dispatch(updateUserProfile(updateUserProfileUrl, {
+      const result: any = await dispatch(updateUserProfile(updateUserProfileUrl, {
         name: name.trim(),
         email: email.trim() || "",
         password: password.trim(),
@@ -325,8 +329,18 @@ const SignupScreen = () => {
         selfieverificationImage: selfiePhoto || "",
         Isagreeprivacy: true
       }));
+      const updatedUser = result?.data;
+      console.log(updatedUser, "updatedUser");
       AppToast("Profile updated successfully!");
-      router.push("/(tabs)");
+      if (updatedUser) {
+        dispatch(setUser(updatedUser));
+        await AsyncStorage.setItem("user", JSON.stringify(updatedUser));
+      }
+      if (result?.access_token) {
+        await AsyncStorage.setItem("authToken", result.access_token);
+      }
+      router.replace("/(tabs)");
+
     } catch (error: any) {
       console.log(error, "error");
       AppToast(error.response.data.message || "Failed to update profile");
@@ -483,7 +497,7 @@ const SignupScreen = () => {
                   editable={!isMobileFromParam}
                   containerStyle={styles.inputContainer}
                 />
-          
+
               </View>
               {/* Email Input */}
               <View style={styles.inputGroup}>
