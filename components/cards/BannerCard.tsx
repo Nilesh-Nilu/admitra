@@ -18,6 +18,16 @@ import { addFavoriteItem, removeFavoriteById } from "@/store/reducers/userReduce
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
+const timeAgo = (dateStr: string) => {
+  if (!dateStr) return "";
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const hrs = Math.floor(diff / 3600000);
+  if (hrs < 1) return "Just now";
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days} day${days > 1 ? "s" : ""} ago`;
+};
+
 type BannerCardProps = {
   item: any;
   isInline?: boolean;
@@ -115,6 +125,12 @@ export const BannerCard = ({ item, isInline = false }: BannerCardProps) => {
               </ThemedText>
             </View>
           )}
+          {(item.created_at || item.product?.created_at) ? (
+            <View style={styles.timeRow}>
+              <Ionicons name="time-outline" size={11} color="#94A3B8" />
+              <ThemedText style={styles.bannerTime}>{timeAgo(item.created_at || item.product?.created_at)}</ThemedText>
+            </View>
+          ) : null}
           <View style={styles.btnRow}>
             <TouchableOpacity
               style={styles.bannerBtnLeft}
@@ -217,6 +233,16 @@ const styles = StyleSheet.create({
     paddingTop: SIZES.padding8,
     paddingHorizontal: SIZES.padding12,
     paddingBottom: SIZES.padding10,
+  },
+  timeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginBottom: 6,
+  },
+  bannerTime: {
+    fontSize: 11,
+    color: "#94A3B8",
   },
   locationRow: {
     flexDirection: "row",

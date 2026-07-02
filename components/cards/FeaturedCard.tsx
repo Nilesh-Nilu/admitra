@@ -63,7 +63,7 @@ export const FeaturedCard = ({ item, isInline = false }: FeaturedCardProps) => {
           router.push({
             pathname: "/stacks/productDetails",
             params: {
-              productData: JSON.stringify(item),
+              productData: JSON.stringify({...item, is_featured: true}),
             },
           })
         }
@@ -93,6 +93,11 @@ export const FeaturedCard = ({ item, isInline = false }: FeaturedCardProps) => {
           <ThemedText numberOfLines={1} style={styles.featuredLocation}>
             {item.name}
           </ThemedText>
+          {item.created_at ? (
+            <ThemedText style={styles.featuredTime}>
+              {timeAgo(item.created_at)}
+            </ThemedText>
+          ) : null}
         </View>
       </TouchableOpacity>
     );
@@ -105,7 +110,7 @@ export const FeaturedCard = ({ item, isInline = false }: FeaturedCardProps) => {
       onPress={() =>
         router.push({
           pathname: "/stacks/productDetails",
-          params: { productData: JSON.stringify(item) },
+          params: { productData: JSON.stringify({...item, is_featured: true}) },
         })
       }
     >
@@ -132,9 +137,11 @@ export const FeaturedCard = ({ item, isInline = false }: FeaturedCardProps) => {
         <ThemedText style={styles.featuredLocation} numberOfLines={1}>
           {item.user?.city?.name || item.city || "India"}
         </ThemedText>
-        <ThemedText style={styles.featuredTime}>
-          {timeAgo(item.created_at)}
-        </ThemedText>
+        {item.created_at ? (
+          <ThemedText style={styles.featuredTime}>
+            {timeAgo(item.created_at)}
+          </ThemedText>
+        ) : null}
       </View>
     </TouchableOpacity>
   );
@@ -177,7 +184,7 @@ const styles = StyleSheet.create({
   },
   verifiedBadge: {
     position: "absolute",
-    bottom: SIZES.padding8,
+    top: SIZES.padding8 + 26,
     left: SIZES.padding8,
     zIndex: 2,
     flexDirection: "row",

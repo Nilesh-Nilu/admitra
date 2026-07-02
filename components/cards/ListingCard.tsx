@@ -16,6 +16,16 @@ type ListingCardProps = {
   item: any;
 };
 
+const timeAgo = (dateStr: string) => {
+  if (!dateStr) return "";
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const hrs = Math.floor(diff / 3600000);
+  if (hrs < 1) return "Just now";
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days} day${days > 1 ? "s" : ""} ago`;
+};
+
 export const formatPrice = (price: number) => {
   if (price >= 100000) return `₹${(price / 100000).toFixed(1)}L`;
   return `₹${price.toLocaleString("en-IN")}`;
@@ -79,6 +89,12 @@ export const ListingCard = ({ item }: ListingCardProps) => {
         <ThemedText style={styles.listingTitle} numberOfLines={1}>
           {item.name}
         </ThemedText>
+        {item.created_at ? (
+          <View style={styles.timeRow}>
+            <Ionicons name="time-outline" size={11} color="#94A3B8" />
+            <ThemedText style={styles.listingTime}>{timeAgo(item.created_at)}</ThemedText>
+          </View>
+        ) : null}
       </View>
     </TouchableOpacity>
   );
@@ -161,5 +177,15 @@ const styles = StyleSheet.create({
     fontSize: SIZES.fontSize12,
     color: COLORS.gray,
     lineHeight: SIZES.padding16,
+  },
+  timeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    marginTop: 2,
+  },
+  listingTime: {
+    fontSize: 10,
+    color: "#94A3B8",
   },
 });

@@ -68,6 +68,16 @@ export default function SeeAllFeaturedScreen() {
     return "₹" + price;
   };
 
+  const timeAgo = (dateStr: string) => {
+    if (!dateStr) return "";
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const hrs = Math.floor(diff / 3600000);
+    if (hrs < 1) return "Just now";
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days} day${days > 1 ? "s" : ""} ago`;
+  };
+
   const renderFeaturedItem = useCallback(({ item }: { item: any }) => (
     <TouchableOpacity
       style={styles.featuredCard}
@@ -110,6 +120,12 @@ export default function SeeAllFeaturedScreen() {
         <ThemedText style={styles.featuredPrice}>
           {formatPrice(item.price)}
         </ThemedText>
+        {item.created_at ? (
+          <View style={styles.timeRow}>
+            <Ionicons name="time-outline" size={11} color="#94A3B8" />
+            <ThemedText style={styles.featuredTime}>{timeAgo(item.created_at)}</ThemedText>
+          </View>
+        ) : null}
       </View>
     </TouchableOpacity>
   ), [safeFavorites]);
@@ -205,6 +221,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     color: "#1565C0",
+  },
+  timeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    marginTop: 4,
+  },
+  featuredTime: {
+    fontSize: 10,
+    color: "#94A3B8",
   },
   emptyContainer: {
     flex: 1,

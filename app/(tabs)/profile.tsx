@@ -5,7 +5,7 @@ import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
 import { getPolicyApi, ImageUrl, logoutUser, updateUserProfileUrl } from "@/constants/functions";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
-import { updateUserProfile } from "@/store/reducers/authReducer";
+import { setUser, updateUserProfile } from "@/store/reducers/authReducer";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
@@ -42,7 +42,6 @@ export default function ProfileScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
   const { user }: { user: User } = useSelector((state: any) => state.entities.authReducer);
-
   const { states, cities, localities } = useSelector((state: any) => state.entities.userReducer);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
@@ -201,21 +200,26 @@ export default function ProfileScreen() {
 
   const handleVerificationSubmit = async (data: any) => {
     try {
-      // Transform data to match the API structure
-      const updateData = {
+      const result: any = await dispatch(updateUserProfile(updateUserProfileUrl, {
         name: data.fullName,
         email: data.email,
         phone: data.mobileNumber,
-        address: data.address,
-        state_id: data.state?.id,
-        city_id: data.city?.id,
-        locality_id: data.locality?.id,
-        AadharImage: data.AadharImage,
-        selfieverificationImage: data.selfieverificationImage,
-      };
-
-      await dispatch(updateUserProfile(updateUserProfileUrl, updateData));
-      await AsyncStorage.setItem("user", JSON.stringify({ ...user, ...updateData, is_verify: 2 }));
+        address: data.address || "",
+        state_id: data.state?.id || null,
+        city_id: data.city?.id || null,
+        locality_id: data.locality?.id || null,
+        AadharImage: data.AadharImage || "",
+        selfieverificationImage: data.selfieverificationImage || "",
+        Isagreeprivacy: true,
+      }));
+      const updatedUser = result?.data;
+      if (updatedUser) {
+        dispatch(setUser({ ...updatedUser, is_verify: 2 }));
+        await AsyncStorage.setItem("user", JSON.stringify({ ...updatedUser, is_verify: 2 }));
+      }
+      if (result?.access_token) {
+        await AsyncStorage.setItem("authToken", result.access_token);
+      }
       setShowVerificationModal(false);
       router.push("/stacks/verificationPending" as any);
     } catch (error: any) {
@@ -226,7 +230,6 @@ export default function ProfileScreen() {
       );
     }
   };
-
   return (
     <ThemedView style={styles.container}>
       <ScrollView
@@ -238,14 +241,13 @@ export default function ProfileScreen() {
           <View style={styles.headerTop}>
             <ThemedText style={styles.headerTitle}>My Profile</ThemedText>
           </View>
-
           {/* Profile Card in Header */}
           <View style={styles.profileCard}>
             <View style={styles.profileLeft}>
               <View style={styles.avatarWrap}>
-                {user?.AadharImage ? (
+                {user?.selfieverificationImage ? (
                   <Image
-                    source={{ uri: `${ImageUrl}/${user?.AadharImage}` }}
+                    source={{ uri: `${ImageUrl}/${user?.selfieverificationImage}` }}
                     style={styles.avatar}
                   />
                 ) : (
@@ -254,7 +256,6 @@ export default function ProfileScreen() {
                   </View>
                 )}
                 {isVerified && (
-
                   <View style={styles.verifiedBadge}>
                     <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
                   </View>
@@ -272,7 +273,7 @@ export default function ProfileScreen() {
                 <View style={styles.locationRow}>
                   <Ionicons name="location-outline" size={12} color="rgba(255,255,255,0.8)" />
                   <ThemedText style={styles.locationText}>
-                    {user?.address || "Ranchi, Jharkhand"}
+                    {user?.address}
                   </ThemedText>
                 </View>
               </View>

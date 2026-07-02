@@ -267,14 +267,10 @@ const styles = StyleSheet.create({
   },
   topTextBannerRight: {
     flex: 1.1,
-    // gap: 2,
   },
   topTextBannerRightItem: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    textAlign: "center",
-    gap: 4,
   },
   topTextBannerRightText: {
     fontSize: 9,

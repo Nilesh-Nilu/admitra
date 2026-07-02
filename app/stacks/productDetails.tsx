@@ -3,7 +3,7 @@ import ImageZoomModal from "@/components/modals/ImageZoomModal";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
-import { createConversationApi, reportProductApi } from "@/constants/functions";
+import { addToFavoritesApi, createConversationApi, getCallManagementApi, getFavoritesListApi, removeFromFavoritesApi, reportProductApi, reportUserApi } from "@/constants/functions";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
@@ -15,7 +15,6 @@ import {
   Image,
   Linking,
   ScrollView,
-  Share,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -37,12 +36,25 @@ export default function ProductDetailsScreen() {
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [isReporting, setIsReporting] = useState(false);
+  const [reportUserModalVisible, setReportUserModalVisible] = useState(false);
+  const [reportUserReason, setReportUserReason] = useState("");
+  const [isReportingUser, setIsReportingUser] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteId, setFavoriteId] = useState<number | null>(null);
+  const [favLoading, setFavLoading] = useState(false);
+  const [callManagement, setCallManagement] = useState<any>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const initializeProduct = useCallback(() => {
     if (params.productData) {
       try {
+      getCallManagementApi().then((res) => {
+        setCallManagement(res.status);
+      }).catch((err) => {
+        setCallManagement(false);
+      });
         const parsedProduct = JSON.parse(params.productData as any);
         setProduct(parsedProduct);
+        console.log(parsedProduct, "parsedProduct");
       } catch (error) {
         console.error("Error parsing product data:", error);
         setProduct(null);
@@ -53,6 +65,18 @@ export default function ProductDetailsScreen() {
   useEffect(() => {
     initializeProduct();
   }, [initializeProduct]);
+
+  useEffect(() => {
+    if (!product?.id) return;
+    getFavoritesListApi().then((res) => {
+      const list = Array.isArray(res) ? res : (res?.data || []);
+      const match = list.find((f: any) => f.product_id === product.id || f.product?.id === product.id);
+      if (match) {
+        setIsFavorite(true);
+        setFavoriteId(match.id);
+      }
+    }).catch(() => {});
+  }, [product?.id]);
 
   useEffect(() => {
     const backAction = () => {
@@ -90,6 +114,28 @@ export default function ProductDetailsScreen() {
       }
     } catch (error) {
       console.log(error, "error");
+    }
+  };
+
+  const handleToggleFavorite = async () => {
+    if (favLoading) return;
+    setFavLoading(true);
+    try {
+      if (isFavorite && favoriteId) {
+        await removeFromFavoritesApi(favoriteId);
+        setIsFavorite(false);
+        setFavoriteId(null);
+        AppToast("Removed from saved ads");
+      } else {
+        const res = await addToFavoritesApi(product.id);
+        setIsFavorite(true);
+        setFavoriteId(res?.data?.id || res?.id || null);
+        AppToast("Saved to favorites");
+      }
+    } catch {
+      AppToast("Failed to update favorites");
+    } finally {
+      setFavLoading(false);
     }
   };
 
@@ -154,6 +200,34 @@ export default function ProductDetailsScreen() {
   };
 
 
+  const handleReportUser = async () => {
+    const reason = reportUserReason.trim();
+    if (!reason) {
+      Alert.alert("Reason required", "Please enter a reason to report this user.");
+      return;
+    }
+    const userId = product?.user?.id || product?.user_id;
+    if (!userId) {
+      Alert.alert("Error", "Unable to report this user right now.");
+      return;
+    }
+    try {
+      setIsReportingUser(true);
+      const response = await reportUserApi({ reported_user_id: Number(userId), reason });
+      if (response.status === false) {
+        AppToast("Failed to report user. Please try again.");
+      } else {
+        AppToast(response.message || "User reported successfully");
+        setReportUserModalVisible(false);
+        setReportUserReason("");
+      }
+    } catch {
+      AppToast("Failed to report user. Please try again.");
+    } finally {
+      setIsReportingUser(false);
+    }
+  };
+
   if (!product) {
     return (
       <View style={styles.loadingContainer}>
@@ -192,7 +266,7 @@ export default function ProductDetailsScreen() {
                   <Image
                     source={{ uri: image.image_path || image.image }}
                     style={styles.productImage}
-                    resizeMode="cover"
+                    resizeMode="contain"
                   />
                   <View style={styles.zoomHint}>
                     <Ionicons name="expand-outline" size={20} color="rgba(255,255,255,0.8)" />
@@ -218,6 +292,35 @@ export default function ProductDetailsScreen() {
               ))}
             </View>
           )}
+
+          {/* Type Badge */}
+          {(product?.is_featured || product?.featured) && (
+            <View style={[styles.typeBadge, { backgroundColor: "#E65100" }]}>
+              <Ionicons name="star" size={11} color="#fff" />
+              <ThemedText style={styles.typeBadgeText}>Featured</ThemedText>
+            </View>
+          )}
+          {!product?.is_featured && !product?.featured && !product?.is_banner && !product?.banner && (
+            <View style={[styles.typeBadge, { backgroundColor: "#2E7D32" }]}>
+              <Ionicons name="card" size={11} color="#fff" />
+              <ThemedText style={styles.typeBadgeText}>Normal</ThemedText>
+            </View>
+          )}
+          {/* Favorite pill */}
+          <TouchableOpacity
+            style={styles.favPill}
+            onPress={handleToggleFavorite}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name={isFavorite ? "heart" : "heart-outline"}
+              size={18}
+              color={isFavorite ? "#E91E63" : "#374151"}
+            />
+            <ThemedText style={[styles.favPillText, isFavorite && { color: "#E91E63" }]}>
+              {isFavorite ? "Saved" : "Save"}
+            </ThemedText>
+          </TouchableOpacity>
         </View>
         {/* Title + Price Row */}
         <View style={styles.titleSection}>
@@ -329,18 +432,28 @@ export default function ProductDetailsScreen() {
             </View>
           )}
         </View>
-        <TouchableOpacity onPress={handleOpenReportModal} activeOpacity={0.8}>
-          <ThemedText style={styles.reportAdText}>Report Ad</ThemedText>
-        </TouchableOpacity>
+        <View style={styles.reportRow}>
+          <TouchableOpacity onPress={handleOpenReportModal} activeOpacity={0.8} style={styles.reportBtn}>
+            <Ionicons name="flag-outline" size={14} color={COLORS.error} />
+            <ThemedText style={styles.reportAdText}>Report Ad</ThemedText>
+          </TouchableOpacity>
+          <View style={styles.reportDivider} />
+          <TouchableOpacity onPress={() => { setReportUserReason(""); setReportUserModalVisible(true); }} activeOpacity={0.8} style={styles.reportBtn}>
+            <Ionicons name="person-remove-outline" size={14} color={COLORS.error} />
+            <ThemedText style={styles.reportAdText}>Report User</ThemedText>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
       {/* Bottom Action Bar */}
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
+       
+       {callManagement === true && (
         <TouchableOpacity style={styles.callButton} onPress={handleCall} activeOpacity={0.8}>
           <Ionicons name="call" size={18} color={COLORS.white} />
           <ThemedText style={styles.callBtnText}>Call</ThemedText>
         </TouchableOpacity>
-
+       )}
         <TouchableOpacity style={styles.chatButton} onPress={handleChat} activeOpacity={0.8}>
           <Ionicons name="chatbubble-ellipses" size={18} color={COLORS.white} />
           <ThemedText style={styles.chatBtnText}>Chat</ThemedText>
@@ -356,7 +469,7 @@ export default function ProductDetailsScreen() {
         onIndexChange={setSelectedImageIndex}
       />
 
-      {/* Report Modal */}
+      {/* Report Ad Modal */}
       <ReportModal
         visible={reportModalVisible}
         reason={reportReason}
@@ -364,6 +477,16 @@ export default function ProductDetailsScreen() {
         onClose={handleCloseReportModal}
         onSubmit={handleReportProduct}
         isSubmitting={isReporting}
+      />
+
+      {/* Report User Modal */}
+      <ReportModal
+        visible={reportUserModalVisible}
+        reason={reportUserReason}
+        onChangeReason={setReportUserReason}
+        onClose={() => { if (!isReportingUser) setReportUserModalVisible(false); }}
+        onSubmit={handleReportUser}
+        isSubmitting={isReportingUser}
       />
     </ThemedView>
   );
@@ -553,10 +676,30 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginTop: 6,
   },
+  reportRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.white,
+    borderRadius: 14,
+    paddingVertical: 14,
+    marginBottom: 12,
+  },
+  reportBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  reportDivider: {
+    width: 1,
+    height: 18,
+    backgroundColor: COLORS.border,
+  },
   reportAdText: {
-    fontSize: 16,
+    fontSize: 14,
     color: COLORS.error,
-    textAlign: "center",
     fontWeight: "700",
   },
   /* Bottom Bar */
@@ -607,6 +750,44 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     color: COLORS.white,
+  },
+  typeBadge: {
+    position: "absolute",
+    top: 10,
+    left: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  typeBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#fff",
+  },
+  favPill: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#fff",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  favPillText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#374151",
   },
   zoomHint: {
     position: "absolute",

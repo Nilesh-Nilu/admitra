@@ -68,6 +68,16 @@ export default function SeeAllFreshScreen() {
     return "₹" + price;
   };
 
+  const timeAgo = (dateStr: string) => {
+    if (!dateStr) return "";
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const hrs = Math.floor(diff / 3600000);
+    if (hrs < 1) return "Just now";
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days} day${days > 1 ? "s" : ""} ago`;
+  };
+
   const renderProductItem = useCallback(({ item }: { item: any }) => (
     <TouchableOpacity
       style={styles.productCard}
@@ -113,6 +123,12 @@ export default function SeeAllFreshScreen() {
         <ThemedText style={styles.productTitle} numberOfLines={1}>
           {item.name}
         </ThemedText>
+        {item.created_at ? (
+          <View style={styles.timeRow}>
+            <Ionicons name="time-outline" size={11} color="#94A3B8" />
+            <ThemedText style={styles.productTime}>{timeAgo(item.created_at)}</ThemedText>
+          </View>
+        ) : null}
       </View>
     </TouchableOpacity>
   ), [safeFavorites]);
@@ -213,6 +229,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
     color: COLORS.text,
+  },
+  timeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    marginTop: 4,
+  },
+  productTime: {
+    fontSize: 10,
+    color: "#94A3B8",
   },
   emptyContainer: {
     flex: 1,

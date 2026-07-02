@@ -40,7 +40,22 @@ export default function Index() {
     );
   }
 
-  const route = user ? user.name ? "/(tabs)" : "/(auth)/loginFields" : "/(auth)";
+  if (user) {
+    if (user.name) {
+      return <Redirect href="/(tabs)" />;
+    } else {
+      return (
+        <Redirect
+          href={{
+            pathname: "/(auth)/loginFields",
+            params: {
+              user: JSON.stringify(user),
+            },
+          }}
+        />
+      );
+    }
+  }
 
-  return <Redirect href={route} />;
+  return <Redirect href="/(auth)" />;
 }

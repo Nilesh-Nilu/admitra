@@ -66,6 +66,16 @@ export default function SeeAllBannersScreen() {
     return () => backHandler.remove();
   }, [router]);
 
+  const timeAgo = (dateStr: string) => {
+    if (!dateStr) return "";
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const hrs = Math.floor(diff / 3600000);
+    if (hrs < 1) return "Just now";
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days} day${days > 1 ? "s" : ""} ago`;
+  };
+
   const handleVisitWebsite = async (websiteLink?: string) => {
     if (websiteLink) {
       try {
@@ -143,6 +153,12 @@ export default function SeeAllBannersScreen() {
             </ThemedText>
           </View>
         )}
+        {(item.created_at || item.product?.created_at) ? (
+          <View style={styles.timeRow}>
+            <Ionicons name="time-outline" size={11} color="#94A3B8" />
+            <ThemedText style={styles.bannerTime}>{timeAgo(item.created_at || item.product?.created_at)}</ThemedText>
+          </View>
+        ) : null}
       </View>
       <View style={styles.bannerActions}>
         <TouchableOpacity
@@ -248,6 +264,16 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: COLORS.black,
     lineHeight: 20,
+  },
+  timeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    marginTop: 6,
+  },
+  bannerTime: {
+    fontSize: 10,
+    color: "#94A3B8",
   },
   locationRow: {
     flexDirection: "row",

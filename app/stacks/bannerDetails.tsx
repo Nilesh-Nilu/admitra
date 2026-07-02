@@ -17,7 +17,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { getBannerWarningApi, createConversationApi, reportProductApi, addToFavoritesApi, getFavoritesListApi, removeFromFavoritesApi } from "@/constants/functions";
+import { getBannerWarningApi, createConversationApi, reportProductApi, reportUserApi, addToFavoritesApi, getFavoritesListApi, removeFromFavoritesApi } from "@/constants/functions";
 import AppToast from "@/components/toasts/AppToast";
 import { COLORS } from "@/constants/Colors";
 import ImageZoomModal from "@/components/modals/ImageZoomModal";
@@ -76,13 +76,13 @@ export default function BannerDetailsScreen() {
     }
   }, [params.bannerData]);
 
- const handleCall = () => {
-  if (product?.user?.phone) {
-    Linking.openURL(`tel:${product?.user?.phone}`);
-  } else {
-    Alert.alert("Error", "Phone number not available");
-  }
- };
+  const handleCall = () => {
+    if (product?.user?.phone) {
+      Linking.openURL(`tel:${product?.user?.phone}`);
+    } else {
+      Alert.alert("Error", "Phone number not available");
+    }
+  };
   useEffect(() => {
     initializeBanner();
     getBannerWarningApi().then(setBannerWarnings).catch(console.error);
@@ -181,23 +181,29 @@ export default function BannerDetailsScreen() {
     const reason = reportReason.trim();
 
     if (!reason) {
-      Alert.alert("Reason required", "Please enter a reason to report this ad.");
-      return;
-    }
-
-    if (!product?.id) {
-      Alert.alert("Error", "Unable to report this ad right now.");
+      Alert.alert("Reason required", `Please enter a reason to report this ${reportTarget === "user" ? "user" : "ad"}.`);
       return;
     }
 
     try {
       setIsReporting(true);
-        const response = await reportProductApi({
-          product_id: Number(product.id),
-          reason,
-        });
+      let response;
+      if (reportTarget === "user") {
+        const userId = product?.user?.id || product?.user?.user_id;
+        if (!userId) {
+          Alert.alert("Error", "Unable to report this user right now.");
+          return;
+        }
+        response = await reportUserApi({ reported_user_id: Number(userId), reason });
+      } else {
+        if (!product?.id) {
+          Alert.alert("Error", "Unable to report this ad right now.");
+          return;
+        }
+        response = await reportProductApi({ product_id: Number(product.id), reason });
+      }
       if (response.status === false) {
-        AppToast("Failed to report this ad. Please try again.");
+        AppToast(`Failed to report this ${reportTarget === "user" ? "user" : "ad"}. Please try again.`);
       } else {
         AppToast(response.message);
         setReportModalVisible(false);
@@ -205,7 +211,7 @@ export default function BannerDetailsScreen() {
       }
     } catch (error) {
       console.log(error, "error");
-      AppToast("Failed to report this ad. Please try again.");
+      AppToast(`Failed to report this ${reportTarget === "user" ? "user" : "ad"}. Please try again.`);
     } finally {
       setIsReporting(false);
     }
@@ -233,6 +239,9 @@ export default function BannerDetailsScreen() {
             style={styles.bannerImage}
             resizeMode="cover"
           />
+          <View style={styles.typeBadge}>
+            <ThemedText style={styles.typeBadgeText}>Banner</ThemedText>
+          </View>
           {/* Favorite pill */}
           <TouchableOpacity
             style={styles.favPill}
@@ -416,29 +425,6 @@ export default function BannerDetailsScreen() {
 
         {/* ── Save & Report ── */}
         <View style={styles.sectionCard}>
-          {/* Add to Favorites */}
-          <TouchableOpacity
-            style={styles.listRow}
-            activeOpacity={0.8}
-            onPress={handleToggleFavorite}
-          >
-            <View style={[styles.listRowIcon, { backgroundColor: "#FCE4EC" }]}>
-              <Ionicons name={isFavorite ? "heart" : "heart-outline"} size={20} color="#E91E63" />
-            </View>
-            <View style={styles.listRowText}>
-              <ThemedText style={styles.listRowTitle}>
-                {isFavorite ? "Saved to Favorites" : "Add to Favorites"}
-              </ThemedText>
-              <ThemedText style={styles.listRowSub}>
-                {isFavorite ? "Tap to remove" : "Save this ad for later"}
-              </ThemedText>
-            </View>
-            <Ionicons
-              name={isFavorite ? "checkmark-circle" : "chevron-forward"}
-              size={20}
-              color={isFavorite ? "#E91E63" : "#CBD5E1"}
-            />
-          </TouchableOpacity>
 
           <View style={styles.listDivider} />
 
@@ -546,7 +532,22 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
     color: "#374151",
+  }, typeBadge: {
+    position: "absolute",
+    top: SIZES.padding10,
+    left: SIZES.padding10,
+    zIndex: 2,
+    backgroundColor: "#1565C0",
+    paddingHorizontal: SIZES.padding8,
+    paddingVertical: SIZES.padding2,
+    borderRadius: SIZES.radius2,
   },
+  typeBadgeText: {
+    fontSize: SIZES.fontSize10 - 1,
+    fontWeight: "700",
+    color: COLORS.white,
+  },
+
 
   /* Info Card */
   infoCard: {

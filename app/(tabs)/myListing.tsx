@@ -30,6 +30,7 @@ const filterOptions = [
   { id: 'banner', label: 'Baner Ads', icon: 'images-outline', color: '#7B1FA2', bgColor: '#F3E5F5', borderColor: '#E1BEE7' },
   { id: 'pending', label: 'Pending Ads', icon: 'time-outline', color: '#F57F17', bgColor: '#FFF8E1', borderColor: '#FFECB3' },
   { id: 'favorites', label: 'Favorite Ads', icon: 'heart-outline', color: '#f5af19', bgColor: '#f5af1915', borderColor: '#f5af1915' },
+  { id: 'renewed', label: 'Renew Ads', icon: 'refresh-outline', color: '#1565C0', bgColor: '#1565C015', borderColor: '#1565C015' },
 ];
 
 const getStatusConfig = (status: string) => {

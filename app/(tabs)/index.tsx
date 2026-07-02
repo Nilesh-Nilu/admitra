@@ -26,6 +26,7 @@ import {
   getSubCategoriesUrl,
   baseUrl,
   getAuthToken,
+  getNormalAdsInfoApi,
 } from "@/constants/functions";
 import axios from "axios";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
@@ -52,6 +53,7 @@ import {
   ActivityIndicator,
   Dimensions,
   FlatList,
+  Image,
   Linking,
   ScrollView,
   StyleSheet,
@@ -75,6 +77,7 @@ export default function HomeScreen() {
   const [selectedLocality, setSelectedLocality] = useState<any>(null);
   const [isCityInitialized, setIsCityInitialized] = useState(false);
   const [promotionBanners, setPromotionBanners] = useState<any>([]);
+  const [normalAdsInfo, setNormalAdsInfo] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMoreProducts, setHasMoreProducts] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -172,6 +175,10 @@ export default function HomeScreen() {
     dispatch(getBannersApi(getBannerAdsUrl));
     dispatch(getFeaturedAdsApi(getFeaturedAdsUrl));
     dispatch(getFavoritesApi(favoritesUrl));
+    getNormalAdsInfoApi().then((res: any) => {
+      setNormalAdsInfo(res);
+    });
+
   }, []);
 
   useEffect(() => {
@@ -199,7 +206,6 @@ export default function HomeScreen() {
   }, [selectedCity?.id]);
 
   const loadMoreProducts = useCallback(async () => {
-    console.log('[Pagination] onEndReached fired — hasMore:', hasMoreRef.current, 'isLoading:', isLoadingMoreRef.current, 'page:', currentPageRef.current);
     if (!hasMoreRef.current || isLoadingMoreRef.current) return;
     isLoadingMoreRef.current = true;
     setIsLoadingMore(true);
@@ -207,13 +213,11 @@ export default function HomeScreen() {
     try {
       const authHeaders = await getAuthToken();
       const url = `${baseUrl}/${getProductsUrl}?per_page=20&page=${nextPage}`;
-      console.log('[Pagination] fetching:', url);
       const response = await axios.get(url, authHeaders);
       const raw = response.data;
       // API shape: { status, data: { current_page, data: [...], last_page, next_page_url } }
       const paginator = raw?.data;
       const list = Array.isArray(paginator) ? paginator : Array.isArray(paginator?.data) ? paginator.data : [];
-      console.log('[Pagination] page', nextPage, '— items:', list.length, '— last_page:', paginator?.last_page);
       dispatch(appendProductsRecieved({ data: list }) as any);
       const noMore = !paginator?.next_page_url
         || (paginator?.last_page != null && nextPage >= paginator.last_page);
@@ -365,13 +369,40 @@ export default function HomeScreen() {
               />
               <View style={styles.sectionHeader}>
                 <ThemedText style={styles.sectionTitle}>
-                  Fresh Recommendations
+                  Normal Ads
                 </ThemedText>
                 <TouchableOpacity style={styles.seeAllBtn} onPress={() => router.push({ pathname: "/stacks/seeAllFresh" })}>
                   <ThemedText style={styles.seeAllText}>See All</ThemedText>
                   <Ionicons name="arrow-forward" size={15} color="#1565C0" />
                 </TouchableOpacity>
               </View>
+              {normalAdsInfo && (
+                <TouchableOpacity
+                  style={styles.topTextBanner}
+                  // onPress={() => router.push("/(tabs)/post")}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.topTextBannerLeft}>
+                    {normalAdsInfo.icon ? (
+                      <Image
+                        source={{ uri: normalAdsInfo.icon }}
+                        style={{ width: 32, height: 32, marginRight: 8, borderRadius: 4 }}
+                      />
+                    ) : (
+                      <Ionicons name="megaphone-outline" size={22} color="#1565C0" style={{ marginRight: 8 }} />
+                    )}
+                    <ThemedText style={styles.topTextBannerLeftText}>
+                      {normalAdsInfo.title}
+                    </ThemedText>
+                  </View>
+
+                  <View style={styles.topTextBannerHighlight}>
+                    <ThemedText style={styles.topTextBannerHighlightText}>
+                      {normalAdsInfo.button_label}
+                    </ThemedText>
+                  </View>
+                </TouchableOpacity>
+              )}
             </>
           }
           onEndReached={loadMoreProducts}
@@ -435,4 +466,38 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: SIZES.fontSize16, fontWeight: "700", color: COLORS.text },
   seeAllBtn: { flexDirection: "row", alignItems: "center", gap: 2 },
   seeAllText: { fontSize: SIZES.fontSize12, fontWeight: "600", color: "#1565C0" },
+  topTextBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#E8F0FE",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#BBDEFB",
+  },
+  topTextBannerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  topTextBannerLeftText: {
+    fontSize: 13,
+    color: "#0D47A1",
+    fontWeight: "700",
+    flexShrink: 1,
+  },
+  topTextBannerHighlight: {
+    backgroundColor: "#1565C0",
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginLeft: 10,
+  },
+  topTextBannerHighlightText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
 });

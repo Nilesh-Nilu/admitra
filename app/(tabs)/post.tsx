@@ -4,7 +4,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import AppToast from "@/components/toasts/AppToast";
 import { COLORS } from "@/constants/Colors";
-import { createOrderApi, getApprovedProductsUrl, getChildCategoriesApi, getPlansListUrl, handleVerifyandAddProductApi, RAZORPAY_KEY, favoritesUrl, getMyBannerAdsUrl, getMyFeaturedAdsUrl, getMyProductsUrl, } from "@/constants/functions";
+import { createOrderApi, getApprovedProductsUrl, getChildCategoriesApi, getPlansListUrl, handleVerifyandAddProductApi, RAZORPAY_KEY, favoritesUrl, getMyBannerAdsUrl, getMyFeaturedAdsUrl, getMyProductsUrl, getFreeTrialStatusApi, } from "@/constants/functions";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 import { setClearData } from "@/store/reducers/paymentReducer";
 import { getApprovedProductsApi, getPlansListApi, getFavoritesApi, getMyBannerAdsApi, getMyFeaturedAdsApi, getMyProductsApi } from "@/store/reducers/userReducer";
@@ -56,6 +56,7 @@ export default function PostScreen() {
   const [customFields, setCustomFields] = useState<{ name: string; value: string }[]>([{ name: "Warranty", value: "" }]);
   const [videoLink2, setVideoLink2] = useState("");
   const [cropImage, setCropImage] = useState<{ uri: string; width: number; height: number } | null>(null);
+  const [isFreeTrial, setIsFreeTrial] = useState(false);
 
   const dispatch = useDispatch();
   // Filter sub-categories based on selected category
@@ -119,6 +120,9 @@ export default function PostScreen() {
   };
   useEffect(() => {
     dispatch(getPlansListApi(getPlansListUrl))
+    getFreeTrialStatusApi(user?.id).then((res: any) => {
+      setIsFreeTrial(res);
+    });
   }, [])
 
   useEffect(() => {
@@ -202,9 +206,12 @@ export default function PostScreen() {
     try {
       const filledCustomFields = customFields.filter(f => f.name.trim() && f.value.trim());
       const payload = {
-        razorpay_order_id: paymentData?.razorpay_order_id || null,
-        razorpay_payment_id: paymentData?.razorpay_payment_id || null,
-        razorpay_signature: paymentData?.razorpay_signature || null,
+        ...(paymentData && paymentData.razorpay_payment_id && {
+          plan_id: adType?.id,
+          razorpay_order_id: paymentData?.razorpay_order_id || null,
+          razorpay_payment_id: paymentData?.razorpay_payment_id || null,
+          razorpay_signature: paymentData?.razorpay_signature || null,
+        }),
         category_id: selectedCategory,
         sub_category_id: selectedSubCategory,
         child_category_id: selectedChildCategory || 0,
@@ -215,12 +222,14 @@ export default function PostScreen() {
         price_negotiable: isNegotiable,
         custom_fields: filledCustomFields,
         images: [...images],
-        plan_id: adType?.id,
-        banner_image: adType?.id === 3 ? images[0] : null,
-        banner_video_url: adType?.id === 3 ? videoLink : null,
-        website_link: adType?.id === 3 ? websiteLink : null,
-        video: adType?.id === 3 ? videoLink2 : null,
+        ...(adType?.id === 3 && {
+          banner_image: images[0] || null,
+          banner_video_url: videoLink || null,
+          website_link: websiteLink || null,
+          video: videoLink2 || null,
+        }),
       };
+ 
       console.log(payload, "payload");
 
       const response = await handleVerifyandAddProductApi(payload);
@@ -242,8 +251,8 @@ export default function PostScreen() {
         [{ text: "OK", onPress: () => router.push("/(tabs)") }]
       );
       clearForm();
-    } catch (error) {
-      console.log(error, "error");
+    } catch (error: any) {
+      console.log(error?.response?.data, "submitProduct");
       AppToast("Failed to submit listing. Please try again.");
     }
   };
@@ -256,6 +265,13 @@ export default function PostScreen() {
     setIsLoading(true);
 
     try {
+      // Free trial: normal ads (not featured id=2, not banner id=3) skip payment entirely
+      if (isFreeTrial && adType?.id !== 2 && adType?.id !== 3) {
+        await submitProduct(null);
+        setIsLoading(false);
+        return;
+      }
+
       const orderRes = await createOrderApi(adType?.id);
       if (!orderRes) {
         AppToast("Failed to create order. Please try again.");
@@ -272,7 +288,7 @@ export default function PostScreen() {
 
       // Free plan — skip Razorpay, submit directly
       if (!totalAmount || totalAmount === 0) {
-        await submitProduct({});
+        await submitProduct(null);
         setIsLoading(false);
         return;
       }
@@ -754,9 +770,9 @@ export default function PostScreen() {
               ) : (
                 <>
                   {adType && parseFloat(adType.price) > 0 && (
-                    <ThemedText style={styles.submitBtnPrice}>₹{adType.price}</ThemedText>
+                    <ThemedText style={styles.submitBtnPrice}>₹{isFreeTrial ? 0 : adType.price}</ThemedText>
                   )}
-                  <ThemedText style={styles.submitBtnText}>Pay & Post Ad</ThemedText>
+                  <ThemedText style={styles.submitBtnText}>{isFreeTrial ? "Post Ad" : "Pay & Post Ad"}</ThemedText>
                   <Ionicons name="arrow-forward" size={20} color={COLORS.white} />
                 </>
               )}

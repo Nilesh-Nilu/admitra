@@ -131,10 +131,6 @@ export default function NotificationsScreen() {
   }, []);
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
-  const markAllRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-  };
-
   const onRefresh = () => {
     fetchNotifications(1);
   };

@@ -376,6 +376,7 @@ export const handleVerifyandAddProductApi = async (data) => {
       data,
       config
     );
+    console.log(response.data, "response");
     return response.data;
   }
   catch (error) {
@@ -488,6 +489,20 @@ export const getPolicyApi = async () => {
   }
 }
 
+export const reportUserApi = async (data) => {
+  try {
+    const response = await axios.post(
+      `${baseUrl}/user/report`,
+      data,
+      await getAuthToken()
+    );
+    return response.data;
+  } catch (error) {
+    console.log(error?.response?.data || error, "error");
+    throw error;
+  }
+}
+
 export const reportProductApi = async (data) => {
   try {
     const response = await axios.post(
@@ -522,6 +537,18 @@ export const getBannerWarningApi = async () => {
       await getAuthToken()
     );
     return response.data.data;
+  } catch (error) {
+    console.log(error?.response?.data || error, "error");
+    throw error;
+  }
+}
+export const getCallManagementApi = async () => {
+  try {
+    const response = await axios.get(
+      `${baseUrl}/call-management`,
+      await getAuthToken()
+    );
+    return response.data.data[0];
   } catch (error) {
     console.log(error?.response?.data || error, "error");
     throw error;
@@ -631,11 +658,63 @@ export const getNotifications = async (
       },
       headers: {
         accept: "application/json",
-        ...(await getAuthToken()).headers  },
+        ...(await getAuthToken()).headers
+      },
     }
   );
 
   return response.data;
+};
+export const getNormalAdsInfoApi = async (
+) => {
+  try {
+    const response = await axios.get(
+      `${baseUrl}/normal-ads-info`,
+      await getAuthToken()
+    );
+    return response.data.data[0];
+  } catch (error) {
+    console.log(error?.response?.data || error, "getNormalAdsInfoApi");
+    throw error;
+  }
+};
+export const getFeaturedAdsInfoApi = async (
+) => {
+  try {
+    const response = await axios.get(
+      `${baseUrl}/feature-information`,
+      await getAuthToken()
+    );
+    return response.data.data[0];
+  } catch (error) {
+    console.log(error?.response?.data || error, "getFeaturedAdsInfoApi");
+    throw error;
+  }
+};
+
+export const getFreeTrialStatusApi = async (
+  userId
+) => {
+  try {
+    const response = await axios.get(
+      `${baseUrl}/users/${userId}/free-status`,
+      await getAuthToken()
+    );
+  
+    const responseTrial = await axios.get(
+      `${baseUrl}/users/${userId}/free-trial-status`,
+      await getAuthToken()
+    );
+  
+    const isFree = Boolean(response.data?.data?.is_free);
+    const isTrialActive = Boolean(responseTrial.data?.data?.is_active);
+    // console.log(response.data?.data, "isFree");
+    // console.log(responseTrial.data?.data, "isTrialActive");
+    return isFree || isTrialActive;
+  } catch (error) {
+    console.log(error?.response?.data || error, "error");
+    throw error;
+  }
 };
 
 export const markNotificationRead = async (
@@ -650,9 +729,11 @@ export const markNotificationRead = async (
     {
       headers: {
         accept: "application/json",
-        ...(await getAuthToken()).headers  },
+        ...(await getAuthToken()).headers
+      },
     }
   );
 
   return response.data;
 };
+
