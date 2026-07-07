@@ -4,6 +4,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { getUserDetailsApi, ImageUrl } from "@/constants/functions";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import CropModal from "@/components/modals/CropModal";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
@@ -77,6 +78,7 @@ const GetVerifiedProfileModal: React.FC<GetVerifiedProfileModalProps> = ({
   const [selectedState, setSelectedState] = useState<State | null>(null);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [selectedIdType, setSelectedIdType] = useState<string | null>(null);
+  const [cropImage, setCropImage] = useState<{ uri: string; width: number; height: number; type: "aadhar" | "selfie" | "aadharBack" } | null>(null);
   const { user } = useSelector((state: any) => state.entities.authReducer);
 
   // Filter cities based on selected state
@@ -109,6 +111,27 @@ const GetVerifiedProfileModal: React.FC<GetVerifiedProfileModalProps> = ({
     setSelectedCity(null); // Reset city when state changes
   };
 
+  const applyCroppedImage = (type: "aadhar" | "selfie" | "aadharBack", croppedUri: string) => {
+    if (type === "aadhar") {
+      setForm((prev) => ({ ...prev, AadharImage: croppedUri }));
+    } else if (type === "aadharBack") {
+      setForm((prev) => ({ ...prev, AadharImageBack: croppedUri }));
+    } else {
+      setForm((prev) => ({ ...prev, selfieverificationImage: croppedUri }));
+    }
+  };
+
+  const resolveImageSize = (uri: string, fallbackW?: number, fallbackH?: number): Promise<{ width: number; height: number }> => {
+    if (fallbackW && fallbackH) return Promise.resolve({ width: fallbackW, height: fallbackH });
+    return new Promise((resolve) => {
+      Image.getSize(
+        uri,
+        (width, height) => resolve({ width, height }),
+        () => resolve({ width: 1000, height: 1000 })
+      );
+    });
+  };
+
   const pickImage = async (type: "aadhar" | "selfie" | "aadharBack") => {
     try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -119,29 +142,16 @@ const GetVerifiedProfileModal: React.FC<GetVerifiedProfileModalProps> = ({
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        aspect: type === "aadhar" ? [16, 9] : [1, 1],
-        quality: 0.8,
+        quality: 1,
+        selectionLimit: 1,
         base64: true,
+        allowsEditing: false,
       });
 
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
-        if (asset.base64) {
-          const mimeType = asset.mimeType || "image/jpeg";
-          if (type === "aadhar") {
-            setForm((prev) => ({ ...prev, AadharImage: `data:${mimeType};base64,${asset.base64}` }));
-          } else if (type === "aadharBack") {
-            setForm((prev) => ({
-              ...prev,
-              AadharImageBack: `data:${mimeType};base64,${asset.base64}`
-            }));
-          } else {
-            setForm((prev) => ({ ...prev, selfieverificationImage: `data:${mimeType};base64,${asset.base64}` }));
-          }
-
-        } else {
-          Alert.alert("Error", "Failed to get image data. Please try again.");
-        }
+        const { width, height } = await resolveImageSize(asset.uri, asset.width, asset.height);
+        setCropImage({ uri: asset.uri, width, height, type });
       }
     } catch (error) {
       Alert.alert("Error", "Failed to pick image");
@@ -158,25 +168,14 @@ const GetVerifiedProfileModal: React.FC<GetVerifiedProfileModalProps> = ({
       }
 
       const result = await ImagePicker.launchCameraAsync({
-        aspect: type === "aadhar" ? [16, 9] : [1, 1],
-        quality: 0.8,
-        base64: true,
+        quality: 1,
+        allowsEditing: false,
       });
 
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
-        if (asset.base64) {
-          const mimeType = asset.mimeType || "image/jpeg";
-          if (type === "aadhar") {
-            setForm((prev) => ({ ...prev, AadharImage: `data:${mimeType};base64,${asset.base64}` }));
-          } else if (type === "aadharBack") {
-            setForm((prev) => ({ ...prev, AadharImageBack: `data:${mimeType};base64,${asset.base64}` }));
-          } else {
-            setForm((prev) => ({ ...prev, selfieverificationImage: `data:${mimeType};base64,${asset.base64}` }));
-          }
-        } else {
-          Alert.alert("Error", "Failed to get image data. Please try again.");
-        }
+        const { width, height } = await resolveImageSize(asset.uri, asset.width, asset.height);
+        setCropImage({ uri: asset.uri, width, height, type });
       }
     } catch (error) {
       Alert.alert("Error", "Failed to take photo");
@@ -250,8 +249,17 @@ const GetVerifiedProfileModal: React.FC<GetVerifiedProfileModalProps> = ({
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const isDisabled = form.fullName.trim() && form.mobileNumber.trim() && form.email.trim() && selectedState && selectedCity && form.address.trim() && (selectedIdType && !form.AadharImage);
-
+  const isFormValid = Boolean(
+    form.fullName.trim() &&
+    form.mobileNumber.trim() &&
+    form.email.trim() &&
+    selectedState &&
+    selectedCity &&
+    form.address.trim() &&
+    selectedIdType &&
+    form.AadharImage &&
+    form.selfieverificationImage
+  );
   return (
     <Modal
       visible={isVisible}
@@ -574,13 +582,27 @@ const GetVerifiedProfileModal: React.FC<GetVerifiedProfileModalProps> = ({
         <View style={styles.bottomContainer}>
           <ThemedButton
             buttonText="Get Verified Now"
-            disabled={Boolean(isDisabled)}
+            disabled={!isFormValid}
             onPress={handleSubmit}
-            style={[styles.verifyButton, isDisabled && { opacity: 0.5 }]}
-            textStyle={[styles.verifyButtonText, isDisabled && { opacity: 0.5 }]}
+            style={[styles.verifyButton, !isFormValid && { opacity: 0.5 }]}
+            textStyle={[styles.verifyButtonText, !isFormValid && { opacity: 0.5 }]}
           />
         </View>
       </View>
+
+      {cropImage && (
+        <CropModal
+          visible={!!cropImage}
+          imageUri={cropImage.uri}
+          imageWidth={cropImage.width}
+          imageHeight={cropImage.height}
+          onClose={() => setCropImage(null)}
+          onCrop={(croppedUri) => {
+            applyCroppedImage(cropImage.type, croppedUri);
+            setCropImage(null);
+          }}
+        />
+      )}
     </Modal>
   );
 };

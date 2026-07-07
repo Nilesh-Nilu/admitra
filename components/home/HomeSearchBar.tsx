@@ -10,6 +10,7 @@ type HomeSearchBarProps = {
   onPressHelp: () => void;
   onPressFavorites: () => void;
   onPressNotifications: () => void;
+  hasUnreadNotifications?: boolean;
 };
 
 export const HomeSearchBar = ({
@@ -17,6 +18,7 @@ export const HomeSearchBar = ({
   onPressHelp,
   onPressFavorites,
   onPressNotifications,
+  hasUnreadNotifications = false,
 }: HomeSearchBarProps) => {
   return (
     <View style={styles.searchRow}>
@@ -43,19 +45,21 @@ export const HomeSearchBar = ({
       </TouchableOpacity>
       <TouchableOpacity onPress={onPressNotifications} activeOpacity={0.8} style={{ position: "relative" }}>
         <Ionicons name="notifications-outline" size={22} color={COLORS.black} />
-        <View
-          style={{
-            position: "absolute",
-            top: 2,
-            right: 2,
-            width: 9,
-            height: 9,
-            borderRadius: 4.5,
-            backgroundColor: "#FF3636",
-            borderWidth: 1,
-            borderColor: COLORS.white,
-          }}
-        />
+        {hasUnreadNotifications && (
+          <View
+            style={{
+              position: "absolute",
+              top: 2,
+              right: 2,
+              width: 9,
+              height: 9,
+              borderRadius: 4.5,
+              backgroundColor: "#FF3636",
+              borderWidth: 1,
+              borderColor: COLORS.white,
+            }}
+          />
+        )}
       </TouchableOpacity>
 
     </View>

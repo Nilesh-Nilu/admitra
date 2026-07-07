@@ -100,6 +100,17 @@ export default function PostScreen() {
     setWebsiteLink("")
   };
 
+  const resolveImageSize = (uri: string, fallbackW?: number, fallbackH?: number): Promise<{ width: number; height: number }> => {
+    if (fallbackW && fallbackH) return Promise.resolve({ width: fallbackW, height: fallbackH });
+    return new Promise((resolve) => {
+      Image.getSize(
+        uri,
+        (width, height) => resolve({ width, height }),
+        () => resolve({ width: 1000, height: 1000 })
+      );
+    });
+  };
+
   const pickImage = async () => {
     if (images.length >= 8) {
       Alert.alert("Maximum Images", "You can only upload up to 8 images");
@@ -115,7 +126,8 @@ export default function PostScreen() {
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
       const asset = result.assets[0];
-      setCropImage({ uri: asset.uri, width: asset.width, height: asset.height });
+      const { width, height } = await resolveImageSize(asset.uri, asset.width, asset.height);
+      setCropImage({ uri: asset.uri, width, height });
     }
   };
   useEffect(() => {
@@ -159,7 +171,8 @@ export default function PostScreen() {
 
     if (!result.canceled) {
       const asset = result.assets[0];
-      setCropImage({ uri: asset.uri, width: asset.width, height: asset.height });
+      const { width, height } = await resolveImageSize(asset.uri, asset.width, asset.height);
+      setCropImage({ uri: asset.uri, width, height });
     }
   };
 

@@ -18,6 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import * as ImagePicker from "expo-image-picker";
+import CropModal from "@/components/modals/CropModal";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
@@ -88,6 +89,7 @@ const SignupScreen = () => {
   const [address, setAddress] = useState("");
   const [aadharPhoto, setAadharPhoto] = useState<string | null>(null);
   const [selfiePhoto, setSelfiePhoto] = useState<string | null>(null);
+  const [cropImage, setCropImage] = useState<{ uri: string; width: number; height: number; type: "aadhar" | "selfie" } | null>(null);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -161,6 +163,17 @@ const SignupScreen = () => {
 
   }, [dispatch, userParam]);
 
+  const resolveImageSize = (uri: string, fallbackW?: number, fallbackH?: number): Promise<{ width: number; height: number }> => {
+    if (fallbackW && fallbackH) return Promise.resolve({ width: fallbackW, height: fallbackH });
+    return new Promise((resolve) => {
+      Image.getSize(
+        uri,
+        (width, height) => resolve({ width, height }),
+        () => resolve({ width: 1000, height: 1000 })
+      );
+    });
+  };
+
   const pickImage = async (type: "aadhar" | "selfie") => {
     try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -172,24 +185,15 @@ const SignupScreen = () => {
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: type === "aadhar" ? [16, 9] : [1, 1],
-        quality: 0.8,
-        base64: true,
+        quality: 1,
+        selectionLimit: 1,
+        allowsEditing: false,
       });
 
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
-        if (asset.base64) {
-          const mimeType = asset.mimeType || "image/jpeg";
-          if (type === "aadhar") {
-            setAadharPhoto(`data:${mimeType};base64,${asset.base64}`);
-          } else {
-            setSelfiePhoto(`data:${mimeType};base64,${asset.base64}`);
-          }
-        } else {
-          Alert.alert("Error", "Failed to get image data. Please try again.");
-        }
+        const { width, height } = await resolveImageSize(asset.uri, asset.width, asset.height);
+        setCropImage({ uri: asset.uri, width, height, type });
       }
     } catch (error) {
       Alert.alert("Error", "Failed to pick image");
@@ -206,24 +210,14 @@ const SignupScreen = () => {
       }
 
       const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        aspect: type === "aadhar" ? [16, 9] : [1, 1],
-        quality: 0.8,
-        base64: true,
+        quality: 1,
+        allowsEditing: false,
       });
 
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
-        if (asset.base64) {
-          const mimeType = asset.mimeType || "image/jpeg";
-          if (type === "aadhar") {
-            setAadharPhoto(`data:${mimeType};base64,${asset.base64}`);
-          } else {
-            setSelfiePhoto(`data:${mimeType};base64,${asset.base64}`);
-          }
-        } else {
-          Alert.alert("Error", "Failed to get image data. Please try again.");
-        }
+        const { width, height } = await resolveImageSize(asset.uri, asset.width, asset.height);
+        setCropImage({ uri: asset.uri, width, height, type });
       }
     } catch (error) {
       Alert.alert("Error", "Failed to take photo");
@@ -764,6 +758,24 @@ const SignupScreen = () => {
           </LinearGradient>
         </Pressable>
       </View>
+
+      {cropImage && (
+        <CropModal
+          visible={!!cropImage}
+          imageUri={cropImage.uri}
+          imageWidth={cropImage.width}
+          imageHeight={cropImage.height}
+          onClose={() => setCropImage(null)}
+          onCrop={(croppedUri) => {
+            if (cropImage.type === "aadhar") {
+              setAadharPhoto(croppedUri);
+            } else {
+              setSelfiePhoto(croppedUri);
+            }
+            setCropImage(null);
+          }}
+        />
+      )}
 
     </ThemedView>
   );

@@ -482,9 +482,10 @@ export const getPolicyApi = async () => {
       `${baseUrl}/pages`,
       await getAuthToken()
     );
+    console.log(response.data.data, "response");
     return response.data.data;
   } catch (error) {
-    console.log(error?.response?.data || error, "error");
+    console.log(error?.response?.data, "error");
     throw error;
   }
 }
@@ -736,4 +737,28 @@ export const markNotificationRead = async (
 
   return response.data;
 };
+
+export const getProductByIdApi = async (productId) => {
+  try {
+    const authConfig = await getAuthToken();
+    const config = {
+      ...authConfig,
+      headers: {
+        ...(authConfig.headers || {}),
+        'accept': '*/*',
+        'X-CSRF-TOKEN': '',
+      },
+    };
+    const response = await axios.get(
+      `https://admastermarketplace.in/api/products/${productId}`,
+      config
+    );
+    return response.data;
+  } catch (error) {
+    console.log(error?.response?.data || error, "getProductByIdApi error");
+    throw error;
+  }
+};
+
+
 

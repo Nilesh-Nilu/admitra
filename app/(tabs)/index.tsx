@@ -27,6 +27,7 @@ import {
   baseUrl,
   getAuthToken,
   getNormalAdsInfoApi,
+  getNotifications,
 } from "@/constants/functions";
 import axios from "axios";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
@@ -47,7 +48,7 @@ import {
 } from "@/store/reducers/userReducer";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -78,6 +79,7 @@ export default function HomeScreen() {
   const [isCityInitialized, setIsCityInitialized] = useState(false);
   const [promotionBanners, setPromotionBanners] = useState<any>([]);
   const [normalAdsInfo, setNormalAdsInfo] = useState<any>(null);
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMoreProducts, setHasMoreProducts] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -94,6 +96,26 @@ export default function HomeScreen() {
   const filteredProducts = selectedCategory
     ? safeProducts.filter((p: any) => p.category_id === selectedCategory)
     : safeProducts;
+
+  const checkUnreadNotifications = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const response = await getNotifications(user.id, 1, 1);
+      setHasUnreadNotifications((response?.data?.data?.length || 0) > 0);
+    } catch (error) {
+      console.log(error, "Failed to fetch unread notifications");
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    checkUnreadNotifications();
+  }, [checkUnreadNotifications]);
+
+  useFocusEffect(
+    useCallback(() => {
+      checkUnreadNotifications();
+    }, [checkUnreadNotifications])
+  );
 
   // Effect 1: Initialize city only (localities aren't loaded yet at this point)
   useEffect(() => {
@@ -228,7 +250,7 @@ export default function HomeScreen() {
       currentPageRef.current = nextPage;
       setCurrentPage(nextPage);
     } catch (e: any) {
-      console.log('[Pagination] error:', e?.message, e?.response?.status);
+      // console.log('[Pagination] error:', e?.message, e?.response?.status);
     }
     isLoadingMoreRef.current = false;
     setIsLoadingMore(false);
@@ -351,6 +373,7 @@ export default function HomeScreen() {
                 onPressHelp={() => Linking.openURL("https://wa.me/919876543210")}
                 onPressFavorites={() => router.push("/(tabs)/myListing")}
                 onPressNotifications={() => router.push("/stacks/notifications")}
+                hasUnreadNotifications={hasUnreadNotifications}
               />
               <HomeCategories
                 categories={safeCategories}

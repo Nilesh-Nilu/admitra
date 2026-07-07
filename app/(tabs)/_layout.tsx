@@ -1,10 +1,11 @@
 import { HapticTab } from '@/components/HapticTab';
 import { ThemedText } from '@/components/ThemedText';
 import { COLORS } from '@/constants/Colors';
+import { getConversationApi } from '@/constants/functions';
 import { SIZES, SIZES_WITH_ALIASES } from '@/constants/Sizes';
 import { Ionicons } from '@expo/vector-icons';
-import { Tabs, useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import { Tabs, useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Image, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import ImageViewer from 'react-native-image-zoom-viewer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,6 +18,27 @@ export default function TabLayout() {
   const [showWarning, setShowWarning] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [showImageZoom, setShowImageZoom] = useState(false);
+  const [hasUnreadChats, setHasUnreadChats] = useState(false);
+
+  const checkUnreadChats = useCallback(async () => {
+    try {
+      const conversations = await getConversationApi();
+      const hasUnread = Array.isArray(conversations) && conversations.some((c: any) => c.unread_count > 0);
+      setHasUnreadChats(hasUnread);
+    } catch (error) {
+      console.log(error, "Failed to fetch unread chat status");
+    }
+  }, []);
+
+  useEffect(() => {
+    checkUnreadChats();
+  }, [checkUnreadChats]);
+
+  useFocusEffect(
+    useCallback(() => {
+      checkUnreadChats();
+    }, [checkUnreadChats])
+  );
 
   const animateIcon = () => {
     Animated.sequence([
@@ -25,7 +47,7 @@ export default function TabLayout() {
     ]).start();
   };
 
-  const AnimatedIcon = ({ focused, name }: { focused: boolean, name: any }) => (
+  const AnimatedIcon = ({ focused, name, showDot }: { focused: boolean, name: any, showDot?: boolean }) => (
     <Animated.View
       style={[
         styles.iconContainer,
@@ -38,6 +60,7 @@ export default function TabLayout() {
         size={22}
         color={focused ? COLORS.blue : '#404040'}
       />
+      {showDot && <View style={styles.unreadDot} />}
     </Animated.View>
   );
 
@@ -71,7 +94,13 @@ export default function TabLayout() {
             title: 'Chat',
             tabBarIcon: ({ focused }) => {
               if (focused) animateIcon();
-              return <AnimatedIcon focused={focused} name={focused ? "chatbubbles" : "chatbubbles-outline"} />;
+              return (
+                <AnimatedIcon
+                  focused={focused}
+                  name={focused ? "chatbubbles" : "chatbubbles-outline"}
+                  showDot={hasUnreadChats}
+                />
+              );
             },
           }}
         />
@@ -260,6 +289,17 @@ const styles = StyleSheet.create({
   },
   iconContainerActive: {
     backgroundColor: 'rgba(31,60,136,0.08)',
+  },
+  unreadDot: {
+    position: 'absolute',
+    top: 4,
+    right: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#E53935',
+    borderWidth: 1.5,
+    borderColor: COLORS.white,
   },
   postButtonWrapper: {
     position: 'absolute',

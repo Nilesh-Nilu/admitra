@@ -108,8 +108,8 @@ export default function UserProfileScreen() {
 
           {/* Avatar */}
           <View style={styles.avatarWrapper}>
-            {user?.profile_image ? (
-              <Image source={{ uri: user.profile_image }} style={styles.avatar} />
+            {user?.selfieverificationImage ? (
+              <Image source={{ uri: user.selfieverificationImage }} style={styles.avatar} />
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder]}>
                 <Ionicons name="person" size={52} color="#94A3B8" />
@@ -133,11 +133,11 @@ export default function UserProfileScreen() {
             <ThemedText style={styles.idText}>User ID: #{user?.id}</ThemedText>
           </View>
 
-          {user?.email && (
+          {/* {user?.email && (
             <View style={styles.emailBadge}>
               <ThemedText style={styles.emailText}>Email: {user?.email}</ThemedText>
             </View>
-          )}
+          )} */}
 
           {/* Location */}
           {!!location && (

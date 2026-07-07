@@ -3,7 +3,7 @@ import ImageZoomModal from "@/components/modals/ImageZoomModal";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
-import { addToFavoritesApi, createConversationApi, getCallManagementApi, getFavoritesListApi, removeFromFavoritesApi, reportProductApi, reportUserApi } from "@/constants/functions";
+import { addToFavoritesApi, createConversationApi, getCallManagementApi, getFavoritesListApi, getProductByIdApi, removeFromFavoritesApi, reportProductApi, reportUserApi } from "@/constants/functions";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
@@ -22,6 +22,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AppToast from "@/components/toasts/AppToast";
 import ThemeHeader from "@/components/headers/ThemeHeader";
+import ThemeLoader from "@/components/loader/ThemeLoader";
 
 const { width: screenWidth } = Dimensions.get("window");
 const IMAGE_HEIGHT = screenWidth * 0.65;
@@ -42,19 +43,26 @@ export default function ProductDetailsScreen() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteId, setFavoriteId] = useState<number | null>(null);
   const [favLoading, setFavLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [callManagement, setCallManagement] = useState<any>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const initializeProduct = useCallback(() => {
     if (params.productData) {
       try {
-      getCallManagementApi().then((res) => {
-        setCallManagement(res.status);
-      }).catch((err) => {
-        setCallManagement(false);
-      });
+        getCallManagementApi().then((res) => {
+          setCallManagement(res.status);
+          setLoading(false);
+        }).catch((err) => {
+          setCallManagement(true);
+        });
         const parsedProduct = JSON.parse(params.productData as any);
-        setProduct(parsedProduct);
         console.log(parsedProduct, "parsedProduct");
+        getProductByIdApi(parsedProduct.id as any).then((res) => {
+          console.log(res, "res");
+          setProduct(res.data);
+        }).catch((err) => {
+          setLoading(false);
+        });
       } catch (error) {
         console.error("Error parsing product data:", error);
         setProduct(null);
@@ -75,7 +83,7 @@ export default function ProductDetailsScreen() {
         setIsFavorite(true);
         setFavoriteId(match.id);
       }
-    }).catch(() => {});
+    }).catch(() => { });
   }, [product?.id]);
 
   useEffect(() => {
@@ -95,7 +103,7 @@ export default function ProductDetailsScreen() {
 
   const handleChat = async () => {
     try {
-      const vendor_id = product?.user?.user_id? product?.user?.user_id : product?.user_id;
+      const vendor_id = product?.user?.user_id ? product?.user?.user_id : product?.user_id;
       const response = await createConversationApi({
         vendor_id: vendor_id,
         subject: "Product inquiry",
@@ -182,10 +190,10 @@ export default function ProductDetailsScreen() {
 
     try {
       setIsReporting(true);
-        const response = await reportProductApi({
-          product_id: Number(product.id),
-          reason,
-        });
+      const response = await reportProductApi({
+        product_id: Number(product.id),
+        reason,
+      });
       if (response.status === false) {
         AppToast("Failed to report this ad. Please try again.");
       } else {
@@ -235,9 +243,17 @@ export default function ProductDetailsScreen() {
       </View>
     );
   }
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ThemeLoader />
+      </View>
+    );
+  }
 
   return (
     <ThemedView style={styles.container}>
+
       {/* Header */}
       <ThemeHeader onBackPress={() => router.push("/(tabs)")} title="Ad Details" />
       <ScrollView
@@ -334,29 +350,29 @@ export default function ProductDetailsScreen() {
 
         {/* Verified Seller Badge */}
         <View style={styles.cardSection}>
-        {isVerifiedSeller && (
-          <View style={styles.verifiedBadge}>
-            <View style={styles.verifiedIconCircle}>
-              <Ionicons name="shield-checkmark" size={14} color={COLORS.white} />
+          {isVerifiedSeller && (
+            <View style={styles.verifiedBadge}>
+              <View style={styles.verifiedIconCircle}>
+                <Ionicons name="shield-checkmark" size={14} color={COLORS.white} />
+              </View>
+              <ThemedText style={styles.verifiedLabel}>Verified Seller</ThemedText>
+              <Ionicons name="checkmark-circle" size={18} color={COLORS.success} />
             </View>
-            <ThemedText style={styles.verifiedLabel}>Verified Seller</ThemedText>
-            <Ionicons name="checkmark-circle" size={18} color={COLORS.success} />
-          </View>
-        )}
+          )}
           {/* Seller Row */}
           <TouchableOpacity
             style={styles.sellerRow}
             activeOpacity={0.8}
-            onPress={() =>
+            onPress={() => {
               router.push({
                 pathname: "/stacks/userProfile",
                 params: { userData: JSON.stringify(product?.user) },
               })
-            }
+            }}
           >
             <View style={styles.sellerAvatar}>
-              {product?.user?.profile_image ? (
-                <Image source={{ uri: product.user.profile_image }} style={{ width: 44, height: 44, borderRadius: 22 }} />
+              {product?.user?.selfieverificationImage ? (
+                <Image source={{ uri: product.user.selfieverificationImage }} style={{ width: 44, height: 44, borderRadius: 22 }} />
               ) : (
                 <Ionicons name="person-outline" size={24} color={COLORS.text} />
               )}
@@ -447,13 +463,13 @@ export default function ProductDetailsScreen() {
 
       {/* Bottom Action Bar */}
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
-       
-       {callManagement === true && (
-        <TouchableOpacity style={styles.callButton} onPress={handleCall} activeOpacity={0.8}>
-          <Ionicons name="call" size={18} color={COLORS.white} />
-          <ThemedText style={styles.callBtnText}>Call</ThemedText>
-        </TouchableOpacity>
-       )}
+
+        {callManagement === true && (
+          <TouchableOpacity style={styles.callButton} onPress={handleCall} activeOpacity={0.8}>
+            <Ionicons name="call" size={18} color={COLORS.white} />
+            <ThemedText style={styles.callBtnText}>Call</ThemedText>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity style={styles.chatButton} onPress={handleChat} activeOpacity={0.8}>
           <Ionicons name="chatbubble-ellipses" size={18} color={COLORS.white} />
           <ThemedText style={styles.chatBtnText}>Chat</ThemedText>

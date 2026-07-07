@@ -3,7 +3,7 @@ import GetVerifiedProfileModal from "@/components/modals/GetVerifiedProfileModal
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
-import { getPolicyApi, ImageUrl, logoutUser, updateUserProfileUrl } from "@/constants/functions";
+import { getPolicyApi, getUserDetailsApi, ImageUrl, logoutUser, updateUserProfileUrl } from "@/constants/functions";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 import { setUser, updateUserProfile } from "@/store/reducers/authReducer";
 import { Ionicons } from "@expo/vector-icons";
@@ -12,10 +12,11 @@ import Constants from "expo-constants";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Platform,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -36,6 +37,7 @@ interface User {
   is_verify?: number;
   created_at?: string;
   selfieverificationImage?: string;
+  id?: number;
 }
 
 export default function ProfileScreen() {
@@ -45,6 +47,20 @@ export default function ProfileScreen() {
   const { states, cities, localities } = useSelector((state: any) => state.entities.userReducer);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [policyPages, setPolicyPages] = useState<any[]>([]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await getUserDetailsApi(user?.id, dispatch);
+    setRefreshing(false);
+  };
+
+  useEffect(() => {
+    getPolicyApi()
+      .then((res: any) => setPolicyPages(res?.data || []))
+      .catch(() => {});
+  }, []);
 
   // Page types from API data
   const PAGE_TYPES = {
@@ -120,6 +136,11 @@ export default function ProfileScreen() {
       pageType: PAGE_TYPES.REPORT,
     },
   ];
+
+  const visibleMenuItems = menuItems.filter((item) => {
+    const page = policyPages.find((p: any) => p.page_type === item.pageType);
+    return !page || page.is_active !== false;
+  });
 
   const isVerified = user?.is_verify === 1;
   const isPending = user?.is_verify === 2;
@@ -235,6 +256,9 @@ export default function ProfileScreen() {
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[COLORS.primary]} tintColor={COLORS.primary} />
+        }
       >
         {/* Blue Header */}
         <LinearGradient colors={["#1565C0", "#1E88E5"]} style={styles.header}>
@@ -263,6 +287,9 @@ export default function ProfileScreen() {
               </View>
               <View style={styles.profileInfo}>
                 <ThemedText style={styles.userName}>{user?.name || "User"}</ThemedText>
+                <View style={styles.idBadge}>
+                  <ThemedText style={styles.idText}>User ID: #{user?.id}</ThemedText>
+                </View>
                 {isVerified && (
                   <View style={styles.verifiedSellerBadge}>
                     <Ionicons name="checkmark-circle" size={12} color="#4CAF50" />
@@ -272,7 +299,7 @@ export default function ProfileScreen() {
                 <ThemedText style={styles.memberSince}>Member since {getMemberSince()}</ThemedText>
                 <View style={styles.locationRow}>
                   <Ionicons name="location-outline" size={12} color="rgba(255,255,255,0.8)" />
-                  <ThemedText style={styles.locationText}>
+                  <ThemedText style={styles.locationText} numberOfLines={1}>
                     {user?.address}
                   </ThemedText>
                 </View>
@@ -405,13 +432,13 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          <View style={[styles.infoItem, styles.infoItemLast]}>
-            <View style={styles.infoItemLeft}>
+          <View style={[styles.infoItem, styles.infoItemLast, { alignItems: "flex-start" }]}>
+            <View style={[styles.infoItemLeft, { paddingTop: 2 }]}>
               <Ionicons name="location-outline" size={18} color={COLORS.gray} />
               <ThemedText style={styles.infoLabel}>Location</ThemedText>
             </View>
-            <View style={styles.infoItemRight}>
-              <ThemedText style={styles.infoValue}>
+            <View style={[styles.infoItemRight, styles.infoItemRightFlex]}>
+              <ThemedText style={[styles.infoValue, { flex: 1, textAlign: "right" }]}>
                 {user?.address}
               </ThemedText>
               <Ionicons name="chevron-forward" size={18} color={COLORS.lightGray} />
@@ -480,13 +507,12 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
         )}
-
         {/* Menu Items */}
         <View style={styles.menuCard}>
-          {menuItems.map((item, index) => (
+          {visibleMenuItems.map((item, index) => (
             <TouchableOpacity
               key={index}
-              style={[styles.menuItem, index === menuItems.length - 1 && styles.menuItemLast]}
+              style={[styles.menuItem, index === visibleMenuItems.length - 1 && styles.menuItemLast]}
               onPress={() => handleMenuPress(item.title, item.pageType)}
               activeOpacity={0.7}
             >
@@ -617,6 +643,19 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: COLORS.white,
   },
+  idBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderRadius: 6,
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    marginTop: 3,
+  },
+  idText: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.85)",
+    fontWeight: "500",
+  },
   verifiedSellerBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -642,6 +681,7 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 12,
     color: "rgba(255,255,255,0.8)",
+    flex: 1,
   },
 
   /* Verification Banner - Success State (Green) */
@@ -808,6 +848,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+  },
+  infoItemRightFlex: {
+    flex: 1,
+    justifyContent: "flex-end",
+    maxWidth: "60%",
   },
   infoLabel: {
     fontSize: 14,

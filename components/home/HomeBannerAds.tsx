@@ -7,8 +7,8 @@ import { COLORS } from "@/constants/Colors";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const BANNER_WIDTH = SCREEN_WIDTH- SIZES.padding * 2;;
-const ICON_SIZE_SMALL = 12;
+const BANNER_WIDTH = SCREEN_WIDTH - SIZES.padding * 2;
+const ICON_SIZE_SMALL = SIZES.fontSize12;
 
 type HomeBannerAdsProps = {
   banners: any[];
@@ -83,10 +83,10 @@ export const HomeBannerAds = ({ promotionBanners, banners, onPressSeeAll }: Home
               {banner.icon ? (
                 <Image
                   source={{ uri: banner.icon }}
-                  style={{ width: 32, height: 32, marginRight: 8, borderRadius: 4 }}
+                  style={styles.topTextBannerIcon}
                 />
               ) : (
-                <Ionicons name="megaphone-outline" size={22} color="#1565C0" style={{ marginRight: 8 }} />
+                <Ionicons name="megaphone-outline" size={SIZES.fontSize18} color="#1565C0" style={styles.topTextBannerIconSpacing} />
               )}
               <ThemedText style={styles.topTextBannerLeftText}>
                 {banner.business_text}
@@ -102,7 +102,7 @@ export const HomeBannerAds = ({ promotionBanners, banners, onPressSeeAll }: Home
             <View style={styles.topTextBannerRight}>
               {banner.features?.slice(0, 3).map((feature: any, index: number) => (
                 <View key={index} style={styles.topTextBannerRightItem}>
-                  <Ionicons name="checkmark-circle" size={13} color="#1565C0" />
+                  <Ionicons name="checkmark-circle" size={SIZES.fontSize12} color="#1565C0" />
                   <ThemedText style={styles.topTextBannerRightText}>{feature}</ThemedText>
                 </View>
               ))}
@@ -115,7 +115,7 @@ export const HomeBannerAds = ({ promotionBanners, banners, onPressSeeAll }: Home
         <ThemedText style={styles.sectionTitle}>Banner Ads</ThemedText>
         <TouchableOpacity style={styles.seeAllBtn} onPress={onPressSeeAll}>
           <ThemedText style={styles.seeAllText}>See All</ThemedText>
-          <Ionicons name="arrow-forward" size={15} color="#1565C0" />
+          <Ionicons name="arrow-forward" size={SIZES.fontSize14} color="#1565C0" />
         </TouchableOpacity>
       </View>
 
@@ -154,7 +154,7 @@ export const HomeBannerAds = ({ promotionBanners, banners, onPressSeeAll }: Home
       )}
 
       {/* ── Bottom Text Banner ── */}
-      <View style={styles.bottomTextBanner}>
+      {/* <View style={styles.bottomTextBanner}>
         <View style={styles.bottomTextBannerLeft}>
           <ThemedText style={styles.bottomTextBannerStar}>⭐</ThemedText>
           <ThemedText style={styles.bottomTextBannerLeftText}>
@@ -166,23 +166,23 @@ export const HomeBannerAds = ({ promotionBanners, banners, onPressSeeAll }: Home
         </View>
         <View style={styles.bottomTextBannerRight}>
           <View style={styles.bottomTextBannerRightItem}>
-            <Ionicons name="checkmark-circle" size={13} color="#F9A825" />
+            <Ionicons name="checkmark-circle" size={SIZES.fontSize12} color="#F9A825" />
             <ThemedText style={styles.bottomTextBannerRightText}>टॉप प्लेसमेंट मिलेगा</ThemedText>
           </View>
           <View style={styles.bottomTextBannerRightItem}>
-            <Ionicons name="checkmark-circle" size={13} color="#F9A825" />
+            <Ionicons name="checkmark-circle" size={SIZES.fontSize12} color="#F9A825" />
             <ThemedText style={styles.bottomTextBannerRightText}>ज्यादा विजिबिलिटी</ThemedText>
           </View>
           <View style={styles.bottomTextBannerRightItem}>
-            <Ionicons name="checkmark-circle" size={13} color="#F9A825" />
+            <Ionicons name="checkmark-circle" size={SIZES.fontSize12} color="#F9A825" />
             <ThemedText style={styles.bottomTextBannerRightText}>बेस्ट कॉल की सुविधा</ThemedText>
           </View>
           <View style={styles.bottomTextBannerRightItem}>
-            <Ionicons name="checkmark-circle" size={13} color="#F9A825" />
+            <Ionicons name="checkmark-circle" size={SIZES.fontSize12} color="#F9A825" />
             <ThemedText style={styles.bottomTextBannerRightText}>सेलर से डायरेक्ट कॉल</ThemedText>
           </View>
         </View>
-      </View>
+      </View> */}
     </View>
   );
 };
@@ -224,16 +224,16 @@ const styles = StyleSheet.create({
   },
   bannerDotActive: {
     backgroundColor: "#1565C0",
-    width: ICON_SIZE_SMALL + 4,
+    width: ICON_SIZE_SMALL + SIZES.padding4,
     borderRadius: SIZES.padding4 / 2,
   },
   topTextBanner: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#E8F0FE",
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 12,
+    borderRadius: SIZES.radius10,
+    padding: SIZES.padding10,
+    marginBottom: SIZES.padding12,
     borderWidth: 1,
     borderColor: "#BBDEFB",
   },
@@ -242,28 +242,35 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
   },
+  topTextBannerIcon: {
+    width: SIZES.padding * 2,
+    height: SIZES.padding * 2,
+    marginRight: SIZES.padding8,
+    borderRadius: SIZES.radius4,
+  },
+  topTextBannerIconSpacing: {
+    marginRight: SIZES.padding8,
+  },
   topTextBannerLeftText: {
-    fontSize: 10,
+    fontSize: SIZES.fontSize10,
     color: "#0D47A1",
     fontWeight: "600",
-    // lineHeight: 16,
     flex: 1,
   },
   topTextBannerHighlight: {
     backgroundColor: "#FDD835",
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    marginHorizontal: 6,
+    borderRadius: SIZES.radius6,
+    paddingVertical: SIZES.padding2,
+    marginHorizontal: SIZES.padding6,
     alignItems: "center",
     justifyContent: "center",
   },
   topTextBannerHighlightText: {
-    fontSize: 10,
+    fontSize: SIZES.fontSize10,
     fontWeight: "800",
     color: "#212121",
     textAlign: "center",
-    // lineHeight: 15,
+    lineHeight: SIZES.lineHeight10,
   },
   topTextBannerRight: {
     flex: 1.1,
@@ -273,7 +280,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   topTextBannerRightText: {
-    fontSize: 9,
+    fontSize: SIZES.fontSize8,
     color: "#1565C0",
     fontWeight: "500",
     flexShrink: 1,
@@ -282,49 +289,48 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#FFFDE7",
-    borderRadius: 10,
-    padding: 10,
-    marginTop: 10,
+    borderRadius: SIZES.radius10,
+    padding: SIZES.padding10,
+    marginTop: SIZES.padding10,
     borderWidth: 1,
     borderColor: "#FFE082",
   },
   bottomTextBannerStar: {
-    fontSize: 22,
-    marginRight: 6,
+    fontSize: SIZES.fontSize22,
+    marginRight: SIZES.padding6,
   },
   bottomTextBannerLeft: {
     flex: 1.4,
-    gap: 6,
+    gap: SIZES.padding6,
   },
   bottomTextBannerLeftText: {
-    fontSize: 10,
+    fontSize: SIZES.fontSize10,
     color: "#5D4037",
     fontWeight: "600",
-    // lineHeight: 16,
   },
   bottomTextBannerHighlight: {
     backgroundColor: "#FDD835",
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    borderRadius: SIZES.radius6,
+    paddingHorizontal: SIZES.padding8,
+    paddingVertical: SIZES.padding4,
     alignSelf: "flex-start",
   },
   bottomTextBannerHighlightText: {
-    fontSize: 10,
+    fontSize: SIZES.fontSize10,
     fontWeight: "800",
     color: "#212121",
   },
   bottomTextBannerRight: {
     flex: 1.1,
-    gap: 4,
+    gap: SIZES.padding4,
   },
   bottomTextBannerRightItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: SIZES.padding4,
   },
   bottomTextBannerRightText: {
-    fontSize: 9,
+    fontSize: SIZES.fontSize8,
     color: "#5D4037",
     fontWeight: "500",
     flexShrink: 1,

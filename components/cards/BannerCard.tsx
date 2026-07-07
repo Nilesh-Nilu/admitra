@@ -107,15 +107,15 @@ export const BannerCard = ({ item, isInline = false }: BannerCardProps) => {
         <View style={styles.typeBadge}>
           <ThemedText style={styles.typeBadgeText}>Banner</ThemedText>
         </View>
-        <TouchableOpacity style={styles.heartBtn} onPress={handleToggleFavorite} activeOpacity={0.8}>
-          <Ionicons name={isFavorited ? "heart" : "heart-outline"} size={20} color={isFavorited ? "#E91E63" : COLORS.white} />
-        </TouchableOpacity>
         {item.product?.user?.is_verify === 1 && (
           <View style={styles.verifiedBadge}>
             <Ionicons name="checkmark-circle" size={12} color={COLORS.white} />
             <ThemedText style={styles.verifiedText}>Verified</ThemedText>
           </View>
         )}
+        <TouchableOpacity style={styles.heartBtn} onPress={handleToggleFavorite} activeOpacity={0.8}>
+          <Ionicons name={isFavorited ? "heart" : "heart-outline"} size={20} color={isFavorited ? "#E91E63" : COLORS.white} />
+        </TouchableOpacity>
         <View style={styles.bannerActions}>
           {(item.product?.user?.city?.name || item.product?.user?.state?.name) && (
             <View style={styles.locationRow}>
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   },
   verifiedBadge: {
     position: "absolute",
-    bottom: 0,
+    top: SIZES.padding20*1.8,
     left: SIZES.padding10,
     zIndex: 2,
     flexDirection: "row",
@@ -266,13 +266,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: SIZES.padding6,
-    paddingVertical: SIZES.padding10,
+    paddingVertical: SIZES.padding8,
     paddingHorizontal: SIZES.padding12,
     borderTopLeftRadius: SIZES.radius2,
     borderBottomLeftRadius: SIZES.radius2,
   },
   bannerBtnLeftText: {
-    fontSize: SIZES.fontSize12,
+    fontSize: SIZES.fontSize10,
     fontWeight: "600",
     color: "#1565C0",
   },
@@ -283,13 +283,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: SIZES.padding6,
     backgroundColor: "#E53935",
-    paddingVertical: SIZES.padding10,
+    paddingVertical: SIZES.padding8,
     paddingHorizontal: SIZES.padding12,
     borderTopRightRadius: SIZES.radius2,
     borderBottomRightRadius: SIZES.radius2,
   },
   bannerBtnRightText: {
-    fontSize: SIZES.fontSize12,
+    fontSize: SIZES.fontSize10,
     fontWeight: "600",
     color: COLORS.white,
   },
