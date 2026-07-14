@@ -117,44 +117,44 @@ export const BannerCard = ({ item, isInline = false }: BannerCardProps) => {
           <Ionicons name={isFavorited ? "heart" : "heart-outline"} size={20} color={isFavorited ? "#E91E63" : COLORS.white} />
         </TouchableOpacity>
         <View style={styles.bannerActions}>
-          {(item.product?.user?.city?.name || item.product?.user?.state?.name) && (
+          {(item.created_at || item.product?.created_at) && (
             <View style={styles.locationRow}>
+              <Ionicons name="time-outline" size={11} color="#94A3B8" />
+              <ThemedText style={styles.bannerTime}>{timeAgo(item.created_at || item.product?.created_at)}</ThemedText>
+            </View>
+          )}
+          {(item.product?.user?.city?.name || item.product?.user?.state?.name) && (
+            <View style={styles.timeRow}>
               <Ionicons name="location-outline" size={13} color="#64748B" />
               <ThemedText style={styles.locationText} numberOfLines={1}>
                 {[item.product?.user?.city?.name, item.product?.user?.state?.name].filter(Boolean).join(", ")}
               </ThemedText>
             </View>
           )}
-          {(item.created_at || item.product?.created_at) ? (
-            <View style={styles.timeRow}>
-              <Ionicons name="time-outline" size={11} color="#94A3B8" />
-              <ThemedText style={styles.bannerTime}>{timeAgo(item.created_at || item.product?.created_at)}</ThemedText>
-            </View>
-          ) : null}
-          <View style={styles.btnRow}>
-            <TouchableOpacity
-              style={styles.bannerBtnLeft}
-              activeOpacity={0.8}
-              onPress={(e) => {
-                e.stopPropagation();
-                handleVisitWebsite(item.website_link);
-              }}
-            >
-              <Ionicons name="globe-outline" size={16} color="#1565C0" />
-              <ThemedText style={styles.bannerBtnLeftText}>Visit Website</ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.bannerBtnRight}
-              activeOpacity={0.8}
-              onPress={(e) => {
-                e.stopPropagation();
-                handleWatchVideo(item.banner_video_url);
-              }}
-            >
-              <Ionicons name="play-circle" size={16} color={COLORS.white} />
-              <ThemedText style={styles.bannerBtnRightText}>Watch Video</ThemedText>
-            </TouchableOpacity>
-          </View>
+        </View>
+        <View style={styles.btnRow}>
+          <TouchableOpacity
+            style={styles.bannerBtnLeft}
+            activeOpacity={0.8}
+            onPress={(e) => {
+              e.stopPropagation();
+              handleVisitWebsite(item.website_link);
+            }}
+          >
+            <Ionicons name="globe-outline" size={16} color="#1565C0" />
+            <ThemedText style={styles.bannerBtnLeftText}>Visit Website</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.bannerBtnRight}
+            activeOpacity={0.8}
+            onPress={(e) => {
+              e.stopPropagation();
+              handleWatchVideo(item.banner_video_url);
+            }}
+          >
+            <Ionicons name="play-circle" size={16} color={COLORS.white} />
+            <ThemedText style={styles.bannerBtnRightText}>Watch Video</ThemedText>
+          </TouchableOpacity>
         </View>
       </ImageBackground>
     </TouchableOpacity>
@@ -227,18 +227,19 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
   bannerActions: {
-    flexDirection: "column",
     width: "100%",
-    backgroundColor: COLORS.white,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
     paddingTop: SIZES.padding8,
     paddingHorizontal: SIZES.padding12,
-    paddingBottom: SIZES.padding10,
+    paddingBottom: SIZES.padding4,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   timeRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    marginBottom: 6,
   },
   bannerTime: {
     fontSize: 11,
@@ -248,17 +249,21 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    marginBottom: 8,
+    flex: 1,
+    marginRight: 8,
   },
   locationText: {
     fontSize: 12,
-    color: "#64748B",
-    fontWeight: "500",
-    flex: 1,
+    color: "#475569",
+    fontWeight: "600",
   },
   btnRow: {
     flexDirection: "row",
     width: "100%",
+    backgroundColor: COLORS.white,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
+    overflow: "hidden",
   },
   bannerBtnLeft: {
     flex: 1,

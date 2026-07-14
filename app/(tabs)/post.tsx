@@ -1,16 +1,18 @@
 import CropModal from "@/components/modals/CropModal";
+import AdTypeSelector from "@/components/post/AdTypeSelector";
+import RenewalNotice from "@/components/post/RenewalNotice";
 import ThemeHeader from "@/components/headers/ThemeHeader";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import AppToast from "@/components/toasts/AppToast";
 import { COLORS } from "@/constants/Colors";
-import { createOrderApi, getApprovedProductsUrl, getChildCategoriesApi, getPlansListUrl, handleVerifyandAddProductApi, RAZORPAY_KEY, favoritesUrl, getMyBannerAdsUrl, getMyFeaturedAdsUrl, getMyProductsUrl, getFreeTrialStatusApi, } from "@/constants/functions";
+import { createOrderApi, createRenewalOrderApi, getApprovedProductsUrl, getChildCategoriesApi, getPlansListUrl, handleVerifyandAddProductApi, RAZORPAY_KEY, favoritesUrl, getMyBannerAdsUrl, getMyFeaturedAdsUrl, getMyProductsUrl, getFreeTrialStatusApi, verifyRenewalApi, } from "@/constants/functions";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 import { setClearData } from "@/store/reducers/paymentReducer";
 import { getApprovedProductsApi, getPlansListApi, getFavoritesApi, getMyBannerAdsApi, getMyFeaturedAdsApi, getMyProductsApi } from "@/store/reducers/userReducer";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -28,9 +30,24 @@ import {
 import RazorpayCheckout from "react-native-razorpay";
 import { useDispatch, useSelector } from "react-redux";
 
+const getRenewalProductType = (product: any) =>
+  String(product?.product_type || product?.plan_info?.plan_type || "").toLowerCase();
+
+const matchesRenewalPlan = (plan: any, product: any) => {
+  const renewalProductType = getRenewalProductType(product);
+  const planType = String(plan?.type || plan?.plan_type || "").toLowerCase();
+  const isNormalPlan = renewalProductType === "normal" && ["normal", "basic", "free"].includes(planType);
+
+  return (
+    planType === renewalProductType ||
+    isNormalPlan ||
+    String(plan?.id) === String(product?.plan_info?.plan_id)
+  );
+};
 
 export default function PostScreen() {
   const router = useRouter();
+  const { renewalProduct: renewalProductParam } = useLocalSearchParams<{ renewalProduct?: string }>();
   const user = useSelector((state: any) => state.entities.authReducer?.user);
   const { categories, subCategories, plans } = useSelector((state: any) => state.entities.userReducer) || {};
   const [images, setImages] = useState<any[]>([]);
@@ -57,6 +74,10 @@ export default function PostScreen() {
   const [videoLink2, setVideoLink2] = useState("");
   const [cropImage, setCropImage] = useState<{ uri: string; width: number; height: number } | null>(null);
   const [isFreeTrial, setIsFreeTrial] = useState(false);
+  const [plansLoading, setPlansLoading] = useState(true);
+  const [renewalProduct, setRenewalProduct] = useState<any>(null);
+  const isRenewal = Boolean(renewalProduct?.id);
+  const renewalProductType = getRenewalProductType(renewalProduct);
 
   const dispatch = useDispatch();
   // Filter sub-categories based on selected category
@@ -97,6 +118,7 @@ export default function PostScreen() {
     setCondition("New");
     setCustomFields([{ name: "", value: "" }]);
     setVideoLink2("");
+    setVideoLink("");
     setWebsiteLink("")
   };
 
@@ -131,17 +153,66 @@ export default function PostScreen() {
     }
   };
   useEffect(() => {
-    dispatch(getPlansListApi(getPlansListUrl))
+    setPlansLoading(true);
+    Promise.resolve(dispatch(getPlansListApi(getPlansListUrl)))
+      .catch(() => {})
+      .finally(() => setPlansLoading(false));
     getFreeTrialStatusApi(user?.id).then((res: any) => {
       setIsFreeTrial(res);
     });
   }, [])
 
   useEffect(() => {
+    if (!renewalProductParam) {
+      setRenewalProduct(null);
+      return;
+    }
+
+    try {
+      const product = JSON.parse(renewalProductParam);
+      if (!product?.id) throw new Error("Missing product id");
+
+      setRenewalProduct(product);
+      setImages(
+        (Array.isArray(product.images) ? product.images : [])
+          .map((image: any) => image?.image_path || image?.path || image?.image || image)
+          .filter(Boolean)
+      );
+      setTitle(product.name || "");
+      setDescription(product.description || "");
+      setPrice(product.price != null ? String(product.price) : "");
+      setSelectedCategory(product.category_id || null);
+      setSelectedSubCategory(product.sub_category_id || null);
+      setSelectedChildCategory(product.child_category_id || null);
+      setChildCategories(product.child_category ? [product.child_category] : []);
+      setCondition(String(product.condition || "new").toLowerCase() === "used" ? "Used" : "New");
+      setIsNegotiable(Boolean(product.price_negotiable));
+      setCustomFields(
+        Array.isArray(product.custom_fields)
+          ? product.custom_fields.map((field: any) => ({ name: field?.name || "", value: field?.value || "" }))
+          : []
+      );
+      setShowAdditionalDetails(Array.isArray(product.custom_fields) && product.custom_fields.length > 0);
+      setWebsiteLink(product.plan_info?.website_link || "");
+      setVideoLink(product.plan_info?.banner_video_url || "");
+    } catch {
+      setRenewalProduct(null);
+      AppToast("Unable to prepare this ad for renewal.");
+    }
+  }, [renewalProductParam]);
+
+  useEffect(() => {
     if (plans?.length > 0 && !adType) {
       setAdType(plans[0]);
     }
   }, [plans]);
+
+  useEffect(() => {
+    if (!renewalProduct || !plans?.length) return;
+
+    const renewalPlan = plans.find((plan: any) => matchesRenewalPlan(plan, renewalProduct));
+    if (renewalPlan) setAdType(renewalPlan);
+  }, [plans, renewalProduct]);
   useFocusEffect(
     React.useCallback(() => {
       // When this screen is unfocused (navigated away from), clear images
@@ -220,11 +291,11 @@ export default function PostScreen() {
       const filledCustomFields = customFields.filter(f => f.name.trim() && f.value.trim());
       const payload = {
         ...(paymentData && paymentData.razorpay_payment_id && {
-          plan_id: adType?.id,
           razorpay_order_id: paymentData?.razorpay_order_id || null,
           razorpay_payment_id: paymentData?.razorpay_payment_id || null,
           razorpay_signature: paymentData?.razorpay_signature || null,
         }),
+        plan_id: adType?.id,
         category_id: selectedCategory,
         sub_category_id: selectedSubCategory,
         child_category_id: selectedChildCategory || 0,
@@ -270,16 +341,132 @@ export default function PostScreen() {
     }
   };
 
+  const refreshMyListings = () => {
+    dispatch(getFavoritesApi(`${favoritesUrl}`));
+    dispatch(getMyFeaturedAdsApi(`${getMyFeaturedAdsUrl}`));
+    dispatch(getMyBannerAdsApi(`${getMyBannerAdsUrl}`));
+    dispatch(getApprovedProductsApi(getApprovedProductsUrl));
+    dispatch(getMyProductsApi(`${getMyProductsUrl}`));
+  };
+
+  const verifyRenewal = async (paymentData: any, fallbackOrderId?: string) => {
+    const isBannerPlan = adType?.id === 3 || adType?.type === "banner";
+    const bannerImage =
+      images[0] ||
+      renewalProduct?.plan_info?.banner_image ||
+      renewalProduct?.images?.[0]?.image_path ||
+      null;
+    const bannerVideoUrl = videoLink || renewalProduct?.plan_info?.banner_video_url || null;
+    const bannerWebsiteLink = websiteLink || renewalProduct?.plan_info?.website_link || null;
+
+    if (isBannerPlan && (!bannerImage || !bannerVideoUrl || !bannerWebsiteLink)) {
+      AppToast("Banner image, video link, and website link are required to renew a banner ad.");
+      return false;
+    }
+    console.log(paymentData, "paymentData");
+    const response = await verifyRenewalApi({
+      ...(paymentData?.razorpay_payment_id && {
+        razorpay_order_id: paymentData.razorpay_order_id || fallbackOrderId,
+        razorpay_payment_id: paymentData.razorpay_payment_id,
+        razorpay_signature: paymentData.razorpay_signature,
+      }),
+      product_id: renewalProduct.id,
+      plan_id: adType.id,
+      banner_image: isBannerPlan ? bannerImage : null,
+      banner_video_url: isBannerPlan ? bannerVideoUrl : null,
+      website_link: isBannerPlan ? bannerWebsiteLink : null,
+    });
+
+    if (response?.success === false) {
+      throw new Error(response.message || "Unable to renew this ad.");
+    }
+
+    refreshMyListings();
+    Alert.alert(
+      "Ad Renewed!",
+      response?.message || "Your ad has been renewed successfully.",
+      [{ text: "OK", onPress: () => router.replace("/(tabs)/myListing") }]
+    );
+    return true;
+  };
+
+  const handleRenewal = async () => {
+    if (!renewalProduct?.id || !adType?.id) {
+      AppToast("Choose a renewal plan before continuing.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const renewalPrice = Number(adType.price ?? 0);
+
+      // Razorpay does not accept orders below ₹1. Free renewal plans are
+      // verified directly, just like a free new-ad plan.
+      if (renewalPrice < 1) {
+        await verifyRenewal(null);
+        setIsLoading(false);
+        return;
+      }
+
+      const orderRes = await createRenewalOrderApi(renewalProduct.id, adType.id);
+      const order = orderRes?.data ?? orderRes;
+      const totalAmount = Number(order?.total_amount ?? 0);
+      const razorpayOrderId = order?.order_id || order?.id;
+
+      if (!totalAmount || totalAmount === 0) {
+        await verifyRenewal(null, razorpayOrderId);
+        setIsLoading(false);
+        return;
+      }
+
+      if (!razorpayOrderId) {
+        AppToast("Invalid renewal order. Please try again.");
+        setIsLoading(false);
+        return;
+      }
+
+      RazorpayCheckout.open({
+        key: RAZORPAY_KEY,
+        amount: totalAmount * 100,
+        currency: "INR",
+        name: "Gaxa Marketplace",
+        description: "Ad Renewal Fee",
+        order_id: razorpayOrderId,
+        prefill: {
+          name: user?.name || "",
+          email: user?.email || "",
+          contact: user?.phone || "",
+        },
+        theme: {
+          color: COLORS.primary,
+        },
+      } as any)
+        .then((paymentResponse: any) => verifyRenewal(paymentResponse, razorpayOrderId))
+        .catch((error: any) => {
+          if (error?.code === "payment_cancelled" || error?.description === "Payment Cancelled") {
+            AppToast("Payment cancelled");
+          } else {
+            AppToast(error?.message || error?.description || "Unable to renew this ad. Please try again.");
+          }
+        })
+        .finally(() => setIsLoading(false));
+    } catch (error: any) {
+      console.log(error?.response?.data || error, "renewal payment flow error");
+      AppToast(error?.message || "Unable to renew this ad. Please try again.");
+      setIsLoading(false);
+    }
+  };
+
 
   // Handle submit with payment
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
     setIsLoading(true);
-
     try {
       // Free trial: normal ads (not featured id=2, not banner id=3) skip payment entirely
       if (isFreeTrial && adType?.id !== 2 && adType?.id !== 3) {
+        console.log("Free trial: skipping payment");
         await submitProduct(null);
         setIsLoading(false);
         return;
@@ -358,104 +545,23 @@ export default function PostScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
       >
-        <ThemeHeader onBackPress={() => router.back()} title="Post Your Ad" />
+        <ThemeHeader onBackPress={() => router.back()} title={isRenewal ? "Renew Ad" : "Post Your Ad"} />
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Ad Type */}
-          <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Ad Type</ThemedText>
-            <View style={styles.adTypeContainer}>
-              {(plans || []).map((plan: any) => {
-                let iconName = "document-text-outline";
-                let iconColor = "#1976D2";
-                let iconBg = "#E3F2FD";
-                let subtitle = "Basic Listing";
-                let features: string[] = [];
-                let badgeText = "Free limited time offer";
-                let badgeBg = "#E3F2FD";
-                let badgeColor = "#1976D2";
+          {isRenewal && (
+            <RenewalNotice productName={renewalProduct.name} productType={renewalProductType} />
+          )}
 
-                if (plan.id === 1 || plan.type === "basic" || plan.type === "free") {
-                  features = ["Chat with buyers", "Standard listing visibility", "28-day active period"];
-                } else if (plan.id === 2 || plan.type === "featured") {
-                  iconName = "star";
-                  iconColor = "#FBC02D";
-                  iconBg = "#FFF9C4";
-                  subtitle = "Top Placement";
-                  features = ["Chat & call with buyers", "Top placement in category", "More visibility, more buyers"];
-                  badgeText = "Recommended";
-                  badgeBg = "#FBC02D";
-                  badgeColor = "#000";
-                } else if (plan.id === 3 || plan.type === "banner") {
-                  iconName = "rocket";
-                  iconColor = "#D32F2F";
-                  iconBg = "#FFEBEE";
-                  subtitle = "Homepage Banner";
-                  features = ["Chat & call with buyers", "Homepage banner placement", "Maximum reach & visibility"];
-                  badgeText = "";
-                }
-
-                return (
-                  <TouchableOpacity
-                    key={plan.id}
-                    style={[
-                      styles.adTypeCard,
-                      adType?.id === plan.id && styles.adTypeCardActive,
-                      (plan.id === 2 || plan.type === "featured") && adType?.id === plan.id && { backgroundColor: '#FFFDE7', borderColor: '#FFF59D' },
-                      (plan.id === 3 || plan.type === "banner") && adType?.id === plan.id && { backgroundColor: '#FFEBEE', borderColor: '#FFCDD2' }
-                    ]}
-                    onPress={() => setAdType(plan)}
-                    activeOpacity={0.8}
-                  >
-                    <View style={styles.adTypeRow}>
-                      <Ionicons
-                        name={adType?.id === plan.id ? "radio-button-on" : "radio-button-off"}
-                        size={22}
-                        color={adType?.id === plan.id ? COLORS.primary : COLORS.gray}
-                      />
-                      <View style={[styles.adTypeIconBox, { backgroundColor: iconBg }]}>
-                        <Ionicons name={iconName as any} size={24} color={iconColor} />
-                      </View>
-
-                      <View style={styles.adTypeMainCol}>
-                        <View style={styles.adTypeTitleRowFixed}>
-                          <ThemedText style={styles.adTypeTitleFixed}>
-                            {plan.name} {parseFloat(plan.price) > 0 ? `₹${plan.price}` : "(Free)"}
-                          </ThemedText>
-                        </View>
-                        <ThemedText style={styles.adTypeSubtitleFixed}>{subtitle}</ThemedText>
-                      </View>
-
-                      <View style={styles.adTypeRightCol}>
-                        <ThemedText style={styles.durationText}>/ {plan.duration_days} days</ThemedText>
-                        {!!badgeText && (
-                          <View style={[styles.planBadge, { backgroundColor: badgeBg }]}>
-                            <ThemedText style={[styles.planBadgeText, { color: badgeColor }]}>
-                              {badgeText}
-                            </ThemedText>
-                          </View>
-                        )}
-                      </View>
-                    </View>
-
-                    {features.length > 0 && (
-                      <View style={styles.featureList}>
-                        {features.map((f, fi) => (
-                          <View key={fi} style={styles.featureRow}>
-                            <Ionicons name="checkmark-circle" size={15} color="#2E7D32" />
-                            <ThemedText style={styles.featureText}>{f}</ThemedText>
-                          </View>
-                        ))}
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
+          <AdTypeSelector
+            plans={(plans || []).filter((plan: any) => !isRenewal || matchesRenewalPlan(plan, renewalProduct))}
+            selectedPlan={adType}
+            isLoading={plansLoading}
+            isLocked={isRenewal}
+            onSelect={setAdType}
+          />
 
 
           {/* Warning Notice */}
@@ -477,6 +583,7 @@ export default function PostScreen() {
             </View>
           </View>
 
+          <View pointerEvents={isRenewal ? "none" : "auto"} style={isRenewal && styles.lockedFields}>
           {/* Image Upload Section */}
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Upload Images</ThemedText>
@@ -536,9 +643,9 @@ export default function PostScreen() {
               <ThemedText style={selectedCategory ? styles.categorySelectedText : styles.categoryPlaceholderText}>
                 {selectedCategory
                   ? (() => {
-                    const catName = categories.find((c: any) => c.id === selectedCategory)?.name || "";
-                    const subCatName = subCategories.find((sc: any) => sc.id === selectedSubCategory)?.name || "";
-                    const childName = childCategories.find((cc: any) => cc.id === selectedChildCategory)?.name || "";
+                    const catName = categories.find((c: any) => c.id === selectedCategory)?.name || renewalProduct?.category?.name || "";
+                    const subCatName = subCategories.find((sc: any) => sc.id === selectedSubCategory)?.name || renewalProduct?.sub_category?.name || "";
+                    const childName = childCategories.find((cc: any) => cc.id === selectedChildCategory)?.name || renewalProduct?.child_category?.name || "";
                     return [catName, subCatName, childName].filter(Boolean).join(" > ");
                   })()
                   : "Select Category"}
@@ -635,26 +742,6 @@ export default function PostScreen() {
               textAlignVertical="top"
               maxLength={4000}
             />
-          </View>
-
-          {/* Video Link (all plans) */}
-          <View style={styles.section}>
-            <View style={styles.linkLabelRow}>
-              <Ionicons name="play-circle-outline" size={18} color={COLORS.primary} />
-              <ThemedText style={styles.linkLabel}>Product Video Link (Optional)</ThemedText>
-            </View>
-            <View style={[styles.input, styles.videoInput]}>
-              <TextInput
-                style={styles.videoTextInput}
-                placeholder="https://youtube.com/..."
-                placeholderTextColor={COLORS.gray}
-                value={videoLink2}
-                onChangeText={setVideoLink2}
-                keyboardType="url"
-                autoCapitalize="none"
-              />
-            </View>
-            <ThemedText style={styles.linkHint}>Add a video demo of your product</ThemedText>
           </View>
 
           {/* Additional Details / Custom Fields */}
@@ -768,11 +855,12 @@ export default function PostScreen() {
               </ThemedText>
             </View>
           )}
+          </View>
 
           <View style={[styles.footer]}>
             <TouchableOpacity
               style={[styles.submitBtn, isLoading && styles.submitBtnDisabled]}
-              onPress={handleSubmit}
+              onPress={isRenewal ? handleRenewal : handleSubmit}
               disabled={isLoading}
             >
               {isLoading ? (
@@ -783,9 +871,17 @@ export default function PostScreen() {
               ) : (
                 <>
                   {adType && parseFloat(adType.price) > 0 && (
-                    <ThemedText style={styles.submitBtnPrice}>₹{isFreeTrial ? 0 : adType.price}</ThemedText>
+                    <ThemedText style={styles.submitBtnPrice}>₹{isRenewal ? adType.price : isFreeTrial ? 0 : adType.price}</ThemedText>
                   )}
-                  <ThemedText style={styles.submitBtnText}>{isFreeTrial ? "Post Ad" : "Pay & Post Ad"}</ThemedText>
+                  <ThemedText style={styles.submitBtnText}>
+                    {isRenewal
+                      ? parseFloat(adType?.price || "0") > 0
+                        ? "Pay & Renew Ad"
+                        : "Renew Ad"
+                      : isFreeTrial || parseFloat(adType?.price || "0") === 0
+                      ? "Post Ad"
+                      : "Pay & Post Ad"}
+                  </ThemedText>
                   <Ionicons name="arrow-forward" size={20} color={COLORS.white} />
                 </>
               )}
@@ -1036,6 +1132,33 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: SIZES.padding,
     paddingTop: 20,
+  },
+  renewalNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 16,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "#1565C015",
+    borderWidth: 1,
+    borderColor: "#1565C030",
+  },
+  renewalNoticeContent: {
+    flex: 1,
+  },
+  renewalNoticeTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1565C0",
+  },
+  renewalNoticeText: {
+    marginTop: 2,
+    fontSize: 12,
+    color: COLORS.gray,
+  },
+  lockedFields: {
+    opacity: 0.6,
   },
 
   /* Sections */
@@ -1396,6 +1519,37 @@ const styles = StyleSheet.create({
   adTypeCardActive: {
     borderColor: COLORS.primary,
   },
+  adTypeCardLocked: {
+    opacity: 0.8,
+  },
+  adTypeCardSkeleton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.white,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    padding: 12,
+    gap: 12,
+  },
+  skeletonCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#E0E0E0",
+  },
+  skeletonIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: "#E0E0E0",
+  },
+  skeletonLine: {
+    height: 12,
+    borderRadius: 4,
+    backgroundColor: "#E0E0E0",
+    width: "80%",
+  },
   adTypeRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -1697,4 +1851,3 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
 });
-

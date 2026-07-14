@@ -56,6 +56,13 @@ const getStatusConfig = (status: string) => {
         icon: "close-circle",
         label: "Rejected",
       };
+    case "expired":
+      return {
+        color: COLORS.error,
+        bgColor: COLORS.error + "15",
+        icon: "time",
+        label: "Expired",
+      };
     default:
       return {
         color: COLORS.gray,
@@ -76,6 +83,9 @@ export default function MyListingsScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('normal');
   const isFavoritesTab = selectedFilter === 'favorites'; 
+  const isProductExpired = (product: any) => product?.plan_info?.is_expired === true;
+  const getProductStatusConfig = (product: any) =>
+    getStatusConfig(isProductExpired(product) ? "expired" : product?.approve);
 
   const filteredProducts = isFavoritesTab
     ? safeFavorites
@@ -87,11 +97,21 @@ export default function MyListingsScreen() {
       if (selectedFilter === 'normal') return p.approve === 'approved';
       if (selectedFilter === 'featured') return p.is_featured || p.featured;
       if (selectedFilter === 'banner') return p.is_banner || p.banner;
+      if (selectedFilter === 'renewed') return isProductExpired(p);
       return true;
     });
   const openDetailModal = (item: any) => {
     setSelectedItem(item);
     setModalVisible(true);
+  };
+
+  const handleRenew = (product: any) => {
+    router.push({
+      pathname: "/(tabs)/post",
+      params: {
+        renewalProduct: JSON.stringify(product),
+      },
+    });
   };
 
   const closeDetailModal = () => {
@@ -122,39 +142,6 @@ export default function MyListingsScreen() {
     dispatch(getMyProductsApi(`${getMyProductsUrl}`));
   }, []);
 
-  const renderStats = () => {
-    const approved = safeProducts.filter((p: any) => p.approve === "approved").length;
-    const pending = safeProducts.filter((p: any) => p.approve === "pending").length;
-    const rejected = safeProducts.filter((p: any) => p.approve === "rejected").length;
-
-    return (
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <View style={[styles.statIcon, { backgroundColor: COLORS.success + "15" }]}>
-            <Ionicons name="checkmark-circle" size={20} color={COLORS.success} />
-          </View>
-          <ThemedText style={styles.statValue}>{approved}</ThemedText>
-          <ThemedText style={styles.statLabel}>Approved</ThemedText>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <View style={[styles.statIcon, { backgroundColor: "#f5af1915" }]}>
-            <Ionicons name="time" size={20} color="#f5af19" />
-          </View>
-          <ThemedText style={styles.statValue}>{pending}</ThemedText>
-          <ThemedText style={styles.statLabel}>Pending</ThemedText>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <View style={[styles.statIcon, { backgroundColor: COLORS.error + "15" }]}>
-            <Ionicons name="close-circle" size={20} color={COLORS.error} />
-          </View>
-          <ThemedText style={styles.statValue}>{rejected}</ThemedText>
-          <ThemedText style={styles.statLabel}>Rejected</ThemedText>
-        </View>
-      </View>
-    );
-  };
 
   const buildImageUrl = (imagePath: string | null | undefined) => {
     if (!imagePath) return null;
@@ -164,7 +151,7 @@ export default function MyListingsScreen() {
   };
 
   const renderListingCard = ({ item }: { item: any }) => {
-    const statusConfig = getStatusConfig(item.approve);
+    const statusConfig = getProductStatusConfig(item);
     const images = Array.isArray(item?.images) ? item.images : [];
     const rawImage = images.length > 0 ? (images[0]?.image_path || images[0]?.path || images[0].image) : null;
     const firstImage = buildImageUrl(typeof rawImage === "string" ? rawImage : rawImage?.image_path);
@@ -233,6 +220,20 @@ export default function MyListingsScreen() {
               </ThemedText>
             </View>
           </View>
+
+          {selectedFilter === "renewed" && (
+            <TouchableOpacity
+              style={styles.renewButton}
+              onPress={(event) => {
+                event.stopPropagation();
+                handleRenew(item);
+              }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="refresh-outline" size={14} color={COLORS.white} />
+              <ThemedText style={styles.renewButtonText}>Renew Ad</ThemedText>
+            </TouchableOpacity>
+          )}
         </View>
       </TouchableOpacity>
     );
@@ -375,16 +376,11 @@ export default function MyListingsScreen() {
       <ThemedText style={styles.emptyTitle}>
         {isFavoritesTab ? "No Favorites Yet" : "No Listings Yet"}
       </ThemedText>
-      <ThemedText style={styles.emptySubtitle}>
-        {isFavoritesTab
-          ? "Save ads you like by tapping the heart icon"
-          : "Start selling by creating your first listing"}
-      </ThemedText>
     </View>
   );
   const renderDetailModal = () => {
     if (!selectedItem) return null;
-    const statusConfig = getStatusConfig(selectedItem.approve);
+    const statusConfig = getProductStatusConfig(selectedItem);
 
     return (
       <Modal
@@ -565,7 +561,6 @@ export default function MyListingsScreen() {
         renderItem={isBannerTab ? renderBannerAdCard : isFeaturedTab ? renderFeaturedAdCard : renderListingCard}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContent}
-        ListHeaderComponent={!isFavoritesTab && !isBannerTab && !isFeaturedTab && safeProducts.length > 0 ? renderStats : null}
         ListEmptyComponent={renderEmptyState}
         refreshControl={
           <RefreshControl
@@ -779,6 +774,22 @@ const styles = StyleSheet.create({
   listingDateText: {
     fontSize: 11,
     color: COLORS.gray,
+  },
+  renewButton: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: "#1565C0",
+  },
+  renewButtonText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: COLORS.white,
   },
   listingActions: {
     justifyContent: "space-between",

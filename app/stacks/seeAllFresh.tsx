@@ -97,6 +97,9 @@ export default function SeeAllFreshScreen() {
           style={styles.productImage}
           resizeMode="cover"
         />
+        <View style={styles.typeBadge}>
+          <ThemedText style={styles.typeBadgeText}>Normal</ThemedText>
+        </View>
         {item.approve === "approved" && (
           <View style={styles.verifiedBadge}>
             <Ionicons name="checkmark-circle" size={12} color={COLORS.white} />
@@ -135,7 +138,7 @@ export default function SeeAllFreshScreen() {
 
   return (
     <ThemedView style={[styles.container]}>
-      <ThemeHeader onBackPress={() => router.back()} title="Fresh Recommendations" />
+      <ThemeHeader onBackPress={() => router.back()} title="All Normal Ads" />
       {safeProducts.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="cube-outline" size={64} color={COLORS.gray} />
@@ -188,9 +191,23 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
   },
-  verifiedBadge: {
+  typeBadge: {
     position: "absolute",
     top: 8,
+    left: 8,
+    backgroundColor: "#2E7D32",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  typeBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: COLORS.white,
+  },
+  verifiedBadge: {
+    position: "absolute",
+    top: 34,
     left: 8,
     flexDirection: "row",
     alignItems: "center",

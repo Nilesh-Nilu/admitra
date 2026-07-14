@@ -66,9 +66,14 @@ import { useDispatch, useSelector } from "react-redux";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = (SCREEN_WIDTH - SIZES.padding * 2 - 12) / 2;
 
+// Survives the Home screen unmounting/remounting when navigating to a stack screen and back
+let savedHomeScrollY = 0;
+
 export default function HomeScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
+  const flatListRef = useRef<FlatList>(null);
+  const hasRestoredScrollRef = useRef(false);
   const { loader, cities, categories, products, banners, featuredAds, states, localities } =
     useSelector((state: any) => state.entities.userReducer) || {};
   const { user } = useSelector((state: any) => state.entities.authReducer) || {};
@@ -80,7 +85,6 @@ export default function HomeScreen() {
   const [promotionBanners, setPromotionBanners] = useState<any>([]);
   const [normalAdsInfo, setNormalAdsInfo] = useState<any>(null);
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
   const [hasMoreProducts, setHasMoreProducts] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const prevCityIdRef = useRef<any>(null);
@@ -188,6 +192,9 @@ export default function HomeScreen() {
   }, [safeLocalities, user?.locality_id]);
 
   useEffect(() => {
+    getPromotionBannerApi().then((res) => {
+      setPromotionBanners(res);
+    });
     dispatch(getCategoriesApi(getCategoriesUrl));
     dispatch(getSubCategoriesApi(`${getSubCategoriesUrl}`));
     dispatch(getStatesApi(getStatesUrl));
@@ -208,7 +215,6 @@ export default function HomeScreen() {
       // Reset pagination when city changes
       if (prevCityIdRef.current !== selectedCity.id) {
         prevCityIdRef.current = selectedCity.id;
-        setCurrentPage(1);
         setHasMoreProducts(true);
         currentPageRef.current = 1;
         hasMoreRef.current = true;
@@ -222,9 +228,7 @@ export default function HomeScreen() {
       );
     }
     dispatch(getMyFeaturedAdsApi(`${getMyFeaturedAdsUrl}`));
-    getPromotionBannerApi().then((res) => {
-      setPromotionBanners(res);
-    });
+
   }, [selectedCity?.id]);
 
   const loadMoreProducts = useCallback(async () => {
@@ -248,7 +252,6 @@ export default function HomeScreen() {
         setHasMoreProducts(false);
       }
       currentPageRef.current = nextPage;
-      setCurrentPage(nextPage);
     } catch (e: any) {
       // console.log('[Pagination] error:', e?.message, e?.response?.status);
     }
@@ -357,11 +360,24 @@ export default function HomeScreen() {
         </ScrollView>
       ) : (
         <FlatList
+          ref={flatListRef}
           data={mixedFeed}
           renderItem={renderMixedRow}
           keyExtractor={(_, index) => index.toString()}
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
+          onScroll={(e) => {
+            savedHomeScrollY = e.nativeEvent.contentOffset.y;
+          }}
+          scrollEventThrottle={16}
+          onContentSizeChange={() => {
+            if (!hasRestoredScrollRef.current && savedHomeScrollY > 0) {
+              hasRestoredScrollRef.current = true;
+              requestAnimationFrame(() => {
+                flatListRef.current?.scrollToOffset({ offset: savedHomeScrollY, animated: false });
+              });
+            }
+          }}
           ListHeaderComponent={
             <>
               <HomeHeader
@@ -370,7 +386,7 @@ export default function HomeScreen() {
               />
               <HomeSearchBar
                 onPressSearch={() => router.push("/stacks/search")}
-                onPressHelp={() => Linking.openURL("https://wa.me/919876543210")}
+                onPressHelp={() => Linking.openURL("https://wa.me/917870660015")}
                 onPressFavorites={() => router.push("/(tabs)/myListing")}
                 onPressNotifications={() => router.push("/stacks/notifications")}
                 hasUnreadNotifications={hasUnreadNotifications}

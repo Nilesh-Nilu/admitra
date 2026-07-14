@@ -128,6 +128,12 @@ export default function SeeAllBannersScreen() {
         <View style={styles.bannerBadge}>
           <ThemedText style={styles.bannerBadgeText}>Banner</ThemedText>
         </View>
+        {item.product?.user?.is_verify === 1 && (
+          <View style={styles.verifiedBadge}>
+            <Ionicons name="checkmark-circle" size={12} color={COLORS.white} />
+            <ThemedText style={styles.verifiedText}>Verified</ThemedText>
+          </View>
+        )}
         <TouchableOpacity
           style={styles.heartBtn}
           onPress={(e) => handleToggleFavorite(e, item)}
@@ -254,6 +260,23 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: COLORS.white,
     textTransform: "uppercase",
+  },
+  verifiedBadge: {
+    position: "absolute",
+    top: 36,
+    right: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "#22C55E",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  verifiedText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: COLORS.white,
   },
   bannerDescriptionContainer: {
     padding: 12,

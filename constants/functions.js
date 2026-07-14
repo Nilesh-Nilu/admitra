@@ -50,10 +50,12 @@ export const getPlansListUrl = "admin/plans"
 export const favoritesUrl = "favorites"
 export const getMyFeaturedAdsUrl = "ads/my-featured"
 export const getMyBannerAdsUrl = "ads/my-banners"
-export const getMyProductsUrl = "products/my-products"
+export const getMyProductsUrl = "ads/my-products?per_page=10"
 //payment
 export const createOrderUrl = "payment/create-order";
 export const verifyAndStorePaymentUrl = "payment/verify-and-store";
+export const createRenewalOrderUrl = "payment/create-renewal-order";
+export const verifyRenewalUrl = "payment/verify-renewal";
 //chat
 export const createChatUrl = "chat/conversation"
 export const getAllconversationsUrl = "chat/conversations"
@@ -360,6 +362,52 @@ export const createOrderApi = async (plan_id) => {
   }
 };
 
+export const createRenewalOrderApi = async (product_id, plan_id) => {
+  try {
+    const authConfig = await getAuthToken();
+    const response = await axios.post(
+      `${baseUrl}/${createRenewalOrderUrl}`,
+      { product_id, plan_id },
+      {
+        ...authConfig,
+        headers: {
+          ...(authConfig.headers || {}),
+          accept: "application/json",
+          "Content-Type": "application/json",
+          "X-CSRF-TOKEN": "",
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.log(error?.response?.data || error, "create renewal order error");
+    throw error;
+  }
+};
+
+export const verifyRenewalApi = async (data) => {
+  try {
+    const authConfig = await getAuthToken();
+    const response = await axios.post(
+      `${baseUrl}/${verifyRenewalUrl}`,
+      data,
+      {
+        ...authConfig,
+        headers: {
+          ...(authConfig.headers || {}),
+          accept: "application/json",
+          "Content-Type": "application/json",
+          "X-CSRF-TOKEN": "",
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.log(error?.response?.data || error, "verify renewal error");
+    throw error;
+  }
+};
+
 export const handleVerifyandAddProductApi = async (data) => {
   try {
     const authConfig = await getAuthToken();
@@ -482,7 +530,6 @@ export const getPolicyApi = async () => {
       `${baseUrl}/pages`,
       await getAuthToken()
     );
-    console.log(response.data.data, "response");
     return response.data.data;
   } catch (error) {
     console.log(error?.response?.data, "error");
@@ -759,6 +806,4 @@ export const getProductByIdApi = async (productId) => {
     throw error;
   }
 };
-
-
 

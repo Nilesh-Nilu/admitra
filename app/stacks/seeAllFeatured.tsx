@@ -98,7 +98,7 @@ export default function SeeAllFeaturedScreen() {
           resizeMode="cover"
         />
         <View style={styles.featuredBadge}>
-          <ThemedText style={styles.featuredBadgeText}>⭐</ThemedText>
+          <ThemedText style={styles.featuredBadgeText}>Featured</ThemedText>
         </View>
         <TouchableOpacity
           style={styles.heartBtn}
@@ -112,6 +112,12 @@ export default function SeeAllFeaturedScreen() {
             color={isFavorited(item) ? "#E91E63" : "#fff"}
           />
         </TouchableOpacity>
+        {item.user?.is_verify === 1 && (
+          <View style={styles.verifiedBadge}>
+            <Ionicons name="checkmark-circle" size={12} color={COLORS.white} />
+            <ThemedText style={styles.verifiedText}>Verified</ThemedText>
+          </View>
+        )}
       </View>
       <View style={styles.featuredInfo}>
         <ThemedText style={styles.featuredTitle} numberOfLines={1}>
@@ -188,18 +194,39 @@ const styles = StyleSheet.create({
   featuredBadge: {
     position: "absolute",
     top: 8,
-    right: 8,
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 4,
-    elevation: 2,
+    left: 8,
+    zIndex: 2,
+    backgroundColor: "#FF6B35",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
   },
   featuredBadgeText: {
-    fontSize: 12,
+    fontSize: 10,
+    fontWeight: "700",
+    color: COLORS.white,
+  },
+  verifiedBadge: {
+    position: "absolute",
+    top: 34,
+    left: 8,
+    zIndex: 2,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "#22C55E",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  verifiedText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: COLORS.white,
   },
   heartBtn: {
     position: "absolute",
-    bottom: 8,
+    top: 8,
     right: 8,
     width: 30,
     height: 30,

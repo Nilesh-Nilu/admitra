@@ -56,10 +56,12 @@ export default function ProductDetailsScreen() {
           setCallManagement(true);
         });
         const parsedProduct = JSON.parse(params.productData as any);
-        console.log(parsedProduct, "parsedProduct");
         getProductByIdApi(parsedProduct.id as any).then((res) => {
-          console.log(res, "res");
-          setProduct(res.data);
+          setProduct({
+            ...res.data,
+            is_featured: parsedProduct.is_featured ?? res.data?.is_featured,
+            is_banner: parsedProduct.is_banner ?? res.data?.is_banner,
+          });
         }).catch((err) => {
           setLoading(false);
         });
@@ -236,14 +238,7 @@ export default function ProductDetailsScreen() {
     }
   };
 
-  if (!product) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ThemedText>Loading...</ThemedText>
-      </View>
-    );
-  }
-  if (loading) {
+  if (!product || loading) {
     return (
       <View style={styles.loadingContainer}>
         <ThemeLoader />
@@ -463,8 +458,7 @@ export default function ProductDetailsScreen() {
 
       {/* Bottom Action Bar */}
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
-
-        {callManagement === true && (
+        {((!product?.is_featured && callManagement === true) || product?.is_featured) && (
           <TouchableOpacity style={styles.callButton} onPress={handleCall} activeOpacity={0.8}>
             <Ionicons name="call" size={18} color={COLORS.white} />
             <ThemedText style={styles.callBtnText}>Call</ThemedText>
