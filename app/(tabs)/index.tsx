@@ -418,7 +418,6 @@ export default function HomeScreen() {
               {normalAdsInfo && (
                 <TouchableOpacity
                   style={styles.topTextBanner}
-                  // onPress={() => router.push("/(tabs)/post")}
                   activeOpacity={0.8}
                 >
                   <View style={styles.topTextBannerLeft}>

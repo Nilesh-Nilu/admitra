@@ -70,14 +70,13 @@ export const HomeBannerAds = ({ promotionBanners, banners, onPressSeeAll }: Home
       });
     }, 3000);
   };
-
   if (safeBanners.length === 0) return null;
 
   return (
     <View style={styles.section}>
-      {/* ── Top Text Banner ── */}
-      <>
-        {promotionBanners?.map((banner) => (
+
+
+      {promotionBanners?.map((banner) => (
           <View key={banner.id} style={styles.topTextBanner}>
             <View style={styles.topTextBannerLeft}>
               {banner.icon ? (
@@ -86,31 +85,19 @@ export const HomeBannerAds = ({ promotionBanners, banners, onPressSeeAll }: Home
                   style={styles.topTextBannerIcon}
                 />
               ) : (
-                <Ionicons name="megaphone-outline" size={SIZES.fontSize18} color="#1565C0" style={styles.topTextBannerIconSpacing} />
+                <Ionicons name="megaphone-outline" size={20} color="#1565C0" />
               )}
-              <ThemedText style={styles.topTextBannerLeftText}>
+            </View>
+            <View style={styles.topTextBannerBody}>
+              <ThemedText style={styles.topTextBannerTitle} numberOfLines={2}>
                 {banner.business_text}
               </ThemedText>
             </View>
-
-            <View style={styles.topTextBannerHighlight}>
-              <ThemedText style={styles.topTextBannerHighlightText}>
-                {banner.offer_text}
-              </ThemedText>
-            </View>
-
-            <View style={styles.topTextBannerRight}>
-              {banner.features?.slice(0, 3).map((feature: any, index: number) => (
-                <View key={index} style={styles.topTextBannerRightItem}>
-                  <Ionicons name="checkmark-circle" size={SIZES.fontSize12} color="#1565C0" />
-                  <ThemedText style={styles.topTextBannerRightText}>{feature}</ThemedText>
-                </View>
-              ))}
+            <View style={styles.topTextBannerBtn}>
+              <ThemedText style={styles.topTextBannerBtnText}>{banner.offer_text}</ThemedText>
             </View>
           </View>
         ))}
-      </>
-
       <View style={styles.sectionHeader}>
         <ThemedText style={styles.sectionTitle}>Banner Ads</ThemedText>
         <TouchableOpacity style={styles.seeAllBtn} onPress={onPressSeeAll}>
@@ -118,7 +105,6 @@ export const HomeBannerAds = ({ promotionBanners, banners, onPressSeeAll }: Home
           <Ionicons name="arrow-forward" size={SIZES.fontSize14} color="#1565C0" />
         </TouchableOpacity>
       </View>
-
       <ScrollView
         ref={bannerScrollRef}
         horizontal
@@ -152,37 +138,6 @@ export const HomeBannerAds = ({ promotionBanners, banners, onPressSeeAll }: Home
           ))}
         </View>
       )}
-
-      {/* ── Bottom Text Banner ── */}
-      {/* <View style={styles.bottomTextBanner}>
-        <View style={styles.bottomTextBannerLeft}>
-          <ThemedText style={styles.bottomTextBannerStar}>⭐</ThemedText>
-          <ThemedText style={styles.bottomTextBannerLeftText}>
-            {'सेलर से डायरेक्ट कॉल करने के लिए\nफीचर्ड एड पर एड डालें'}
-          </ThemedText>
-          <View style={styles.bottomTextBannerHighlight}>
-            <ThemedText style={styles.bottomTextBannerHighlightText}>{'सिर्फ ₹19 में 28 दिन'}</ThemedText>
-          </View>
-        </View>
-        <View style={styles.bottomTextBannerRight}>
-          <View style={styles.bottomTextBannerRightItem}>
-            <Ionicons name="checkmark-circle" size={SIZES.fontSize12} color="#F9A825" />
-            <ThemedText style={styles.bottomTextBannerRightText}>टॉप प्लेसमेंट मिलेगा</ThemedText>
-          </View>
-          <View style={styles.bottomTextBannerRightItem}>
-            <Ionicons name="checkmark-circle" size={SIZES.fontSize12} color="#F9A825" />
-            <ThemedText style={styles.bottomTextBannerRightText}>ज्यादा विजिबिलिटी</ThemedText>
-          </View>
-          <View style={styles.bottomTextBannerRightItem}>
-            <Ionicons name="checkmark-circle" size={SIZES.fontSize12} color="#F9A825" />
-            <ThemedText style={styles.bottomTextBannerRightText}>बेस्ट कॉल की सुविधा</ThemedText>
-          </View>
-          <View style={styles.bottomTextBannerRightItem}>
-            <Ionicons name="checkmark-circle" size={SIZES.fontSize12} color="#F9A825" />
-            <ThemedText style={styles.bottomTextBannerRightText}>सेलर से डायरेक्ट कॉल</ThemedText>
-          </View>
-        </View>
-      </View> */}
     </View>
   );
 };
@@ -230,60 +185,28 @@ const styles = StyleSheet.create({
   topTextBanner: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#E8F0FE",
-    borderRadius: SIZES.radius10,
-    padding: SIZES.padding10,
-    marginBottom: SIZES.padding12,
+    gap: 10,
+    backgroundColor: "#EFF6FF",
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 14,
     borderWidth: 1,
-    borderColor: "#BBDEFB",
+    borderColor: "#BFDBFE",
   },
   topTextBannerLeft: {
-    flex: 1.4,
-    flexDirection: "row",
-    alignItems: "flex-start",
-  },
-  topTextBannerIcon: {
-    width: SIZES.padding * 2,
-    height: SIZES.padding * 2,
-    marginRight: SIZES.padding8,
-    borderRadius: SIZES.radius4,
-  },
-  topTextBannerIconSpacing: {
-    marginRight: SIZES.padding8,
-  },
-  topTextBannerLeftText: {
-    fontSize: SIZES.fontSize10,
-    color: "#0D47A1",
-    fontWeight: "600",
-    flex: 1,
-  },
-  topTextBannerHighlight: {
-    backgroundColor: "#FDD835",
-    borderRadius: SIZES.radius6,
-    paddingVertical: SIZES.padding2,
-    marginHorizontal: SIZES.padding6,
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: "#DBEAFE",
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
-  topTextBannerHighlightText: {
-    fontSize: SIZES.fontSize10,
-    fontWeight: "800",
-    color: "#212121",
-    textAlign: "center",
-    lineHeight: SIZES.lineHeight10,
-  },
-  topTextBannerRight: {
-    flex: 1.1,
-  },
-  topTextBannerRightItem: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  topTextBannerRightText: {
-    fontSize: SIZES.fontSize8,
-    color: "#1565C0",
-    fontWeight: "500",
-    flexShrink: 1,
+  topTextBannerIcon: {
+    width: 35,
+    height: 35,
+    borderRadius: 8,
   },
   bottomTextBanner: {
     flexDirection: "row",
@@ -334,5 +257,30 @@ const styles = StyleSheet.create({
     color: "#5D4037",
     fontWeight: "500",
     flexShrink: 1,
+  },
+  topTextBannerBtn: {
+    backgroundColor: "#1565C0",
+    borderRadius: 8,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+  },
+  topTextBannerBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  topTextBannerBody: {
+    flex: 1,
+    gap: 2,
+  },
+  topTextBannerTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#1E3A5F",
+  },
+  topTextBannerSub: {
+    fontSize: 10,
+    color: "#64748B",
+    fontWeight: "400",
   },
 });

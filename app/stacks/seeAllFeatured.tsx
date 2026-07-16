@@ -85,7 +85,9 @@ export default function SeeAllFeaturedScreen() {
       onPress={() =>
         router.push({
           pathname: "/stacks/productDetails",
-          params: { productData: JSON.stringify(item) },
+          params: {
+            productData: JSON.stringify({...item, is_featured: true}),
+          },
         })
       }
     >

@@ -78,6 +78,15 @@ export default function PostScreen() {
   const [renewalProduct, setRenewalProduct] = useState<any>(null);
   const isRenewal = Boolean(renewalProduct?.id);
   const renewalProductType = getRenewalProductType(renewalProduct);
+  const isNormalPlan = adType?.id === 1 || ["normal", "basic", "free"].includes(String(adType?.type || "").toLowerCase());
+  // Trial access is evaluated before the selected product plan.
+  const hasFreeTrialAccess = isFreeTrial || user?.free_trial_enabled === true;
+  const hasAssignedFreeAccess = Number(user?.is_free) === 1;
+  const isZeroPriceNormalPlan = isNormalPlan && Number(adType?.price ?? 0) === 0;
+  const shouldPostWithoutPayment = !isRenewal && isNormalPlan && (
+    hasFreeTrialAccess || hasAssignedFreeAccess || isZeroPriceNormalPlan
+  );
+  const shouldIncludeFreePlanId = isZeroPriceNormalPlan && !hasFreeTrialAccess && !hasAssignedFreeAccess;
 
   const dispatch = useDispatch();
   // Filter sub-categories based on selected category
@@ -261,6 +270,10 @@ export default function PostScreen() {
       Alert.alert("Title Required", "Please enter a title for your listing");
       return false;
     }
+    if (!description.trim()) {
+      Alert.alert("Description Required", "Please enter a description for your listing");
+      return false;
+    }
     if (!selectedCategory) {
       Alert.alert("Category Required", "Please select a category");
       return false;
@@ -285,17 +298,20 @@ export default function PostScreen() {
     return true;
   };
 
-  // Submit product after payment success (or free plan)
-  const submitProduct = async (paymentData: any) => {
+  // Submit product after payment success or through the free-post flow.
+  const submitProduct = async (paymentData: any, includeFreePlanId = false) => {
     try {
       const filledCustomFields = customFields.filter(f => f.name.trim() && f.value.trim());
       const payload = {
-        ...(paymentData && paymentData.razorpay_payment_id && {
+        ...(paymentData?.razorpay_payment_id && {
+          plan_id: adType?.id,
           razorpay_order_id: paymentData?.razorpay_order_id || null,
           razorpay_payment_id: paymentData?.razorpay_payment_id || null,
           razorpay_signature: paymentData?.razorpay_signature || null,
         }),
-        plan_id: adType?.id,
+        ...(!paymentData?.razorpay_payment_id && includeFreePlanId && {
+          plan_id: adType?.id,
+        }),
         category_id: selectedCategory,
         sub_category_id: selectedSubCategory,
         child_category_id: selectedChildCategory || 0,
@@ -314,10 +330,7 @@ export default function PostScreen() {
         }),
       };
  
-      console.log(payload, "payload");
-
       const response = await handleVerifyandAddProductApi(payload);
-      console.log(response, "response");
 
       if (!response) {
         AppToast("Failed to submit listing. Please try again.");
@@ -363,7 +376,6 @@ export default function PostScreen() {
       AppToast("Banner image, video link, and website link are required to renew a banner ad.");
       return false;
     }
-    console.log(paymentData, "paymentData");
     const response = await verifyRenewalApi({
       ...(paymentData?.razorpay_payment_id && {
         razorpay_order_id: paymentData.razorpay_order_id || fallbackOrderId,
@@ -461,13 +473,10 @@ export default function PostScreen() {
   // Handle submit with payment
   const handleSubmit = async () => {
     if (!validateForm()) return;
-
     setIsLoading(true);
     try {
-      // Free trial: normal ads (not featured id=2, not banner id=3) skip payment entirely
-      if (isFreeTrial && adType?.id !== 2 && adType?.id !== 3) {
-        console.log("Free trial: skipping payment");
-        await submitProduct(null);
+      if (shouldPostWithoutPayment) {
+        await submitProduct(null, shouldIncludeFreePlanId);
         setIsLoading(false);
         return;
       }
@@ -488,7 +497,7 @@ export default function PostScreen() {
 
       // Free plan — skip Razorpay, submit directly
       if (!totalAmount || totalAmount === 0) {
-        await submitProduct(null);
+        await submitProduct(null, isNormalPlan);
         setIsLoading(false);
         return;
       }
@@ -871,14 +880,14 @@ export default function PostScreen() {
               ) : (
                 <>
                   {adType && parseFloat(adType.price) > 0 && (
-                    <ThemedText style={styles.submitBtnPrice}>₹{isRenewal ? adType.price : isFreeTrial ? 0 : adType.price}</ThemedText>
+                    <ThemedText style={styles.submitBtnPrice}>₹{isRenewal ? adType.price : shouldPostWithoutPayment ? 0 : adType.price}</ThemedText>
                   )}
                   <ThemedText style={styles.submitBtnText}>
                     {isRenewal
                       ? parseFloat(adType?.price || "0") > 0
                         ? "Pay & Renew Ad"
                         : "Renew Ad"
-                      : isFreeTrial || parseFloat(adType?.price || "0") === 0
+                      : shouldPostWithoutPayment
                       ? "Post Ad"
                       : "Pay & Post Ad"}
                   </ThemedText>
