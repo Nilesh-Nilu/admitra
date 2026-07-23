@@ -14,7 +14,6 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  useWindowDimensions,
   View,
 } from "react-native";
 import { getBannerWarningApi, createConversationApi, reportProductApi, reportUserApi, addToFavoritesApi, getFavoritesListApi, removeFromFavoritesApi } from "@/constants/functions";
@@ -47,7 +46,6 @@ interface BannerData {
 
 export default function BannerDetailsScreen() {
   const params = useLocalSearchParams();
-  const { width } = useWindowDimensions();
   const dispatch = useDispatch();
   const [banner, setBanner] = useState<BannerData | null>(null);
   const [reportModalVisible, setReportModalVisible] = useState(false);
@@ -55,6 +53,7 @@ export default function BannerDetailsScreen() {
   const [isReporting, setIsReporting] = useState(false);
   const [zoomModalVisible, setZoomModalVisible] = useState(false);
   const [bannerWarnings, setBannerWarnings] = useState<any[]>([]);
+  const [warningContentWidth, setWarningContentWidth] = useState(0);
   const [reportTarget, setReportTarget] = useState<"ad" | "user">("ad");
 
   const favorites = useSelector((state: any) => state.entities.userReducer.favorites);
@@ -203,7 +202,7 @@ export default function BannerDetailsScreen() {
         response = await reportProductApi({ product_id: Number(product.id), reason });
       }
       if (response.status === false) {
-        AppToast(`Failed to report this ${reportTarget === "user" ? "user" : "ad"}. Please try again.`);
+        AppToast(response.message || `Failed to report this ${reportTarget === "user" ? "user" : "ad"}. Please try again.`);
       } else {
         AppToast(response.message);
         setReportModalVisible(false);
@@ -216,8 +215,6 @@ export default function BannerDetailsScreen() {
       setIsReporting(false);
     }
   };
-
-  const disclaimerHtmlWidth = width - SIZES.padding * 6;
 
   return (
     <ThemedView style={styles.container}>
@@ -350,11 +347,18 @@ export default function BannerDetailsScreen() {
                 <Ionicons name="shield-checkmark" size={18} color="#1565C0" />
               )}
             </View>
-            <RenderHTML
-              contentWidth={disclaimerHtmlWidth}
-              source={{ html: warning.warning_text }}
-              tagsStyles={{ p: styles.disclaimerText }}
-            />
+            <View
+              style={{ flex: 1 }}
+              onLayout={(e) => setWarningContentWidth(e.nativeEvent.layout.width)}
+            >
+              {warningContentWidth > 0 && (
+                <RenderHTML
+                  contentWidth={warningContentWidth}
+                  source={{ html: warning.warning_text }}
+                  tagsStyles={{ p: styles.disclaimerText }}
+                />
+              )}
+            </View>
           </View>
         ))}
 

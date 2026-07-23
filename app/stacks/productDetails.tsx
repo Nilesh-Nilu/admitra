@@ -225,13 +225,14 @@ export default function ProductDetailsScreen() {
       setIsReportingUser(true);
       const response = await reportUserApi({ reported_user_id: Number(userId), reason });
       if (response.status === false) {
-        AppToast("Failed to report user. Please try again.");
+        AppToast(response.message || "Failed to report user. Please try again.");
       } else {
         AppToast(response.message || "User reported successfully");
         setReportUserModalVisible(false);
         setReportUserReason("");
       }
-    } catch {
+    } catch(error) {
+      console.log(error, "error");
       AppToast("Failed to report user. Please try again.");
     } finally {
       setIsReportingUser(false);

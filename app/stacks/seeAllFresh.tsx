@@ -26,7 +26,9 @@ export default function SeeAllFreshScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
   const { products, favorites } = useSelector((state: any) => state.entities.userReducer) || {};
-  const safeProducts = Array.isArray(products) ? products : [];
+  const safeProducts = Array.isArray(products)
+    ? products.filter((product: any) => product?.product_type === "normal")
+    : [];
   const safeFavorites = Array.isArray(favorites) ? favorites : [];
 
   useEffect(() => {

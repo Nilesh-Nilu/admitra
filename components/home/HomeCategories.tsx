@@ -33,7 +33,7 @@ export const HomeCategories = ({
         <TouchableOpacity
           style={styles.categoryItem}
           activeOpacity={0.7}
-          onPress={() => onPressCategory(null)}
+          onPress={onPressMore}
         >
           <View
             style={[

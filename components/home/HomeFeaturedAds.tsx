@@ -5,7 +5,9 @@ import { ThemedText } from "@/components/ThemedText";
 import { FeaturedCard } from "@/components/cards/FeaturedCard";
 import { COLORS } from "@/constants/Colors";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
-import { getFeaturedAdsInfoApi } from "@/constants/functions";
+import { getFeaturedAdsInfoApi, logoutUser } from "@/constants/functions";
+import { useDispatch } from "react-redux";
+import { useRouter } from "expo-router";
 
 type HomeFeaturedAdsProps = {
   featuredAds: any[];
@@ -13,12 +15,20 @@ type HomeFeaturedAdsProps = {
 };
 
 export const HomeFeaturedAds = ({ featuredAds, onPressSeeAll }: HomeFeaturedAdsProps) => {
+  const dispatch = useDispatch();
+  const router = useRouter();
   const safeFeaturedAds = Array.isArray(featuredAds) ? featuredAds : [];
   const [featuredAdsInfo, setFeaturedAdsInfo] = useState<any>(null);
   useEffect(() => {
-    getFeaturedAdsInfoApi().then((res: any) => {
-      setFeaturedAdsInfo(res);
-    });
+    getFeaturedAdsInfoApi()
+      .then((res: any) => {
+        setFeaturedAdsInfo(res);
+      })
+      .catch((err) => {
+        if (err.message === "Unauthenticated") {
+          logoutUser(dispatch, router, "user");
+        }
+      });
   }, []);
   return (
     <View style={styles.section}>
@@ -50,14 +60,9 @@ export const HomeFeaturedAds = ({ featuredAds, onPressSeeAll }: HomeFeaturedAdsP
             <ThemedText style={styles.topTextBannerTitle} numberOfLines={2}>
               {featuredAdsInfo.title}
             </ThemedText>
-            {featuredAdsInfo.feature_points?.length > 0 && (
-              <ThemedText style={styles.topTextBannerSub} numberOfLines={1}>
-                {featuredAdsInfo.feature_points}
-              </ThemedText>
-            )}
           </View>
           <View style={styles.topTextBannerBtn}>
-            <ThemedText style={styles.topTextBannerBtnText}>Boost Ad</ThemedText>
+            <ThemedText style={styles.topTextBannerBtnText}>   {featuredAdsInfo.feature_points}</ThemedText>
           </View>
         </TouchableOpacity>
       )}

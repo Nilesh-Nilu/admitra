@@ -23,6 +23,11 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 
 const { width } = Dimensions.get("window");
+const FILTER_CARD_GAP = 8;
+const FILTER_CARD_COLUMNS = 4;
+const filterCardWidth =
+  (width - SIZES.padding * 2 - FILTER_CARD_GAP * (FILTER_CARD_COLUMNS - 1)) /
+  FILTER_CARD_COLUMNS;
 
 const filterOptions = [
   { id: 'normal', label: 'Normal Ads', icon: 'card-outline', color: '#2E7D32', bgColor: '#E8F5E9', borderColor: '#C8E6C9' },
@@ -87,16 +92,19 @@ export default function MyListingsScreen() {
   const getProductStatusConfig = (product: any) =>
     getStatusConfig(isProductExpired(product) ? "expired" : product?.approve);
 
+  const getProductType = (p: any) =>
+    String(p?.product_type || p?.plan_info?.plan_type || "normal").toLowerCase();
+
   const filteredProducts = isFavoritesTab
     ? safeFavorites
       .filter((fav: any) => fav?.product != null)
       .map((fav: any) => ({ ...fav.product, _favoritedAt: fav.favorited_at }))
     : safeProducts.filter((p: any) => {
-      if (selectedFilter === 'all') return true;
+      const type = getProductType(p);
       if (selectedFilter === 'pending') return p.approve === 'pending';
-      if (selectedFilter === 'normal') return p.approve === 'approved';
-      if (selectedFilter === 'featured') return p.is_featured || p.featured;
-      if (selectedFilter === 'banner') return p.is_banner || p.banner;
+      if (selectedFilter === 'normal') return p.approve === 'approved' && type === 'normal';
+      if (selectedFilter === 'featured') return type === 'featured';
+      if (selectedFilter === 'banner') return type === 'banner';
       if (selectedFilter === 'renewed') return isProductExpired(p);
       return true;
     });
@@ -510,7 +518,7 @@ export default function MyListingsScreen() {
           keyExtractor={(item) => item.id.toString()}
           columnWrapperStyle={{
             justifyContent: "flex-start",
-            gap: 8,
+            gap: FILTER_CARD_GAP,
             alignItems: 'center'
           }}
           contentContainerStyle={styles.filterScroll}
@@ -635,7 +643,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   filterCard: {
-    width: 90,
+    width: filterCardWidth,
     height: 80,
     backgroundColor: COLORS.white,
     borderWidth: 1,

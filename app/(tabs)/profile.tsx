@@ -75,13 +75,14 @@ export default function ProfileScreen() {
     GMAIL_HELP: "gmail_help",
     REPORT: "report_ad_user",
   };
+  const hasFile = (value?: string | boolean | null) => Boolean(value) && value !== "0";
   const details = [
-    { icon: "person-outline", label: "Full Name", value: user?.name || "—" },
-    { icon: "call-outline", label: "Mobile No.", value: user?.phone ? `+91  ${user?.phone}` : "—" },
-    { icon: "mail-outline", label: "Email", value: user?.email || "—" },
-    { icon: "location-outline", label: "Address", value: user?.address || "—" },
-    { icon: "card-outline", label: "ID Proof", value: user?.AadharImage ? "Aadhaar Card" : "—" },
-    { icon: "camera-outline", label: "Selfie", value: user?.selfieverificationImage ? "Verified" : "Not Verified" },
+    { icon: "person-outline", label: "Full Name", value: user?.name || "—", verified: !!user?.name },
+    { icon: "call-outline", label: "Mobile No.", value: user?.phone ? `+91  ${user?.phone}` : "—", verified: !!user?.phone },
+    { icon: "mail-outline", label: "Email", value: user?.email || "—", verified: !!user?.email },
+    { icon: "location-outline", label: "Address", value: user?.address || "—", verified: !!user?.address },
+    { icon: "card-outline", label: "ID Proof", value: hasFile(user?.AadharImage) ? "Aadhaar Card" : "Not Uploaded", verified: hasFile(user?.AadharImage) },
+    { icon: "camera-outline", label: "Selfie", value: hasFile(user?.selfieverificationImage) ? "Verified" : "Not Uploaded", verified: hasFile(user?.selfieverificationImage) },
   ];
 
   const menuItems = [
@@ -382,10 +383,17 @@ export default function ProfileScreen() {
                 <ThemedText style={styles.detailLabel}>{item.label}</ThemedText>
               </View>
               <ThemedText style={styles.detailValue} numberOfLines={1}>{item.value}</ThemedText>
-              <View style={styles.verifiedPill}>
-                <Ionicons name="checkmark-circle" size={12} color="#2E7D32" />
-                <ThemedText style={styles.verifiedPillText}>Verified</ThemedText>
-              </View>
+              {item.verified ? (
+                <View style={styles.verifiedPill}>
+                  <Ionicons name="checkmark-circle" size={12} color="#2E7D32" />
+                  <ThemedText style={styles.verifiedPillText}>Verified</ThemedText>
+                </View>
+              ) : (
+                <View style={styles.pendingPill}>
+                  <Ionicons name="alert-circle" size={12} color="#B45309" />
+                  <ThemedText style={styles.pendingPillText}>Pending</ThemedText>
+                </View>
+              )}
             </View>
           ))}
         </View>
@@ -465,7 +473,7 @@ export default function ProfileScreen() {
                 <ThemedText style={styles.infoSubLabel}>Aadhaar Card</ThemedText>
               </View>
             </View>
-            {user?.AadharImage ? (
+            {hasFile(user?.AadharImage) ? (
               <Ionicons name="checkmark-circle" size={22} color="#4CAF50" />
             ) : (
               <Ionicons name="ellipse-outline" size={22} color={COLORS.lightGray} />
@@ -477,10 +485,10 @@ export default function ProfileScreen() {
               <Ionicons name="person-outline" size={18} color={COLORS.gray} />
               <View>
                 <ThemedText style={styles.infoLabel}>Selfie</ThemedText>
-                <ThemedText style={styles.infoSubLabel}>{user?.selfieverificationImage === "1" ? "Verified" : "Not Verified"}</ThemedText>
+                <ThemedText style={styles.infoSubLabel}>{hasFile(user?.selfieverificationImage) ? "Verified" : "Not Verified"}</ThemedText>
               </View>
             </View>
-            {user?.selfieverificationImage ? (
+            {hasFile(user?.selfieverificationImage) ? (
               <Ionicons name="checkmark-circle" size={22} color="#4CAF50" />
             ) : (
               <Ionicons name="ellipse-outline" size={22} color={COLORS.lightGray} />
@@ -1030,6 +1038,16 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   verifiedPillText: { fontSize: 11, fontWeight: "700", color: "#2E7D32" },
+  pendingPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "#FEF3C7",
+    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  pendingPillText: { fontSize: 11, fontWeight: "700", color: "#B45309" },
 
   fullVerifiedBox: {
     flexDirection: "row",

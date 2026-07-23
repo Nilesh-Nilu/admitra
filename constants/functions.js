@@ -723,6 +723,10 @@ export const getNormalAdsInfoApi = async (
     return response.data.data[0];
   } catch (error) {
     console.log(error?.response?.data || error, "getNormalAdsInfoApi");
+    if (error?.response?.status === 401) {
+      // Return a sentinel value or throw so the caller knows it's unauthenticated
+      throw new Error("Unauthenticated");
+    }
     throw error;
   }
 };
@@ -736,6 +740,9 @@ export const getFeaturedAdsInfoApi = async (
     return response.data.data[0];
   } catch (error) {
     console.log(error?.response?.data || error, "getFeaturedAdsInfoApi");
+    if (error?.response?.status === 401) {
+      throw new Error("Unauthenticated");
+    }
     throw error;
   }
 };

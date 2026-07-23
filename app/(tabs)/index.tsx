@@ -13,13 +13,11 @@ import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
 import {
   favoritesUrl,
-  getApprovedProductsUrl,
   getBannerAdsUrl,
   getCategoriesUrl,
   getCitiesUrl,
   getFeaturedAdsUrl,
   getLocalitiesUrl,
-  getMyFeaturedAdsUrl,
   getProductsUrl,
   getPromotionBannerApi,
   getStatesUrl,
@@ -28,6 +26,7 @@ import {
   getAuthToken,
   getNormalAdsInfoApi,
   getNotifications,
+  logoutUser,
 } from "@/constants/functions";
 import axios from "axios";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
@@ -35,14 +34,12 @@ import { setClearData } from "@/store/reducers/paymentReducer";
 import {
   appendProductsRecieved,
   getAllProducts,
-  getApprovedProductsApi,
   getBannersApi,
   getCategoriesApi,
   getCitiesApi,
   getFavoritesApi,
   getFeaturedAdsApi,
   getLocalitiesApi,
-  getMyFeaturedAdsApi,
   getStatesApi,
   getSubCategoriesApi,
 } from "@/store/reducers/userReducer";
@@ -74,7 +71,11 @@ export default function HomeScreen() {
   const dispatch = useDispatch();
   const flatListRef = useRef<FlatList>(null);
   const hasRestoredScrollRef = useRef(false);
-  const { loader, cities, categories, products, banners, featuredAds, states, localities } =
+  const hasBootstrappedRef = useRef(false);
+  const lastFetchedCityIdRef = useRef<any>(null);
+  const isCheckingNotificationsRef = useRef(false);
+  const isInitializingCityRef = useRef(false);
+  const { cities, categories, products, banners, featuredAds, states, localities } =
     useSelector((state: any) => state.entities.userReducer) || {};
   const { user } = useSelector((state: any) => state.entities.authReducer) || {};
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
@@ -85,18 +86,25 @@ export default function HomeScreen() {
   const [promotionBanners, setPromotionBanners] = useState<any>([]);
   const [normalAdsInfo, setNormalAdsInfo] = useState<any>(null);
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+  const [isInitialHomeLoading, setIsInitialHomeLoading] = useState(true);
   const [hasMoreProducts, setHasMoreProducts] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const prevCityIdRef = useRef<any>(null);
   const isLoadingMoreRef = useRef(false);
   const currentPageRef = useRef(1);
   const hasMoreRef = useRef(true);
-  const safeLocalities = Array.isArray(localities) ? localities : [];
-  const safeProducts = products || [];
-  const safeCategories = categories || [];
-  const safeCities = Array.isArray(cities) ? cities : [];
-  const safeBanners = Array.isArray(banners) ? banners : [];
+  const hasFinishedInitialHomeLoadRef = useRef(false);
+  const finishInitialHomeLoading = useCallback(() => {
+    if (hasFinishedInitialHomeLoadRef.current) return;
 
+    hasFinishedInitialHomeLoadRef.current = true;
+    setIsInitialHomeLoading(false);
+  }, []);
+  const safeLocalities = useMemo(() => (Array.isArray(localities) ? localities : []), [localities]);
+  const safeProducts = Array.isArray(products) ? products : [];
+  const safeCategories = Array.isArray(categories) ? categories : [];
+  const safeCities = useMemo(() => (Array.isArray(cities) ? cities : []), [cities]);
+  const safeBanners = useMemo(() => (Array.isArray(banners) ? banners : []), [banners]);
   const filteredProducts = selectedCategory
     ? safeProducts.filter((p: any) => p.category_id === selectedCategory)
     : safeProducts;
@@ -111,43 +119,46 @@ export default function HomeScreen() {
     }
   }, [user?.id]);
 
-  useEffect(() => {
-    checkUnreadNotifications();
-  }, [checkUnreadNotifications]);
 
   useFocusEffect(
     useCallback(() => {
-      checkUnreadNotifications();
+      if (isCheckingNotificationsRef.current) return;
+
+      isCheckingNotificationsRef.current = true;
+      checkUnreadNotifications().finally(() => {
+        isCheckingNotificationsRef.current = false;
+      });
     }, [checkUnreadNotifications])
   );
 
   // Effect 1: Initialize city only (localities aren't loaded yet at this point)
   useEffect(() => {
     const initializeCity = async () => {
-      if (safeCities.length === 0 || isCityInitialized) return;
+      if (safeCities.length === 0 || isCityInitialized || isInitializingCityRef.current) return;
+
+      isInitializingCityRef.current = true;
       try {
-        // Priority 1: User's city from profile
+        // Priority 1: Keep the location explicitly selected on this device.
+        const savedCityJson = await AsyncStorage.getItem("selectedCity");
+        if (savedCityJson) {
+          const savedCity = JSON.parse(savedCityJson);
+          const savedCityFromList = safeCities.find((c: any) => Number(c.id) === Number(savedCity.id));
+          if (savedCityFromList) {
+            setSelectedCity(savedCityFromList);
+            setIsCityInitialized(true);
+            return;
+          }
+        }
+        // Priority 2: Use the profile city only when this device has no saved choice.
         if (user?.city_id) {
           const userCity = safeCities.find((c: any) => Number(c.id) === Number(user.city_id));
           if (userCity) {
             setSelectedCity(userCity);
-            await AsyncStorage.setItem("selectedCity", JSON.stringify(userCity));
             setIsCityInitialized(true);
             return;
           }
         }
-        // Priority 2: Saved city from AsyncStorage
-        const savedCityJson = await AsyncStorage.getItem("selectedCity");
-        if (savedCityJson) {
-          const savedCity = JSON.parse(savedCityJson);
-          const cityExists = safeCities.some((c: any) => Number(c.id) === Number(savedCity.id));
-          if (cityExists) {
-            setSelectedCity(savedCity);
-            setIsCityInitialized(true);
-            return;
-          }
-        }
-        // Priority 3: Default to first city
+        // Priority 3: Default to first city.
         setSelectedCity(safeCities[0]);
         setIsCityInitialized(true);
       } catch (error) {
@@ -159,29 +170,28 @@ export default function HomeScreen() {
       }
     };
     initializeCity();
-  }, [safeCities, user, isCityInitialized]);
+  }, [safeCities, user?.city_id, isCityInitialized]);
 
   // Effect 2: Initialize locality once localities are fetched for the selected city
   useEffect(() => {
     if (safeLocalities.length === 0 || selectedLocality) return;
     const initializeLocality = async () => {
       try {
-        // Priority 1: User's locality from profile
+        // Priority 1: Restore the locality explicitly selected on this device.
+        const savedLocalityJson = await AsyncStorage.getItem("selectedLocality");
+        if (savedLocalityJson) {
+          const savedLocality = JSON.parse(savedLocalityJson);
+          const savedLocalityFromList = safeLocalities.find((l: any) => Number(l.id) === Number(savedLocality.id));
+          if (savedLocalityFromList) {
+            setSelectedLocality(savedLocalityFromList);
+            return;
+          }
+        }
+        // Priority 2: Use the profile locality when there is no saved choice.
         if (user?.locality_id) {
           const userLocality = safeLocalities.find((l: any) => Number(l.id) === Number(user.locality_id));
           if (userLocality) {
             setSelectedLocality(userLocality);
-            await AsyncStorage.setItem("selectedLocality", JSON.stringify(userLocality));
-            return;
-          }
-        }
-        // Priority 2: Saved locality from AsyncStorage
-        const savedLocalityJson = await AsyncStorage.getItem("selectedLocality");
-        if (savedLocalityJson) {
-          const savedLocality = JSON.parse(savedLocalityJson);
-          const localityExists = safeLocalities.some((l: any) => Number(l.id) === Number(savedLocality.id));
-          if (localityExists) {
-            setSelectedLocality(savedLocality);
           }
         }
       } catch (error) {
@@ -189,47 +199,65 @@ export default function HomeScreen() {
       }
     };
     initializeLocality();
-  }, [safeLocalities, user?.locality_id]);
+  }, [safeLocalities, selectedLocality, user?.locality_id]);
 
   useEffect(() => {
+    if (hasBootstrappedRef.current) return;
+    hasBootstrappedRef.current = true;
+
     getPromotionBannerApi().then((res) => {
       setPromotionBanners(res);
     });
     dispatch(getCategoriesApi(getCategoriesUrl));
     dispatch(getSubCategoriesApi(`${getSubCategoriesUrl}`));
     dispatch(getStatesApi(getStatesUrl));
-    dispatch(getCitiesApi(getCitiesUrl));
+    const citiesRequest = dispatch(getCitiesApi(getCitiesUrl)) as unknown as Promise<unknown>;
+    citiesRequest.catch((error) => {
+      console.log("Error loading home cities:", error);
+      finishInitialHomeLoading();
+    });
     dispatch(setClearData(null));
-    dispatch(getApprovedProductsApi(getApprovedProductsUrl));
     dispatch(getBannersApi(getBannerAdsUrl));
     dispatch(getFeaturedAdsApi(getFeaturedAdsUrl));
     dispatch(getFavoritesApi(favoritesUrl));
-    getNormalAdsInfoApi().then((res: any) => {
-      setNormalAdsInfo(res);
-    });
+    getNormalAdsInfoApi()
+      .then((res: any) => {
+        setNormalAdsInfo(res);
+      })
+      .catch((err) => {
+        if (err.message === "Unauthenticated") {
+          logoutUser(dispatch, router, "user");
+        }
+      });
 
-  }, []);
+  }, [dispatch, finishInitialHomeLoading, router]);
 
   useEffect(() => {
-    if (selectedCity?.id) {
+    const cityId = selectedCity?.id;
+    if (cityId && lastFetchedCityIdRef.current !== cityId) {
+      lastFetchedCityIdRef.current = cityId;
       // Reset pagination when city changes
-      if (prevCityIdRef.current !== selectedCity.id) {
-        prevCityIdRef.current = selectedCity.id;
+      if (prevCityIdRef.current !== cityId) {
+        prevCityIdRef.current = cityId;
         setHasMoreProducts(true);
         currentPageRef.current = 1;
         hasMoreRef.current = true;
         isLoadingMoreRef.current = false;
       }
-      dispatch(getLocalitiesApi(`${getLocalitiesUrl}?city_id=${selectedCity.id}`));
-      dispatch(
-        getAllProducts(
-          `${getProductsUrl}?per_page=20&page=1`
-        )
-      );
-    }
-    dispatch(getMyFeaturedAdsApi(`${getMyFeaturedAdsUrl}`));
+      dispatch(getLocalitiesApi(`${getLocalitiesUrl}?city_id=${cityId}`));
+      const productsRequest = dispatch(
+        getAllProducts(`${getProductsUrl}?per_page=20&page=1`)
+      ) as unknown as Promise<unknown>;
 
-  }, [selectedCity?.id]);
+      productsRequest
+        .catch((error) => {
+          console.log("Error loading home products:", error);
+        })
+        .finally(() => {
+          finishInitialHomeLoading();
+        });
+    }
+  }, [dispatch, finishInitialHomeLoading, selectedCity?.id]);
 
   const loadMoreProducts = useCallback(async () => {
     if (!hasMoreRef.current || isLoadingMoreRef.current) return;
@@ -252,7 +280,7 @@ export default function HomeScreen() {
         setHasMoreProducts(false);
       }
       currentPageRef.current = nextPage;
-    } catch (e: any) {
+    } catch {
       // console.log('[Pagination] error:', e?.message, e?.response?.status);
     }
     isLoadingMoreRef.current = false;
@@ -338,10 +366,24 @@ export default function HomeScreen() {
     }
     return null;
   };
-  const fullName = `${selectedCity?.name + ","}${selectedLocality?.name || ""}`
+  const handleSelectCity = async (city: any) => {
+    setSelectedCity(city);
+    setSelectedLocality(null);
+    await AsyncStorage.multiSet([
+      ["selectedCity", JSON.stringify(city)],
+      ["selectedLocality", ""],
+    ]);
+  };
+
+  const handleSelectLocality = async (locality: any) => {
+    setSelectedLocality(locality);
+    await AsyncStorage.setItem("selectedLocality", JSON.stringify(locality));
+  };
+
+  const fullName = [selectedCity?.name, selectedLocality?.name].filter(Boolean).join(", ");
   return (
     <ThemedView style={styles.container}>
-      {loader ? (
+      {isInitialHomeLoading ? (
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -453,7 +495,7 @@ export default function HomeScreen() {
                   <ThemedText style={styles.footerLoaderText}>Loading more...</ThemedText>
                 </>
               ) : !hasMoreProducts ? (
-                <ThemedText style={styles.footerEndText}>You're all caught up</ThemedText>
+                <ThemedText style={styles.footerEndText}>You&apos;re all caught up</ThemedText>
               ) : null}
             </View>
           }
@@ -466,8 +508,8 @@ export default function HomeScreen() {
         states={Array.isArray(states) ? states : []}
         cities={safeCities}
         localities={safeLocalities}
-        onSelectCity={setSelectedCity}
-        onSelectLocality={setSelectedLocality}
+        onSelectCity={handleSelectCity}
+        onSelectLocality={handleSelectLocality}
       />
     </ThemedView>
   );
