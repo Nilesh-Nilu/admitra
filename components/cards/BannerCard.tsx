@@ -35,23 +35,27 @@ type BannerCardProps = {
 
 export const BannerCard = ({ item, isInline = false }: BannerCardProps) => {
   const dispatch = useDispatch();
-  const favorites = useSelector((state: any) => state.entities.userReducer.favorites) || [];
-  const favRecord = favorites.find((fav: any) => fav.product?.id === item.id);
+  const favorites = useSelector((state: any) => state.entities.userReducer.favorites);
+  const safeFavorites = Array.isArray(favorites) ? favorites : [];
+  const productId = item?.product?.id;
+  const favRecord = safeFavorites.find((fav: any) => fav.product?.id === productId);
   const isFavorited = !!favRecord;
 
   const handleToggleFavorite = async (e: any) => {
     e.stopPropagation();
+    if (!productId) return;
+
     if (isFavorited) {
       dispatch(removeFavoriteById(favRecord.id));
       try { await removeFromFavoritesApi(favRecord.id); } catch { dispatch(addFavoriteItem(favRecord)); }
     } else {
-      const tempRecord = { id: `temp_${item.id}`, product: item };
+      const tempRecord = { id: `temp_${productId}`, product: item.product };
       dispatch(addFavoriteItem(tempRecord));
       try {
-        const res = await addToFavoritesApi(item.id);
-        dispatch(removeFavoriteById(`temp_${item.id}`));
+        const res = await addToFavoritesApi(productId);
+        dispatch(removeFavoriteById(`temp_${productId}`));
         if (res?.data) dispatch(addFavoriteItem(res.data));
-      } catch { dispatch(removeFavoriteById(`temp_${item.id}`)); }
+      } catch { dispatch(removeFavoriteById(`temp_${productId}`)); }
     }
   };
 

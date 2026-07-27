@@ -89,12 +89,22 @@ export const HomeBannerAds = ({ promotionBanners, banners, onPressSeeAll }: Home
               )}
             </View>
             <View style={styles.topTextBannerBody}>
-              <ThemedText style={styles.topTextBannerTitle} numberOfLines={2}>
+              <ThemedText
+                style={styles.topTextBannerTitle}
+                numberOfLines={2}
+                ellipsizeMode="tail"
+              >
                 {banner.business_text}
               </ThemedText>
             </View>
             <View style={styles.topTextBannerBtn}>
-              <ThemedText style={styles.topTextBannerBtnText}>{banner.offer_text}</ThemedText>
+              <ThemedText
+                style={styles.topTextBannerBtnText}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {banner.offer_text}
+              </ThemedText>
             </View>
           </View>
         ))}
@@ -183,6 +193,8 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.padding4 / 2,
   },
   topTextBanner: {
+    width: "100%",
+    maxWidth: "100%",
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
@@ -193,6 +205,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     borderWidth: 1,
     borderColor: "#BFDBFE",
+    overflow: "hidden",
   },
   topTextBannerLeft: {
     width: 40,
@@ -202,6 +215,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
+    flexShrink: 0,
   },
   topTextBannerIcon: {
     width: 35,
@@ -259,24 +273,35 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   topTextBannerBtn: {
+    maxWidth: "36%",
+    minWidth: 0,
     backgroundColor: "#1565C0",
     borderRadius: 8,
     paddingVertical: 7,
     paddingHorizontal: 12,
+    flexShrink: 0,
   },
   topTextBannerBtnText: {
     fontSize: 12,
     fontWeight: "700",
     color: "#FFFFFF",
+    flexShrink: 1,
   },
   topTextBannerBody: {
     flex: 1,
+    flexShrink: 1,
+    minWidth: 0,
+    overflow: "hidden",
     gap: 2,
   },
   topTextBannerTitle: {
     fontSize: 13,
+    lineHeight: 18,
     fontWeight: "700",
     color: "#1E3A5F",
+    flexShrink: 1,
+    minWidth: 0,
+    includeFontPadding: false,
   },
   topTextBannerSub: {
     fontSize: 10,

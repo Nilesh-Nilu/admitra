@@ -62,19 +62,6 @@ export default function ProfileScreen() {
       .catch(() => {});
   }, []);
 
-  // Page types from API data
-  const PAGE_TYPES = {
-    REFUND: "refund_and_Cancellation_policy",
-    PRICING: "pricing-policy",
-    DISCLAIMER: "disclaimer",
-    COMMUNITY: "community_guidelines",
-    NOTIFICATION: "notification_policy",
-    DATA_RETENTION: "data_retention_policy",
-    INTELLECTUAL: "intellectual_Property _Copyright_policy",
-    CONTENT_AD: "content_ad_posting_policy",
-    GMAIL_HELP: "gmail_help",
-    REPORT: "report_ad_user",
-  };
   const hasFile = (value?: string | boolean | null) => Boolean(value) && value !== "0";
   const details = [
     { icon: "person-outline", label: "Full Name", value: user?.name || "—", verified: !!user?.name },
@@ -85,66 +72,17 @@ export default function ProfileScreen() {
     { icon: "camera-outline", label: "Selfie", value: hasFile(user?.selfieverificationImage) ? "Verified" : "Not Uploaded", verified: hasFile(user?.selfieverificationImage) },
   ];
 
-  const menuItems = [
-    {
-      icon: "refresh-outline",
-      title: "Refund & Cancellation Policy",
-      pageType: PAGE_TYPES.REFUND,
-    },
-    {
-      icon: "pricetag-outline",
-      title: "Pricing Policy",
-      pageType: PAGE_TYPES.PRICING,
-    },
-    {
-      icon: "alert-circle-outline",
-      title: "Disclaimer",
-      pageType: PAGE_TYPES.DISCLAIMER,
-    },
-    {
-      icon: "people-outline",
-      title: "Community Guidelines",
-      pageType: PAGE_TYPES.COMMUNITY,
-    },
-    {
-      icon: "notifications-outline",
-      title: "Notification Policy",
-      pageType: PAGE_TYPES.NOTIFICATION,
-    },
-    {
-      icon: "server-outline",
-      title: "Data Retention Policy",
-      pageType: PAGE_TYPES.DATA_RETENTION,
-    },
-    {
-      icon: "shield-outline",
-      title: "Intellectual Property & Copyright",
-      pageType: PAGE_TYPES.INTELLECTUAL,
-    },
-    {
-      icon: "create-outline",
-      title: "Content & Ad Posting Policy",
-      pageType: PAGE_TYPES.CONTENT_AD,
-    },
-    {
-      icon: "mail-outline",
-      title: "Gmail Help",
-      pageType: PAGE_TYPES.GMAIL_HELP,
-    },
-    {
-      icon: "flag-outline",
-      title: "Report Ad / User",
-      pageType: PAGE_TYPES.REPORT,
-    },
-  ];
+  const visibleMenuItems = policyPages
+    .filter((page: any) => page?.is_active === true)
+    .map((page: any) => ({
+      icon: "document-text-outline",
+      title: page.title.length > 35 ? page.title.slice(0, 32) + "..." : page.title || "Policy",
+      pageType: page.page_type,
+    }));
 
-  const visibleMenuItems = menuItems.filter((item) => {
-    const page = policyPages.find((p: any) => p.page_type === item.pageType);
-    return !page || page.is_active !== false;
-  });
-
-  const isVerified = user?.is_verify === 1;
-  const isPending = user?.is_verify === 2;
+  const hasVerificationDocuments = hasFile(user?.AadharImage) && hasFile(user?.selfieverificationImage);
+  const isVerified = user?.is_verify === 1 && hasVerificationDocuments;
+  const isPending = user?.is_verify === 2 && hasVerificationDocuments;
 
   const getMemberSince = () => {
     if (!user?.created_at) return "May 2024";
@@ -503,7 +441,7 @@ export default function ProfileScreen() {
               <View style={styles.shieldIcon}>
                 <Ionicons name="shield-checkmark" size={24} color="#1565C0" />
               </View>
-              <View>
+              <View style={styles.sellerBannerText}>
                 <ThemedText style={styles.sellerBannerTitle}>You are a Verified Seller</ThemedText>
                 <ThemedText style={styles.sellerBannerSubtitle}>
                   Your ads get more trust and visibility.
@@ -899,6 +837,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     flex: 1,
+    minWidth: 0,
+  },
+  sellerBannerText: {
+    flex: 1,
+    minWidth: 0,
   },
   shieldIcon: {
     width: 44,
@@ -907,22 +850,27 @@ const styles = StyleSheet.create({
     backgroundColor: "#E3F2FD",
     justifyContent: "center",
     alignItems: "center",
+    flexShrink: 0,
   },
   sellerBannerTitle: {
     fontSize: 14,
     fontWeight: "700",
     color: COLORS.text,
+    flexShrink: 1,
   },
   sellerBannerSubtitle: {
     fontSize: 12,
     color: COLORS.gray,
     marginTop: 2,
+    flexShrink: 1,
   },
   postAdBtn: {
     backgroundColor: "#1565C0",
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
+    marginLeft: 12,
+    flexShrink: 0,
   },
   postAdBtnText: {
     fontSize: 14,

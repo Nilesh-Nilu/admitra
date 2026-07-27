@@ -7,6 +7,7 @@ const initialState = {
   categories: [],
   subCategories: [],
   products: [],
+  activeProductsRequestKey: null,
   featuredAds: [],
   approvedProducts: [],
   chatConversations: [],
@@ -48,6 +49,12 @@ const userReducer = createSlice({
     },
     setProductsRecieved: (userReducer, action) => {
       userReducer.loader = false;
+      if (
+        action.meta?.productsRequestKey
+        && action.meta.productsRequestKey !== userReducer.activeProductsRequestKey
+      ) {
+        return;
+      }
       // API: { status, data: { data: [...items], last_page, ... } }
       const raw = action.payload.data;
       const paginator = raw?.data ?? raw;
@@ -56,10 +63,20 @@ const userReducer = createSlice({
     },
     appendProductsRecieved: (userReducer, action) => {
       userReducer.loader = false;
+      if (
+        action.payload.requestKey
+        && action.payload.requestKey !== userReducer.activeProductsRequestKey
+      ) {
+        return;
+      }
       const raw = action.payload.data;
       const list = Array.isArray(raw) ? raw : [];
       const newItems = list.filter((product) => product.approve === "approved");
       userReducer.products = [...userReducer.products, ...newItems];
+    },
+    clearProducts: (userReducer, action) => {
+      userReducer.products = [];
+      userReducer.activeProductsRequestKey = action.payload ?? null;
     },
     setSubCategoriesClear: (userReducer, action) => {
       userReducer.loader = false;
@@ -125,6 +142,7 @@ export const {
   removeFavoriteById,
   addFavoriteItem,
   appendProductsRecieved,
+  clearProducts,
 } = userReducer.actions;
 
 const {
@@ -177,10 +195,11 @@ export const getSubCategoriesApi = (url) =>
     onSuccess: setSubCategoriesRecieved.type,
     onError: userReducerDataRequestFailed.type,
   });
-export const getAllProducts = (url) =>
+export const getAllProducts = (url, productsRequestKey) =>
   apiCallBegan({
     method: "get",
     url,
+    meta: { productsRequestKey },
     onStart: userReducerDataRequested.type,
     onSuccess: setProductsRecieved.type,
     onError: userReducerDataRequestFailed.type,

@@ -47,7 +47,7 @@ export const LocationModal = ({
       setIsLoadingLocalities(false);
     }
     prevLocalitiesRef.current = localities;
-  }, [localities]);
+  }, [isLoadingLocalities, localities]);
 
   const safeStates = Array.isArray(states) ? states : [];
   const safeCities = Array.isArray(cities) ? cities : [];
@@ -97,15 +97,10 @@ export const LocationModal = ({
     setStep("city");
   };
 
-  const handleSelectCity = async (cityObj: any) => {
+  const handleSelectCity = (cityObj: any) => {
     setSelectedCity(cityObj);
     setSearchQuery("");
     onSelectCity(cityObj);
-    try {
-      await AsyncStorage.setItem("selectedCity", JSON.stringify(cityObj));
-    } catch (e) {
-      console.log("Error saving selected city:", e);
-    }
     setStep("locality");
   };
 
@@ -186,9 +181,18 @@ export const LocationModal = ({
               style={styles.item}
               onPress={() => {
                 if (step === "state") {
-                  handleSelectCity({ id: "", name: "All India" });
+                  onSelectCity({ id: "", name: "All India", locationScope: "all" });
+                  reset();
+                  onClose();
                 } else if (step === "city") {
-                  handleSelectCity({ id: "", name: `All in ${selectedState?.name}`, state_id: selectedState?.id });
+                  onSelectCity({
+                    id: "",
+                    name: `All in ${selectedState?.name}`,
+                    state_id: selectedState?.id,
+                    locationScope: "state",
+                  });
+                  reset();
+                  onClose();
                 } else {
                   handleSkipLocality();
                 }

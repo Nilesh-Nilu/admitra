@@ -45,6 +45,27 @@ const matchesRenewalPlan = (plan: any, product: any) => {
   );
 };
 
+const normalizeHttpUrl = (value: string) => {
+  const trimmedValue = value.trim();
+  if (!trimmedValue) return "";
+
+  return /^https?:\/\//i.test(trimmedValue)
+    ? trimmedValue
+    : `https://${trimmedValue}`;
+};
+
+const isValidHttpUrl = (value: string) => {
+  try {
+    const url = new URL(normalizeHttpUrl(value));
+    const isHttpUrl = url.protocol === "http:" || url.protocol === "https:";
+    const hasPublicHost = url.hostname.includes(".") || /^\d{1,3}(\.\d{1,3}){3}$/.test(url.hostname);
+
+    return isHttpUrl && hasPublicHost;
+  } catch {
+    return false;
+  }
+};
+
 export default function PostScreen() {
   const router = useRouter();
   const { renewalProduct: renewalProductParam } = useLocalSearchParams<{ renewalProduct?: string }>();
@@ -63,6 +84,8 @@ export default function PostScreen() {
   const [adType, setAdType] = useState<any>(null);
   const [websiteLink, setWebsiteLink] = useState("");
   const [videoLink, setVideoLink] = useState("");
+  const [websiteLinkError, setWebsiteLinkError] = useState("");
+  const [videoLinkError, setVideoLinkError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [categorySearchQuery, setCategorySearchQuery] = useState("");
@@ -260,6 +283,26 @@ export default function PostScreen() {
     setImages(images.filter((_, i) => i !== index));
   };
 
+  const handleWebsiteLinkBlur = () => {
+    const normalizedLink = normalizeHttpUrl(websiteLink);
+    setWebsiteLink(normalizedLink);
+    setWebsiteLinkError(
+      normalizedLink && !isValidHttpUrl(normalizedLink)
+        ? "Enter a valid link, e.g. https://example.com"
+        : ""
+    );
+  };
+
+  const handleVideoLinkBlur = () => {
+    const normalizedLink = normalizeHttpUrl(videoLink);
+    setVideoLink(normalizedLink);
+    setVideoLinkError(
+      normalizedLink && !isValidHttpUrl(normalizedLink)
+        ? "Enter a valid link, e.g. https://youtube.com/..."
+        : ""
+    );
+  };
+
   // Validate form fields
   const validateForm = () => {
     if (images.length === 0) {
@@ -286,13 +329,33 @@ export default function PostScreen() {
       Alert.alert("Price Required", "Please enter a price");
       return false;
     }
-    if (adType?.id === 3 && !videoLink) {
-      Alert.alert("Banner Video Required", "Please upload a banner video");
-      return false;
-    }
-    if (adType?.id === 3 && !websiteLink) {
-      Alert.alert("Banner Website Link Required", "Please enter a website link");
-      return false;
+    if (adType?.id === 3) {
+      const normalizedVideoLink = normalizeHttpUrl(videoLink);
+      const normalizedWebsiteLink = normalizeHttpUrl(websiteLink);
+
+      setVideoLink(normalizedVideoLink);
+      setWebsiteLink(normalizedWebsiteLink);
+
+      if (!normalizedVideoLink) {
+        setVideoLinkError("A video link is required.");
+        Alert.alert("Banner Video Required", "Please enter a video link.");
+        return false;
+      }
+      if (!isValidHttpUrl(normalizedVideoLink)) {
+        setVideoLinkError("Enter a valid link, e.g. https://youtube.com/...");
+        Alert.alert("Invalid Video Link", "Please enter a complete video URL.");
+        return false;
+      }
+      if (!normalizedWebsiteLink) {
+        setWebsiteLinkError("A website link is required.");
+        Alert.alert("Banner Website Link Required", "Please enter a website link.");
+        return false;
+      }
+      if (!isValidHttpUrl(normalizedWebsiteLink)) {
+        setWebsiteLinkError("Enter a valid link, e.g. https://example.com");
+        Alert.alert("Invalid Website Link", "Please enter a complete website URL.");
+        return false;
+      }
     }
 
     return true;
@@ -302,6 +365,8 @@ export default function PostScreen() {
   const submitProduct = async (paymentData: any, includeFreePlanId = false) => {
     try {
       const filledCustomFields = customFields.filter(f => f.name.trim() && f.value.trim());
+      const normalizedVideoLink = normalizeHttpUrl(videoLink);
+      const normalizedWebsiteLink = normalizeHttpUrl(websiteLink);
       const payload = {
         ...(paymentData?.razorpay_payment_id && {
           plan_id: adType?.id,
@@ -324,8 +389,8 @@ export default function PostScreen() {
         images: [...images],
         ...(adType?.id === 3 && {
           banner_image: images[0] || null,
-          banner_video_url: videoLink || null,
-          website_link: websiteLink || null,
+          banner_video_url: normalizedVideoLink || null,
+          website_link: normalizedWebsiteLink || null,
           video: videoLink2 || null,
         }),
       };
@@ -369,8 +434,8 @@ export default function PostScreen() {
       renewalProduct?.plan_info?.banner_image ||
       renewalProduct?.images?.[0]?.image_path ||
       null;
-    const bannerVideoUrl = videoLink || renewalProduct?.plan_info?.banner_video_url || null;
-    const bannerWebsiteLink = websiteLink || renewalProduct?.plan_info?.website_link || null;
+    const bannerVideoUrl = normalizeHttpUrl(videoLink || renewalProduct?.plan_info?.banner_video_url || "") || null;
+    const bannerWebsiteLink = normalizeHttpUrl(websiteLink || renewalProduct?.plan_info?.website_link || "") || null;
 
     if (isBannerPlan && (!bannerImage || !bannerVideoUrl || !bannerWebsiteLink)) {
       AppToast("Banner image, video link, and website link are required to renew a banner ad.");
@@ -405,6 +470,24 @@ export default function PostScreen() {
   const handleRenewal = async () => {
     if (!renewalProduct?.id || !adType?.id) {
       AppToast("Choose a renewal plan before continuing.");
+      return;
+    }
+
+    const isBannerPlan = adType?.id === 3 || adType?.type === "banner";
+    const renewalVideoLink = normalizeHttpUrl(videoLink || renewalProduct?.plan_info?.banner_video_url || "");
+    const renewalWebsiteLink = normalizeHttpUrl(websiteLink || renewalProduct?.plan_info?.website_link || "");
+    if (isBannerPlan && (!renewalVideoLink || !renewalWebsiteLink)) {
+      AppToast("A video link and website link are required to renew a banner ad.");
+      return;
+    }
+    if (isBannerPlan && !isValidHttpUrl(renewalVideoLink)) {
+      setVideoLinkError("Enter a valid link, e.g. https://youtube.com/...");
+      AppToast("Please enter a valid video link before renewing.");
+      return;
+    }
+    if (isBannerPlan && !isValidHttpUrl(renewalWebsiteLink)) {
+      setWebsiteLinkError("Enter a valid link, e.g. https://example.com");
+      AppToast("Please enter a valid website link before renewing.");
       return;
     }
 
@@ -826,16 +909,21 @@ export default function PostScreen() {
                 <ThemedText style={styles.linkLabel}>Website Link (Required)</ThemedText>
               </View>
               <TextInput
-                style={styles.input}
+                style={[styles.input, websiteLinkError && styles.inputError]}
                 placeholder="https://yourwebsite.com"
                 placeholderTextColor={COLORS.gray}
                 value={websiteLink}
-                onChangeText={setWebsiteLink}
+                onChangeText={(value) => {
+                  setWebsiteLink(value);
+                  if (websiteLinkError) setWebsiteLinkError("");
+                }}
+                onBlur={handleWebsiteLinkBlur}
                 keyboardType="url"
                 autoCapitalize="none"
+                autoCorrect={false}
               />
-              <ThemedText style={styles.linkHint}>
-                Add your website link (will show as Visit Website button)
+              <ThemedText style={websiteLinkError ? styles.linkError : styles.linkHint}>
+                {websiteLinkError || "Add your website link (will show as Visit Website button)"}
               </ThemedText>
             </View>
           )}
@@ -847,20 +935,25 @@ export default function PostScreen() {
                 <Ionicons name="videocam" size={18} color="#4CAF50" />
                 <ThemedText style={styles.linkLabel}>Video Link (Required)</ThemedText>
               </View>
-              <View style={[styles.input, styles.videoInput]}>
+              <View style={[styles.input, styles.videoInput, videoLinkError && styles.inputError]}>
                 {/* <Ionicons name="logo-youtube" size={20} color="#FF0000" style={styles.youtubeIcon} /> */}
                 <TextInput
                   style={styles.videoTextInput}
                   placeholder="https://youtube.com/..."
                   placeholderTextColor={COLORS.gray}
                   value={videoLink}
-                  onChangeText={setVideoLink}
+                  onChangeText={(value) => {
+                    setVideoLink(value);
+                    if (videoLinkError) setVideoLinkError("");
+                  }}
+                  onBlur={handleVideoLinkBlur}
                   keyboardType="url"
                   autoCapitalize="none"
+                  autoCorrect={false}
                 />
               </View>
-              <ThemedText style={styles.linkHint}>
-                Add video link (will show as Watch Video button)
+              <ThemedText style={videoLinkError ? styles.linkError : styles.linkHint}>
+                {videoLinkError || "Add a valid video link (will show as Watch Video button)"}
               </ThemedText>
             </View>
           )}
@@ -1664,6 +1757,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.gray,
     marginTop: 6,
+  },
+  linkError: {
+    fontSize: 12,
+    color: "#D32F2F",
+    marginTop: 6,
+  },
+  inputError: {
+    borderColor: "#D32F2F",
   },
   videoInput: {
     flexDirection: "row",

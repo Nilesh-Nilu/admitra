@@ -57,12 +57,22 @@ export const HomeFeaturedAds = ({ featuredAds, onPressSeeAll }: HomeFeaturedAdsP
             )}
           </View>
           <View style={styles.topTextBannerBody}>
-            <ThemedText style={styles.topTextBannerTitle} numberOfLines={2}>
+            <ThemedText
+              style={styles.topTextBannerTitle}
+              numberOfLines={2}
+              ellipsizeMode="tail"
+            >
               {featuredAdsInfo.title}
             </ThemedText>
           </View>
           <View style={styles.topTextBannerBtn}>
-            <ThemedText style={styles.topTextBannerBtnText}>   {featuredAdsInfo.feature_points}</ThemedText>
+            <ThemedText
+              style={styles.topTextBannerBtnText}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {featuredAdsInfo.feature_points}
+            </ThemedText>
           </View>
         </TouchableOpacity>
       )}
@@ -110,6 +120,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: { gap: 10 },
   topTextBanner: {
+    width: "100%",
+    maxWidth: "100%",
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#EFF6FF",
@@ -120,6 +132,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginBottom: 14,
     gap: 10,
+    overflow: "hidden",
   },
   topTextBannerIconWrap: {
     width: 40,
@@ -129,6 +142,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
+    flexShrink: 0,
   },
   topTextBannerIcon: {
     width: 35,
@@ -137,12 +151,19 @@ const styles = StyleSheet.create({
   },
   topTextBannerBody: {
     flex: 1,
+    flexShrink: 1,
+    minWidth: 0,
+    overflow: "hidden",
     gap: 2,
   },
   topTextBannerTitle: {
     fontSize: 13,
+    lineHeight: 18,
     fontWeight: "700",
     color: "#1E3A5F",
+    flexShrink: 1,
+    minWidth: 0,
+    includeFontPadding: false,
   },
   topTextBannerSub: {
     fontSize: 10,
@@ -150,14 +171,18 @@ const styles = StyleSheet.create({
     fontWeight: "400",
   },
   topTextBannerBtn: {
+    maxWidth: "36%",
+    minWidth: 0,
     backgroundColor: "#1565C0",
     borderRadius: 8,
     paddingVertical: 7,
     paddingHorizontal: 12,
+    flexShrink: 0,
   },
   topTextBannerBtnText: {
     fontSize: 12,
     fontWeight: "700",
     color: "#FFFFFF",
+    flexShrink: 1,
   },
 });

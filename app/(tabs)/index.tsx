@@ -33,6 +33,7 @@ import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 import { setClearData } from "@/store/reducers/paymentReducer";
 import {
   appendProductsRecieved,
+  clearProducts,
   getAllProducts,
   getBannersApi,
   getCategoriesApi,
@@ -72,7 +73,7 @@ export default function HomeScreen() {
   const flatListRef = useRef<FlatList>(null);
   const hasRestoredScrollRef = useRef(false);
   const hasBootstrappedRef = useRef(false);
-  const lastFetchedCityIdRef = useRef<any>(null);
+  const lastFetchedProductsKeyRef = useRef<string | null>(null);
   const isCheckingNotificationsRef = useRef(false);
   const isInitializingCityRef = useRef(false);
   const { cities, categories, products, banners, featuredAds, states, localities } =
@@ -82,6 +83,8 @@ export default function HomeScreen() {
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [selectedCity, setSelectedCity] = useState<any>(null);
   const [selectedLocality, setSelectedLocality] = useState<any>(null);
+  const [isLocationFilterEnabled, setIsLocationFilterEnabled] = useState(false);
+  const [locationRequestVersion, setLocationRequestVersion] = useState(0);
   const [isCityInitialized, setIsCityInitialized] = useState(false);
   const [promotionBanners, setPromotionBanners] = useState<any>([]);
   const [normalAdsInfo, setNormalAdsInfo] = useState<any>(null);
@@ -89,7 +92,6 @@ export default function HomeScreen() {
   const [isInitialHomeLoading, setIsInitialHomeLoading] = useState(true);
   const [hasMoreProducts, setHasMoreProducts] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const prevCityIdRef = useRef<any>(null);
   const isLoadingMoreRef = useRef(false);
   const currentPageRef = useRef(1);
   const hasMoreRef = useRef(true);
@@ -105,6 +107,18 @@ export default function HomeScreen() {
   const safeCategories = Array.isArray(categories) ? categories : [];
   const safeCities = useMemo(() => (Array.isArray(cities) ? cities : []), [cities]);
   const safeBanners = useMemo(() => (Array.isArray(banners) ? banners : []), [banners]);
+  const getProductsRequestUrl = useCallback((page = 1) => {
+    const cityId = selectedCity?.id;
+    const stateId = selectedCity?.state_id;
+    const localityId = selectedLocality?.id;
+
+    if (isLocationFilterEnabled && stateId) {
+      const locationUrl = `${getProductsUrl}/filter/location?state_id=${encodeURIComponent(stateId)}${cityId ? `&city_id=${encodeURIComponent(cityId)}` : ""}${localityId ? `&locality_id=${encodeURIComponent(localityId)}` : ""}`;
+      return page > 1 ? `${locationUrl}&page=${page}` : locationUrl;
+    }
+
+    return `${getProductsUrl}?per_page=20&page=${page}`;
+  }, [isLocationFilterEnabled, selectedCity?.id, selectedCity?.state_id, selectedLocality?.id]);
   const filteredProducts = selectedCategory
     ? safeProducts.filter((p: any) => p.category_id === selectedCategory)
     : safeProducts;
@@ -142,9 +156,17 @@ export default function HomeScreen() {
         const savedCityJson = await AsyncStorage.getItem("selectedCity");
         if (savedCityJson) {
           const savedCity = JSON.parse(savedCityJson);
+          if (savedCity?.locationScope === "all" || (savedCity?.locationScope === "state" && savedCity?.state_id)) {
+            setIsLocationFilterEnabled(savedCity.locationScope === "state");
+            setSelectedCity(savedCity);
+            setIsCityInitialized(true);
+            return;
+          }
           const savedCityFromList = safeCities.find((c: any) => Number(c.id) === Number(savedCity.id));
           if (savedCityFromList) {
-            setSelectedCity(savedCityFromList);
+            const savedLocationFilter = await AsyncStorage.getItem("isLocationFilterEnabled");
+            setIsLocationFilterEnabled(savedLocationFilter === "true");
+            setSelectedCity({ ...savedCityFromList, locationScope: savedCity.locationScope });
             setIsCityInitialized(true);
             return;
           }
@@ -234,22 +256,41 @@ export default function HomeScreen() {
 
   useEffect(() => {
     const cityId = selectedCity?.id;
-    if (cityId && lastFetchedCityIdRef.current !== cityId) {
-      lastFetchedCityIdRef.current = cityId;
-      // Reset pagination when city changes
-      if (prevCityIdRef.current !== cityId) {
-        prevCityIdRef.current = cityId;
-        setHasMoreProducts(true);
-        currentPageRef.current = 1;
-        hasMoreRef.current = true;
-        isLoadingMoreRef.current = false;
+    const stateId = selectedCity?.state_id;
+    const localityId = selectedLocality?.id;
+    if (selectedCity) {
+      const requestKey = isLocationFilterEnabled && stateId
+        ? `location:${stateId}:${cityId || "all"}:${localityId || "all"}:${locationRequestVersion}`
+        : `all:${locationRequestVersion}`;
+
+      if (lastFetchedProductsKeyRef.current === requestKey) return;
+      lastFetchedProductsKeyRef.current = requestKey;
+
+      setHasMoreProducts(true);
+      currentPageRef.current = 1;
+      hasMoreRef.current = true;
+      isLoadingMoreRef.current = false;
+
+      if (cityId) {
+        dispatch(getLocalitiesApi(`${getLocalitiesUrl}?city_id=${cityId}`));
       }
-      dispatch(getLocalitiesApi(`${getLocalitiesUrl}?city_id=${cityId}`));
+      dispatch(clearProducts(requestKey));
       const productsRequest = dispatch(
-        getAllProducts(`${getProductsUrl}?per_page=20&page=1`)
+        getAllProducts(getProductsRequestUrl(1), requestKey)
       ) as unknown as Promise<unknown>;
 
       productsRequest
+        .then((response: any) => {
+          if (lastFetchedProductsKeyRef.current !== requestKey) return;
+
+          const paginator = response?.data;
+          const noMore = !paginator?.next_page_url
+            || (paginator?.last_page != null && paginator.current_page >= paginator.last_page);
+          if (noMore) {
+            hasMoreRef.current = false;
+            setHasMoreProducts(false);
+          }
+        })
         .catch((error) => {
           console.log("Error loading home products:", error);
         })
@@ -257,22 +298,23 @@ export default function HomeScreen() {
           finishInitialHomeLoading();
         });
     }
-  }, [dispatch, finishInitialHomeLoading, selectedCity?.id]);
+  }, [dispatch, finishInitialHomeLoading, getProductsRequestUrl, isLocationFilterEnabled, locationRequestVersion, selectedCity, selectedCity?.id, selectedCity?.state_id, selectedLocality?.id]);
 
   const loadMoreProducts = useCallback(async () => {
     if (!hasMoreRef.current || isLoadingMoreRef.current) return;
     isLoadingMoreRef.current = true;
     setIsLoadingMore(true);
     const nextPage = currentPageRef.current + 1;
+    const requestKey = lastFetchedProductsKeyRef.current;
     try {
       const authHeaders = await getAuthToken();
-      const url = `${baseUrl}/${getProductsUrl}?per_page=20&page=${nextPage}`;
+      const url = `${baseUrl}/${getProductsRequestUrl(nextPage)}`;
       const response = await axios.get(url, authHeaders);
       const raw = response.data;
       // API shape: { status, data: { current_page, data: [...], last_page, next_page_url } }
       const paginator = raw?.data;
       const list = Array.isArray(paginator) ? paginator : Array.isArray(paginator?.data) ? paginator.data : [];
-      dispatch(appendProductsRecieved({ data: list }) as any);
+      dispatch(appendProductsRecieved({ data: list, requestKey }) as any);
       const noMore = !paginator?.next_page_url
         || (paginator?.last_page != null && nextPage >= paginator.last_page);
       if (noMore) {
@@ -285,7 +327,7 @@ export default function HomeScreen() {
     }
     isLoadingMoreRef.current = false;
     setIsLoadingMore(false);
-  }, [dispatch]);
+  }, [dispatch, getProductsRequestUrl]);
 
   const handleCategoryPress = (categoryId: number | null) => {
     setSelectedCategory(categoryId);
@@ -367,16 +409,33 @@ export default function HomeScreen() {
     return null;
   };
   const handleSelectCity = async (city: any) => {
-    setSelectedCity(city);
+    const locationScope = city?.locationScope || (city?.id ? "city" : city?.state_id ? "state" : "all");
+    const selectedLocation = { ...city, locationScope };
+    const shouldFilterByLocation = locationScope !== "all" && Boolean(selectedLocation.state_id);
+    setSelectedCity(selectedLocation);
     setSelectedLocality(null);
+    setIsLocationFilterEnabled(shouldFilterByLocation);
+    setLocationRequestVersion((version) => version + 1);
+    savedHomeScrollY = 0;
+    hasRestoredScrollRef.current = false;
+    requestAnimationFrame(() => {
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+    });
     await AsyncStorage.multiSet([
-      ["selectedCity", JSON.stringify(city)],
+      ["selectedCity", JSON.stringify(selectedLocation)],
       ["selectedLocality", ""],
+      ["isLocationFilterEnabled", shouldFilterByLocation ? "true" : "false"],
     ]);
   };
 
   const handleSelectLocality = async (locality: any) => {
     setSelectedLocality(locality);
+    setLocationRequestVersion((version) => version + 1);
+    savedHomeScrollY = 0;
+    hasRestoredScrollRef.current = false;
+    requestAnimationFrame(() => {
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+    });
     await AsyncStorage.setItem("selectedLocality", JSON.stringify(locality));
   };
 
@@ -404,6 +463,7 @@ export default function HomeScreen() {
         <FlatList
           ref={flatListRef}
           data={mixedFeed}
+          extraData={locationRequestVersion}
           renderItem={renderMixedRow}
           keyExtractor={(_, index) => index.toString()}
           style={styles.scrollView}
@@ -466,18 +526,26 @@ export default function HomeScreen() {
                     {normalAdsInfo.icon ? (
                       <Image
                         source={{ uri: normalAdsInfo.icon }}
-                        style={{ width: 32, height: 32, marginRight: 8, borderRadius: 4 }}
+                        style={{ width: 32, height: 32, marginRight: 8, borderRadius: 4, flexShrink: 0 }}
                       />
                     ) : (
-                      <Ionicons name="megaphone-outline" size={22} color="#1565C0" style={{ marginRight: 8 }} />
+                      <Ionicons name="megaphone-outline" size={22} color="#1565C0" style={{ marginRight: 8, flexShrink: 0 }} />
                     )}
-                    <ThemedText style={styles.topTextBannerLeftText}>
+                    <ThemedText
+                      style={styles.topTextBannerLeftText}
+                      numberOfLines={2}
+                      ellipsizeMode="tail"
+                    >
                       {normalAdsInfo.title}
                     </ThemedText>
                   </View>
 
                   <View style={styles.topTextBannerHighlight}>
-                    <ThemedText style={styles.topTextBannerHighlightText}>
+                    <ThemedText
+                      style={styles.topTextBannerHighlightText}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
                       {normalAdsInfo.button_label}
                     </ThemedText>
                   </View>
@@ -547,6 +615,8 @@ const styles = StyleSheet.create({
   seeAllBtn: { flexDirection: "row", alignItems: "center", gap: 2 },
   seeAllText: { fontSize: SIZES.fontSize12, fontWeight: "600", color: "#1565C0" },
   topTextBanner: {
+    width: "100%",
+    maxWidth: "100%",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -556,28 +626,39 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: "#BBDEFB",
+    overflow: "hidden",
   },
   topTextBannerLeft: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
+    flexShrink: 1,
+    minWidth: 0,
+    overflow: "hidden",
   },
   topTextBannerLeftText: {
     fontSize: 13,
     color: "#0D47A1",
     fontWeight: "700",
     flexShrink: 1,
+    minWidth: 0,
+    lineHeight: 18,
+    includeFontPadding: false,
   },
   topTextBannerHighlight: {
+    maxWidth: "36%",
+    minWidth: 0,
     backgroundColor: "#1565C0",
     borderRadius: 6,
     paddingHorizontal: 12,
     paddingVertical: 6,
     marginLeft: 10,
+    flexShrink: 0,
   },
   topTextBannerHighlightText: {
     fontSize: 11,
     fontWeight: "700",
     color: "#FFFFFF",
+    flexShrink: 1,
   },
 });

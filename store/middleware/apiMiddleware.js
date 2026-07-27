@@ -17,7 +17,7 @@ const apiMiddleware =
       onSuccess,
       onStart,
       onError,
-      headers = {},
+      meta,
     } = action.payload;
 
     // Dispatch onStart action if provided
@@ -41,7 +41,7 @@ const apiMiddleware =
 
       // Dispatch specific success action if provided
       if (onSuccess) {
-        dispatch({ type: onSuccess, payload: response.data });
+        dispatch({ type: onSuccess, payload: response.data, meta });
       }
       return response.data;
     } catch (error) {
