@@ -6,8 +6,44 @@ import { baseUrl, delay } from '../../constants/functions';
 import { ASYNC_VARIBLES, NOTIFICATION_MESSAGES } from '../../constants/data';
 import axios from 'axios';
 import { PermissionsAndroid, Platform, Linking } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
+
+// Resolves once the device reports an active, internet-reachable connection,
+// or after `timeoutMs` elapses (so a flaky detector can't block FCM setup forever).
+const waitForNetworkConnection = (timeoutMs = 10000) => {
+  return new Promise(resolve => {
+    let settled = false;
+    let unsubscribe;
+
+    const finish = isConnected => {
+      if (settled) return;
+      settled = true;
+      if (unsubscribe) unsubscribe();
+      clearTimeout(timer);
+      resolve(isConnected);
+    };
+
+    const timer = setTimeout(() => finish(false), timeoutMs);
+
+    NetInfo.fetch()
+      .then(state => {
+        if (state.isConnected && state.isInternetReachable !== false) {
+          finish(true);
+          return;
+        }
+        unsubscribe = NetInfo.addEventListener(state => {
+          if (state.isConnected && state.isInternetReachable !== false) {
+            finish(true);
+          }
+        });
+      })
+      .catch(() => finish(false));
+  });
+};
 
 global.RNFB_SILENCE_MODULAR_DEPRECATION_WARNINGS = true;
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 const isFirebaseReady = () => {
   try {
@@ -179,12 +215,23 @@ const getfcmToken = async () => {
 };
 
 // Function to send FCM token to your server
-const sendTokenToServer = async token => {
+const sendTokenToServer = async (token, retriesLeft = 2) => {
   try {
     if (!token || typeof token !== 'string') {
       console.log('Invalid FCM token provided');
       return;
     }
+
+    const isConnected = await waitForNetworkConnection();
+    if (!isConnected) {
+      if (retriesLeft > 0) {
+        console.log(`No network connection yet, retrying FCM token send (${retriesLeft} left)...`);
+        return sendTokenToServer(token, retriesLeft - 1);
+      }
+      console.warn('No network connection available, skipping FCM token send.');
+      return;
+    }
+
     const authToken = await AsyncStorage.getItem("authToken");
 
     try {
@@ -201,11 +248,20 @@ const sendTokenToServer = async token => {
             timeout: 8000,
           }
         );
-        
+
         if (response && response.status === 200) {
           console.log('FCM token saved to server successfully');
-        } 
+        }
       } catch (apiError) {
+        // A generic "Network Error" (no response received) can happen even when
+        // NetInfo reports connected, e.g. right at cold start before DNS/interface
+        // is truly ready. Retry the request itself with backoff before giving up.
+        const isNetworkError = !apiError.response;
+        if (isNetworkError && retriesLeft > 0) {
+          console.log(`Network error sending FCM token, retrying (${retriesLeft} left)...`);
+          await sleep(1500 * (3 - retriesLeft));
+          return sendTokenToServer(token, retriesLeft - 1);
+        }
         // Handle 401 errors gracefully during app initialization
         console.error('API error when sending FCM token:', apiError.message);
         // Don't throw - just log and continue

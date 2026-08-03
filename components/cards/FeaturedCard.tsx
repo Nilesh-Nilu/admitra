@@ -90,8 +90,11 @@ export const FeaturedCard = ({ item, isInline = false }: FeaturedCardProps) => {
           <ThemedText style={styles.featuredPrice}>
             {formatPrice(item.price)}
           </ThemedText>
-          <ThemedText numberOfLines={1} style={styles.featuredLocation}>
+          <ThemedText numberOfLines={1} style={styles.featuredTitle}>
             {item.name}
+          </ThemedText>
+          <ThemedText numberOfLines={1} style={styles.featuredLocation}>
+            {item.user?.city?.name || item.city || "India"}
           </ThemedText>
           {item.created_at ? (
             <ThemedText style={styles.featuredTime}>
@@ -133,6 +136,9 @@ export const FeaturedCard = ({ item, isInline = false }: FeaturedCardProps) => {
       <View style={styles.featuredInfo}>
         <ThemedText style={styles.featuredPrice}>
           {formatPrice(item.price)}
+        </ThemedText>
+        <ThemedText style={styles.featuredTitle} numberOfLines={1}>
+          {item.name}
         </ThemedText>
         <ThemedText style={styles.featuredLocation} numberOfLines={1}>
           {item.user?.city?.name || item.city || "India"}
@@ -217,6 +223,11 @@ const styles = StyleSheet.create({
   featuredPrice: {
     fontSize: SIZES.fontSize14,
     fontWeight: "800",
+    color: COLORS.text,
+  },
+  featuredTitle: {
+    fontSize: SIZES.fontSize12,
+    fontWeight: "600",
     color: COLORS.text,
   },
   featuredLocation: {

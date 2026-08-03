@@ -37,6 +37,7 @@ interface User {
   is_verify?: number;
   created_at?: string;
   selfieverificationImage?: string;
+  documentType?: string;
   id?: number;
 }
 
@@ -170,12 +171,14 @@ export default function ProfileScreen() {
         locality_id: data.locality?.id || null,
         AadharImage: data.AadharImage || "",
         selfieverificationImage: data.selfieverificationImage || "",
+        documentType: data.documentType || "",
         Isagreeprivacy: true,
       }));
       const updatedUser = result?.data;
       if (updatedUser) {
-        dispatch(setUser({ ...updatedUser, is_verify: 2 }));
-        await AsyncStorage.setItem("user", JSON.stringify({ ...updatedUser, is_verify: 2 }));
+        const mergedUser = { ...updatedUser, is_verify: 2, documentType: data.documentType || updatedUser.documentType };
+        dispatch(setUser(mergedUser));
+        await AsyncStorage.setItem("user", JSON.stringify(mergedUser));
       }
       if (result?.access_token) {
         await AsyncStorage.setItem("authToken", result.access_token);
@@ -260,6 +263,7 @@ export default function ProfileScreen() {
                   email: user?.email,
                   address: user?.address,
                   selfieverificationImage: user?.selfieverificationImage,
+                  documentType: user?.documentType || "",
                 },
               })
             }

@@ -264,6 +264,7 @@ const SignupScreen = () => {
           role: "user",
           phone: mobile.trim(),
           address: address.trim() || "",
+          documentType: "aadhar",
           AadharImage: aadharPhoto || "",
           state_id: selectedState?.id || null,
           city_id: selectedCity?.id || null,
@@ -316,6 +317,7 @@ const SignupScreen = () => {
         role: "user",
         phone: mobile.trim(),
         address: address.trim() || "",
+        documentType: "aadhar",
         AadharImage: aadharPhoto || "",
         state_id: selectedState?.id || null,
         city_id: selectedCity?.id || null,
@@ -324,7 +326,6 @@ const SignupScreen = () => {
         Isagreeprivacy: true
       }));
       const updatedUser = result?.data;
-      console.log(updatedUser, "updatedUser");
       AppToast("Profile updated successfully!");
       if (updatedUser) {
         dispatch(setUser(updatedUser));

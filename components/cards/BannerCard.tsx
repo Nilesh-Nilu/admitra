@@ -120,6 +120,13 @@ export const BannerCard = ({ item, isInline = false }: BannerCardProps) => {
         <TouchableOpacity style={styles.heartBtn} onPress={handleToggleFavorite} activeOpacity={0.8}>
           <Ionicons name={isFavorited ? "heart" : "heart-outline"} size={20} color={isFavorited ? "#E91E63" : COLORS.white} />
         </TouchableOpacity>
+        {item.product?.name && (
+          <View style={styles.bannerTitleRow}>
+            <ThemedText style={styles.bannerTitle} numberOfLines={1}>
+              {item.product.name}
+            </ThemedText>
+          </View>
+        )}
         <View style={styles.bannerActions}>
           {(item.created_at || item.product?.created_at) && (
             <View style={styles.locationRow}>
@@ -229,6 +236,17 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "700",
     color: COLORS.white,
+  },
+  bannerTitleRow: {
+    width: "100%",
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    paddingTop: SIZES.padding8,
+    paddingHorizontal: SIZES.padding12,
+  },
+  bannerTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0F172A",
   },
   bannerActions: {
     width: "100%",

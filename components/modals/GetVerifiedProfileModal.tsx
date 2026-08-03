@@ -37,6 +37,7 @@ interface VerificationForm {
   AadharImage?: string | null;
   AadharImageBack?: string | null;
   selfieverificationImage?: string | null;
+  documentType?: string | null;
 }
 
 type GetVerifiedProfileModalProps = {
@@ -53,6 +54,7 @@ type GetVerifiedProfileModalProps = {
     selfieverificationImage?: string | boolean | null;
     state_id?: number;
     city_id?: number;
+    documentType?: string | null;
   };
   states: State[];
   cities: City[];
@@ -94,15 +96,13 @@ const GetVerifiedProfileModal: React.FC<GetVerifiedProfileModalProps> = ({
         mobileNumber: userData.phone || "",
         email: userData.email || "",
         address: userData.address || "",
-        // AadharImage: userData.AadharImage || "",
-        // AadharImageBack: userData.AadharImageBack || "",
-        // selfieverificationImage: (() => { const v = userData.selfieverificationImage; if (!v || v === "0") return ""; return String(v); })(),
       });
 
       const userState = states.find((s) => s.id === userData.state_id) || null;
       const userCity = cities.find((c) => c.id === userData.city_id) || null;
       setSelectedState(userState);
       setSelectedCity(userCity);
+      setSelectedIdType(userData.documentType || null);
     }
   }, [isVisible, userData, states, cities]);
 
@@ -237,6 +237,7 @@ const GetVerifiedProfileModal: React.FC<GetVerifiedProfileModalProps> = ({
     }
     onSubmit({
       ...form,
+      documentType: selectedIdType,
       state: selectedState,
       city: selectedCity,
     });

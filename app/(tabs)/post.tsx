@@ -407,9 +407,16 @@ export default function PostScreen() {
       dispatch(getMyBannerAdsApi(`${getMyBannerAdsUrl}`));
       dispatch(getApprovedProductsApi(getApprovedProductsUrl));
       dispatch(getMyProductsApi(`${getMyProductsUrl}`));
+      const isBannerAd = adType?.id === 3 || adType?.type === "banner";
+      const isFeaturedAd = adType?.id === 2 || adType?.type === "featured";
+      const successMessage = isBannerAd
+        ? "Your banner ad has been posted and is now live."
+        : isFeaturedAd
+        ? "Your featured ad has been posted and is now live."
+        : "Your ad has been posted and is now live.";
       Alert.alert(
-        "Listing Submitted!",
-        "Your ad has been submitted for review. It will be live shortly.",
+        "Ad Posted!",
+        successMessage,
         [{ text: "OK", onPress: () => router.push("/(tabs)") }]
       );
       clearForm();
@@ -856,8 +863,8 @@ export default function PostScreen() {
             {showAdditionalDetails && (
               <View style={styles.additionalDetailsContent}>
                 <ThemedText style={[styles.linkHint, { marginBottom: 8, marginTop: 8 }]}>
-                  Add specific details (e.g. Warranty: 12 months, Brand: Samsung)
-                </ThemedText>
+                {"यदि आप अपने उत्पाद की अतिरिक्त जानकारी (जैसे ब्रांड, वारंटी, मॉडल, रंग, साइज आदि) जोड़ना चाहते हैं, तो 'Additional Details' का उपयोग कर सकते हैं।"}
+                 </ThemedText>
                 {customFields.map((field, index) => (
                   <View key={index} style={styles.customFieldRow}>
                     <TextInput

@@ -89,6 +89,9 @@ export const ListingCard = ({ item }: ListingCardProps) => {
         <ThemedText style={styles.listingTitle} numberOfLines={1}>
           {item.name}
         </ThemedText>
+        <ThemedText style={styles.listingLocation} numberOfLines={1}>
+          {item.user?.city?.name || item.city || "India"}
+        </ThemedText>
         {item.created_at ? (
           <View style={styles.timeRow}>
             <Ionicons name="time-outline" size={11} color="#94A3B8" />
@@ -177,6 +180,10 @@ const styles = StyleSheet.create({
     fontSize: SIZES.fontSize12,
     color: COLORS.gray,
     lineHeight: SIZES.padding16,
+  },
+  listingLocation: {
+    fontSize: SIZES.fontSize10 + 1,
+    color: "#94A3B8",
   },
   timeRow: {
     flexDirection: "row",

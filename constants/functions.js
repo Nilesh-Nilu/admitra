@@ -96,6 +96,7 @@ export const getAuthManagementListApi = async () => {
     const response = await axios.get(
       `${baseUrl}/${getAuthManagementListUrl}`,
       {
+        timeout: 10000,
         headers: {
           Accept: "*/*",
           // 'X-CSRF-TOKEN': '' // If a CSRF token is needed, provide it here

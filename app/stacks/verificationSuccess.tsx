@@ -16,14 +16,17 @@ export default function VerificationSuccessScreen() {
     email?: string;
     address?: string;
     selfieverificationImage?: string;
+    documentType?: string;
   }>();
+
+  const idProofLabel = params.documentType === "aadhar" ? "Aadhaar Card" : params.documentType || "—";
 
   const details = [
     { icon: "person-outline", label: "Full Name", value: params.name || "—" },
     { icon: "call-outline", label: "Mobile Number", value: params.phone ? `+91  ${params.phone}` : "—" },
     { icon: "mail-outline", label: "Email", value: params.email || "—" },
     { icon: "location-outline", label: "Address", value: params.address || "—" },
-    { icon: "card-outline", label: "ID Proof", value: "Aadhaar Card" },
+    { icon: "card-outline", label: "ID Proof", value: idProofLabel },
     { icon: "camera-outline", label: "Selfie", value: "Verified" },
   ];
 
