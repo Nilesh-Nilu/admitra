@@ -11,14 +11,22 @@ export default function Index() {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.entities.authReducer);
 
+  const [hasValidToken, setHasValidToken] = useState(false);
+
   useEffect(() => {
     const initializeApp = async () => {
       try {
         const userString = await AsyncStorage.getItem("user");
+        const authToken = await AsyncStorage.getItem("authToken");
         const user = JSON.parse(userString);
-        if (user) {
+        const tokenIsValid = Boolean(authToken) && authToken !== "undefined" && authToken !== "null";
+        if (user && tokenIsValid) {
           await AsyncStorage.setItem("user", JSON.stringify(user));
           dispatch(setUser(user));
+          setHasValidToken(true);
+        } else if (user && !tokenIsValid) {
+          console.log("Stored user found but authToken missing/invalid — clearing session");
+          await AsyncStorage.multiRemove(["user", "authToken"]);
         } else {
           console.log("No stored user found");
         }
@@ -40,7 +48,7 @@ export default function Index() {
     );
   }
 
-  if (user) {
+  if (user && hasValidToken) {
     if (user.name) {
       return <Redirect href="/(tabs)" />;
     } else {

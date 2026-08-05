@@ -4,6 +4,7 @@ import AppToast from "@/components/toasts/AppToast";
 import { COLORS } from "@/constants/Colors";
 import { baseUrl } from "@/constants/functions";
 import { setUser } from "@/store/reducers/authReducer";
+import { getfcmToken } from "@/app/notification/notifications";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
     import axios from "axios";
@@ -62,6 +63,7 @@ export default function GmailPasswordScreen({ onBack }: { onBack: () => void }) 
           dispatch(setUser(response.data.user));
           await AsyncStorage.setItem("user", JSON.stringify(response.data.user));
           await AsyncStorage.setItem("authToken", response.data.access_token);
+          getfcmToken().catch((err) => console.log(err, "getfcmToken after Gmail password login"));
           router.replace("/(tabs)");
         }
       } catch (error: any) {

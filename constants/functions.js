@@ -4,6 +4,7 @@ import axios from "axios";
 import { logoutFromReducer, setUser } from "../store/reducers/authReducer";
 import { baseUrl as API_BASE_URL } from "./config";
 import AppToast from "@/components/toasts/AppToast";
+import { getfcmToken } from "../app/notification/notifications";
 
 export const baseUrl = API_BASE_URL;
 // Reusable API configuration with auth headers and credentials
@@ -96,14 +97,15 @@ export const getAuthManagementListApi = async () => {
     const response = await axios.get(
       `${baseUrl}/${getAuthManagementListUrl}`,
       {
-        timeout: 10000,
+        timeout: 8000,
         headers: {
-          Accept: "*/*",
-          // 'X-CSRF-TOKEN': '' // If a CSRF token is needed, provide it here
-        }
+          Accept: "application/json",
+        },
       }
     );
-    return response.data;
+    // API shape: { success, message, data: [...] }
+    const list = response?.data?.data;
+    return Array.isArray(list) ? list : [];
   } catch (error) {
     console.log("Error fetching auth management list:", error.response?.data || error.message || error);
     throw error;
@@ -167,6 +169,7 @@ export const handleVerifymailOtp = async (email, otp, setLoading, router, dispat
     dispatch(setUser(response.data.user));
     await AsyncStorage.setItem("user", JSON.stringify(response.data.user));
     await AsyncStorage.setItem("authToken", response.data.access_token);
+    getfcmToken().catch((err) => console.log(err, "getfcmToken after mail OTP login"));
     if (response.data.user.name === null) {
       router.replace({
         pathname: "/(auth)/loginFields",
@@ -231,6 +234,7 @@ export const handleVerifyPhoneOtp = async (phone, otp, setLoading, router, dispa
       dispatch(setUser(response.data.user));
       await AsyncStorage.setItem("user", JSON.stringify(response.data.user));
       await AsyncStorage.setItem("authToken", response.data.access_token);
+      getfcmToken().catch((err) => console.log(err, "getfcmToken after phone OTP login"));
       if (response.data.user.name === null) {
         router.replace({
           pathname: "/(auth)/loginFields",

@@ -36,22 +36,22 @@ const GOOGLE_RED = "#EA4335";
 export default function LoginScreen() {
   const [loginType, setLoginType] = useState<LoginType>("selection");
   const [authManagementList, setAuthManagementList] = useState<any[]>([]);
-  const [loadingList, setLoadingList] = useState(true);
+  const [loadingList, setLoadingList] = useState(false);
+
+  const getAuthManagementList = async () => {
+    setLoadingList(true);
+    try {
+      const list = await getAuthManagementListApi();
+      setAuthManagementList(list);
+    } catch (error) {
+      console.log("Error in getAuthManagementList:", error);
+    } finally {
+      setLoadingList(false);
+    }
+  };
 
   useEffect(() => {
-    getAuthManagementListApi()
-      .then((res) => {
-        if (res) {
-          const list = Array.isArray(res) ? res : (Array.isArray(res.data) ? res.data : []);
-          setAuthManagementList(list);
-        }
-      })
-      .catch((err) => {
-        console.log("Error in getAuthManagementListApi:", err);
-      })
-      .finally(() => {
-        setLoadingList(false);
-      });
+    getAuthManagementList();
   }, []);
 
 

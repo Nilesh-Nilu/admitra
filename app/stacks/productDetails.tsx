@@ -434,6 +434,17 @@ export default function ProductDetailsScreen() {
             </View>
           )}
 
+          {/* Additional / Custom Fields */}
+          {Array.isArray(product?.custom_fields) && product.custom_fields.length > 0 &&
+            product.custom_fields.map((field: any, index: number) => (
+              field?.name && field?.value ? (
+                <View key={`${field.name}-${index}`} style={styles.detailRow}>
+                  <ThemedText style={styles.detailLabel}>{field.name}:</ThemedText>
+                  <ThemedText style={styles.detailValue}>{field.value}</ThemedText>
+                </View>
+              ) : null
+            ))}
+
           {/* Description */}
           {product?.description && (
             <View style={styles.descriptionBlock}>

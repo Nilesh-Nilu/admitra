@@ -173,7 +173,11 @@ export const requestUserPermission = async () => {
   }
 };
 
-const getfcmToken = async () => {
+// Exported so login flows can (re)send the FCM token to the server right
+// after a successful login, instead of waiting for the next app launch —
+// requestUserPermission() (called once at app mount) runs before the user
+// is authenticated, so sendTokenToServer silently no-ops without a token.
+export const getfcmToken = async () => {
   if (!isFirebaseReady()) {
     console.warn('Firebase not initialized. Skipping FCM token retrieval.');
     return;
@@ -233,7 +237,10 @@ const sendTokenToServer = async (token, retriesLeft = 2) => {
     }
 
     const authToken = await AsyncStorage.getItem("authToken");
-
+   if(!authToken){
+    console.log('No auth token found, skipping FCM token send.');
+    return;
+   }
     try {
         const response = await axios.post(
           `${baseUrl}/save-fcm-token`,
@@ -567,4 +574,5 @@ export default {
   refreshFCMToken,
   checkNotificationPermission,
   openAppSettings,
+  getfcmToken,
 };

@@ -36,6 +36,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
+import { getfcmToken } from "@/app/notification/notifications";
 
 const { height } = Dimensions.get("window");
 
@@ -289,6 +290,7 @@ const SignupScreen = () => {
         dispatch(setUser(response.data.data));
         await AsyncStorage.setItem("user", JSON.stringify(response.data.user));
         await AsyncStorage.setItem("authToken", response.data.access_token);
+        getfcmToken().catch((err) => console.log(err, "getfcmToken after signup"));
         router.replace("/(tabs)");
       }
     } catch (error: any) {
@@ -334,6 +336,7 @@ const SignupScreen = () => {
       if (result?.access_token) {
         await AsyncStorage.setItem("authToken", result.access_token);
       }
+      getfcmToken().catch((err) => console.log(err, "getfcmToken after profile update"));
       router.replace("/(tabs)");
 
     } catch (error: any) {
