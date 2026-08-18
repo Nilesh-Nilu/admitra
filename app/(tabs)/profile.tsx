@@ -3,7 +3,7 @@ import GetVerifiedProfileModal from "@/components/modals/GetVerifiedProfileModal
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
-import { getPolicyApi, getUserDetailsApi, ImageUrl, logoutUser, updateUserProfileUrl } from "@/constants/functions";
+import { getPolicyApi, getUserDetailsApi, ImageUrl, logoutUser, toUploadableImage, updateUserProfileUrl } from "@/constants/functions";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 import { setUser, updateUserProfile } from "@/store/reducers/authReducer";
 import { Ionicons } from "@expo/vector-icons";
@@ -69,7 +69,7 @@ export default function ProfileScreen() {
     { icon: "call-outline", label: "Mobile No.", value: user?.phone ? `+91  ${user?.phone}` : "—", verified: !!user?.phone },
     { icon: "mail-outline", label: "Email", value: user?.email || "—", verified: !!user?.email },
     { icon: "location-outline", label: "Address", value: user?.address || "—", verified: !!user?.address },
-    { icon: "card-outline", label: "ID Proof", value: hasFile(user?.AadharImage) ? "Aadhaar Card" : "Not Uploaded", verified: hasFile(user?.AadharImage) },
+    { icon: "card-outline", label: "ID Proof", value: hasFile(user?.documentType) ? user?.documentType : "Not Uploaded", verified: hasFile(user?.AadharImage) },
     { icon: "camera-outline", label: "Selfie", value: hasFile(user?.selfieverificationImage) ? "Verified" : "Not Uploaded", verified: hasFile(user?.selfieverificationImage) },
   ];
 
@@ -161,6 +161,29 @@ export default function ProfileScreen() {
 
   const handleVerificationSubmit = async (data: any) => {
     try {
+      const existingAadhar =
+        typeof user?.AadharImage === "string" ? user.AadharImage : "";
+      const existingSelfie =
+        typeof user?.selfieverificationImage === "string"
+          ? user.selfieverificationImage
+          : "";
+
+      // Re-upload existing server images as base64 when unchanged so the API
+      // does not clear them while updating documentType / ID photo.
+      const [AadharImage, selfieverificationImage] = await Promise.all([
+        toUploadableImage(data.AadharImage || existingAadhar),
+        toUploadableImage(data.selfieverificationImage || existingSelfie),
+      ]);
+
+      if (!AadharImage) {
+        Alert.alert("Required", "Please upload your ID photo");
+        return;
+      }
+      if (!selfieverificationImage) {
+        Alert.alert("Required", "Please upload your selfie");
+        return;
+      }
+
       const result: any = await dispatch(updateUserProfile(updateUserProfileUrl, {
         name: data.fullName,
         email: data.email,
@@ -169,8 +192,8 @@ export default function ProfileScreen() {
         state_id: data.state?.id || null,
         city_id: data.city?.id || null,
         locality_id: data.locality?.id || null,
-        AadharImage: data.AadharImage || "",
-        selfieverificationImage: data.selfieverificationImage || "",
+        AadharImage,
+        selfieverificationImage,
         documentType: data.documentType || "",
         Isagreeprivacy: true,
       }));
@@ -412,7 +435,7 @@ export default function ProfileScreen() {
               <Ionicons name="id-card-outline" size={18} color={COLORS.gray} />
               <View>
                 <ThemedText style={styles.infoLabel}>ID Proof</ThemedText>
-                <ThemedText style={styles.infoSubLabel}>Aadhaar Card</ThemedText>
+                <ThemedText style={styles.infoSubLabel}>{user?.documentType}</ThemedText>
               </View>
             </View>
             {hasFile(user?.AadharImage) ? (

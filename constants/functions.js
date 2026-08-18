@@ -75,6 +75,40 @@ export const RAZORPAY_SECRET = "2oBi1D8Wae98kGE7tr957Oek"
 // verifing warning
 export const getVerifyingWarningUrl = "getverifywarning"
 
+/** Convert local/remote/server-path images into a data URI the update API accepts. */
+export const toUploadableImage = async (value) => {
+  if (!value || typeof value !== "string") return "";
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (trimmed.startsWith("data:")) return trimmed;
+
+  try {
+    const FileSystem = await import("expo-file-system");
+    let localUri = trimmed;
+
+    if (
+      !trimmed.startsWith("file:") &&
+      !trimmed.startsWith("content:")
+    ) {
+      const remoteUrl =
+        trimmed.startsWith("http://") || trimmed.startsWith("https://")
+          ? trimmed
+          : `${ImageUrl}/${trimmed.replace(/^\//, "")}`;
+      const dest = `${FileSystem.cacheDirectory}upload_${Date.now()}.jpg`;
+      const downloaded = await FileSystem.downloadAsync(remoteUrl, dest);
+      localUri = downloaded.uri;
+    }
+
+    const base64 = await FileSystem.readAsStringAsync(localUri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    return `data:image/jpeg;base64,${base64}`;
+  } catch (error) {
+    console.log("toUploadableImage failed:", error);
+    return "";
+  }
+};
+
 
 export const logoutUser = async (dispatch, router, role) => {
   try {

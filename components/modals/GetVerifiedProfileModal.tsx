@@ -1,7 +1,7 @@
 import ThemedButton from "@/components/buttons/ThemedButton";
 import ThemeSelect from "@/components/inputs/ThemeSelect";
 import { ThemedText } from "@/components/ThemedText";
-import { getUserDetailsApi, ImageUrl } from "@/constants/functions";
+import { getUserDetailsApi, getVerifyingWarningApi, ImageUrl } from "@/constants/functions";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import CropModal from "@/components/modals/CropModal";
@@ -60,6 +60,41 @@ type GetVerifiedProfileModalProps = {
   cities: City[];
 };
 
+const ID_TYPE_OPTIONS = ["Aadhaar", "Voter ID", "PAN Card", "Driving License"] as const;
+
+const normalizeIdType = (raw?: string | null): string | null => {
+  if (!raw || typeof raw !== "string") return null;
+  const key = raw.trim().toLowerCase();
+  const map: Record<string, string> = {
+    aadhar: "Aadhaar",
+    aadhaar: "Aadhaar",
+    "voter id": "Voter ID",
+    voter_id: "Voter ID",
+    "pan card": "PAN Card",
+    pan: "PAN Card",
+    "driving license": "Driving License",
+    driving_license: "Driving License",
+  };
+  if (map[key]) return map[key];
+  return ID_TYPE_OPTIONS.find((o) => o.toLowerCase() === key) || null;
+};
+
+const asImagePath = (value: unknown): string =>
+  typeof value === "string" && value.trim() ? value.trim() : "";
+
+const resolvePreviewUri = (value: string): string => {
+  if (
+    value.startsWith("data:") ||
+    value.startsWith("file:") ||
+    value.startsWith("content:") ||
+    value.startsWith("http://") ||
+    value.startsWith("https://")
+  ) {
+    return value;
+  }
+  return `${ImageUrl}/${value}`;
+};
+
 const GetVerifiedProfileModal: React.FC<GetVerifiedProfileModalProps> = ({
   isVisible,
   onClose,
@@ -80,6 +115,8 @@ const GetVerifiedProfileModal: React.FC<GetVerifiedProfileModalProps> = ({
   const [selectedState, setSelectedState] = useState<State | null>(null);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [selectedIdType, setSelectedIdType] = useState<string | null>(null);
+  const [verifyWarning, setVerifyWarning] = useState<string | null>(null);
+
   const [cropImage, setCropImage] = useState<{ uri: string; width: number; height: number; type: "aadhar" | "selfie" | "aadharBack" } | null>(null);
   const { user } = useSelector((state: any) => state.entities.authReducer);
 
@@ -90,19 +127,26 @@ const GetVerifiedProfileModal: React.FC<GetVerifiedProfileModalProps> = ({
   const dispatch = useDispatch();
   // Initialize form with user data when modal opens
   useEffect(() => {
+    getVerifyingWarningApi().then((res: any) => {
+      setVerifyWarning(res[0]?.warningText || null);
+    });
     if (isVisible && userData) {
       setForm({
         fullName: userData.name || "",
         mobileNumber: userData.phone || "",
         email: userData.email || "",
         address: userData.address || "",
+        AadharImage: asImagePath(userData.AadharImage),
+        AadharImageBack: asImagePath(userData.AadharImageBack),
+        selfieverificationImage: asImagePath(userData.selfieverificationImage),
+        documentType: userData.documentType || null,
       });
 
       const userState = states.find((s) => s.id === userData.state_id) || null;
       const userCity = cities.find((c) => c.id === userData.city_id) || null;
       setSelectedState(userState);
       setSelectedCity(userCity);
-      setSelectedIdType(userData.documentType || null);
+      setSelectedIdType(normalizeIdType(userData.documentType));
     }
   }, [isVisible, userData, states, cities]);
 
@@ -237,6 +281,9 @@ const GetVerifiedProfileModal: React.FC<GetVerifiedProfileModalProps> = ({
     }
     onSubmit({
       ...form,
+      AadharImage: form.AadharImage || asImagePath(userData?.AadharImage),
+      selfieverificationImage:
+        form.selfieverificationImage || asImagePath(userData?.selfieverificationImage),
       documentType: selectedIdType,
       state: selectedState,
       city: selectedCity,
@@ -414,8 +461,7 @@ const GetVerifiedProfileModal: React.FC<GetVerifiedProfileModalProps> = ({
             />
 
             <ThemedText style={styles.infoText}>
-              ID verification se bharosa badhta hai aur verified
-              sellers ko zyada visibility milti hai.
+              {verifyWarning}
             </ThemedText>
           </View>
 
@@ -444,13 +490,7 @@ const GetVerifiedProfileModal: React.FC<GetVerifiedProfileModalProps> = ({
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ paddingVertical: 10 }}
             >
-              {[
-                "Aadhaar",
-                "Voter ID",
-                "PAN Card",
-                "Driving License",
-                "Other",
-              ].map((item) => {
+              {ID_TYPE_OPTIONS.map((item) => {
                 const isSelected = selectedIdType === item;
                 return (
                   <Pressable
@@ -484,14 +524,16 @@ const GetVerifiedProfileModal: React.FC<GetVerifiedProfileModalProps> = ({
               onPress={() => showImageOptions("aadhar")}
             >
               {form.AadharImage ? (
-                <Image
-                  source={{
-                    uri: form.AadharImage.startsWith("data:")
-                      ? form.AadharImage
-                      : `${ImageUrl}/${form.AadharImage}`,
-                  }}
-                  style={styles.uploadedImage}
-                />
+                <View style={styles.uploadedWrap}>
+                  <Image
+                    source={{ uri: resolvePreviewUri(form.AadharImage) }}
+                    style={styles.uploadedImage}
+                  />
+                  <View style={styles.changeBadge}>
+                    <Ionicons name="camera-outline" size={14} color="#FFFFFF" />
+                    <ThemedText style={styles.changeBadgeText}>Change</ThemedText>
+                  </View>
+                </View>
               ) : (
                 <>
                   <Ionicons
@@ -521,14 +563,16 @@ const GetVerifiedProfileModal: React.FC<GetVerifiedProfileModalProps> = ({
               onPress={() => showImageOptions("selfie")}
             >
               {form.selfieverificationImage ? (
-                <Image
-                  source={{
-                    uri: form.selfieverificationImage.startsWith("data:")
-                      ? form.selfieverificationImage
-                      : `${ImageUrl}/${form.selfieverificationImage}`,
-                  }}
-                  style={styles.uploadedImage}
-                />
+                <View style={styles.uploadedWrap}>
+                  <Image
+                    source={{ uri: resolvePreviewUri(form.selfieverificationImage) }}
+                    style={styles.uploadedImage}
+                  />
+                  <View style={styles.changeBadge}>
+                    <Ionicons name="camera-outline" size={14} color="#FFFFFF" />
+                    <ThemedText style={styles.changeBadgeText}>Change</ThemedText>
+                  </View>
+                </View>
               ) : (
                 <>
                   <Ionicons
@@ -825,10 +869,35 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
+  uploadedWrap: {
+    width: "100%",
+    height: "100%",
+    position: "relative",
+  },
+
   uploadedImage: {
     width: "100%",
     height: "100%",
     resizeMode: "cover",
+  },
+
+  changeBadge: {
+    position: "absolute",
+    right: 10,
+    bottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(21, 101, 192, 0.9)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+
+  changeBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "600",
   },
 
   verifiedRow: {
