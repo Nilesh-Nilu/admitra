@@ -166,8 +166,8 @@ export default function PostScreen() {
   };
 
   const pickImage = async () => {
-    if (images.length >= 8) {
-      Alert.alert("Maximum Images", "You can only upload up to 8 images");
+    if (images.length >= 4) {
+      Alert.alert("Maximum Images", "You can only upload up to 4 images");
       return;
     }
 
@@ -256,8 +256,8 @@ export default function PostScreen() {
   );
 
   const takePhoto = async () => {
-    if (images.length >= 8) {
-      Alert.alert("Maximum Images", "You can only upload up to 8 images");
+    if (images.length >= 4) {
+      Alert.alert("Maximum Images", "You can only upload up to 4 images");
       return;
     }
 
@@ -687,7 +687,7 @@ export default function PostScreen() {
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Upload Images</ThemedText>
             <ThemedText style={styles.sectionSubtitle}>
-              Add up to 8 photos. First image will be the cover.
+              Add up to 4 photos. First image will be the cover.
             </ThemedText>
             <View style={styles.imagesContainer}>
               {/* Add Image Buttons */}

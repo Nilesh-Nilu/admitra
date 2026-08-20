@@ -2,7 +2,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const STEPS = [
@@ -34,7 +34,11 @@ export default function VerificationPendingScreen() {
         <Ionicons name="close" size={24} color="#555" />
       </TouchableOpacity>
 
-      <View style={styles.content}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Illustration */}
         <View style={styles.illustrationWrap}>
           <LinearGradient
@@ -93,7 +97,7 @@ export default function VerificationPendingScreen() {
             </ThemedText>
           </View>
         </View>
-      </View>
+      </ScrollView>
 
       {/* Footer button */}
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
@@ -118,7 +122,10 @@ const styles = StyleSheet.create({
 
   content: {
     flex: 1,
+  },
+  contentContainer: {
     paddingHorizontal: 24,
+    paddingBottom: 24,
     alignItems: "center",
   },
 
