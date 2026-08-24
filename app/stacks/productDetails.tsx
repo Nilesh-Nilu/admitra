@@ -56,11 +56,28 @@ export default function ProductDetailsScreen() {
           setCallManagement(true);
         });
         const parsedProduct = JSON.parse(params.productData as any);
+        // Show list payload immediately so address/city/state are visible
+        // while the detail API loads (that endpoint often returns null location).
+        setProduct(parsedProduct);
         getProductByIdApi(parsedProduct.id as any).then((res) => {
+          const apiProduct = res.data || {};
+          const listUser = parsedProduct?.user || {};
+          const apiUser = apiProduct?.user || {};
           setProduct({
-            ...res.data,
-            is_featured: parsedProduct.is_featured ?? res.data?.is_featured,
-            is_banner: parsedProduct.is_banner ?? res.data?.is_banner,
+            ...parsedProduct,
+            ...apiProduct,
+            is_featured: parsedProduct.is_featured ?? apiProduct?.is_featured,
+            is_banner: parsedProduct.is_banner ?? apiProduct?.is_banner,
+            user: {
+              ...listUser,
+              ...apiUser,
+              // Prefer list/nav values when detail API strips location fields
+              address: apiUser.address || listUser.address || null,
+              city_id: apiUser.city_id ?? listUser.city_id ?? null,
+              state_id: apiUser.state_id ?? listUser.state_id ?? null,
+              city: apiUser.city || listUser.city || null,
+              state: apiUser.state || listUser.state || null,
+            },
           });
         }).catch((err) => {
           setLoading(false);
@@ -71,7 +88,7 @@ export default function ProductDetailsScreen() {
       }
     }
   }, [params.productData]);
-
+  
   useEffect(() => {
     initializeProduct();
   }, [initializeProduct]);
@@ -376,7 +393,9 @@ export default function ProductDetailsScreen() {
             <View style={{ flex: 1 }}>
               <ThemedText style={styles.sellerName}>{product?.user?.name}</ThemedText>
               <ThemedText style={styles.sellerLocation}>
-                {[product?.user?.city?.name, product?.user?.state?.name].filter(Boolean).join(", ") || product?.city}
+                {[product?.user?.address, product?.user?.city?.name, product?.user?.state?.name]
+                  .filter(Boolean)
+                  .join(", ") || product?.city}
               </ThemedText>
             </View>
             <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
@@ -385,6 +404,12 @@ export default function ProductDetailsScreen() {
 
         {/* Product Details */}
         <View style={styles.cardSection}>
+          {product?.user?.address && (
+            <View style={styles.detailRow}>
+              <ThemedText style={styles.detailLabel}>Address:</ThemedText>
+              <ThemedText style={styles.detailValue}>{product.user.address}</ThemedText>
+            </View>
+          )}
           {product?.user?.city?.name && (
             <View style={styles.detailRow}>
               <ThemedText style={styles.detailLabel}>City:</ThemedText>
@@ -686,6 +711,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   detailValue: {
+    flex: 1,
     fontSize: 14,
     color: COLORS.text,
   },

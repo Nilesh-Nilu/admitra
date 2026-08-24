@@ -102,6 +102,8 @@ export default function PostScreen() {
   const isRenewal = Boolean(renewalProduct?.id);
   const renewalProductType = getRenewalProductType(renewalProduct);
   const isNormalPlan = adType?.id === 1 || ["normal", "basic", "free"].includes(String(adType?.type || "").toLowerCase());
+  const isBannerPlan = adType?.id === 3 || String(adType?.type || "").toLowerCase() === "banner";
+  const maxImages = isBannerPlan ? 1 : 4;
   // Trial access is evaluated before the selected product plan.
   const hasFreeTrialAccess = isFreeTrial || user?.free_trial_enabled === true;
   const hasAssignedFreeAccess = Number(user?.is_free) === 1;
@@ -166,8 +168,13 @@ export default function PostScreen() {
   };
 
   const pickImage = async () => {
-    if (images.length >= 4) {
-      Alert.alert("Maximum Images", "You can only upload up to 4 images");
+    if (images.length >= maxImages) {
+      Alert.alert(
+        "Maximum Images",
+        isBannerPlan
+          ? "Banner ads allow only 1 photo"
+          : "You can only upload up to 4 images"
+      );
       return;
     }
 
@@ -256,8 +263,13 @@ export default function PostScreen() {
   );
 
   const takePhoto = async () => {
-    if (images.length >= 4) {
-      Alert.alert("Maximum Images", "You can only upload up to 4 images");
+    if (images.length >= maxImages) {
+      Alert.alert(
+        "Maximum Images",
+        isBannerPlan
+          ? "Banner ads allow only 1 photo"
+          : "You can only upload up to 4 images"
+      );
       return;
     }
 
@@ -379,7 +391,7 @@ export default function PostScreen() {
         }),
         category_id: selectedCategory,
         sub_category_id: selectedSubCategory,
-        child_category_id: selectedChildCategory || 0,
+        child_category_id: selectedChildCategory || null,
         name: title,
         description,
         price: Number(price) || 0,
@@ -659,7 +671,14 @@ export default function PostScreen() {
             selectedPlan={adType}
             isLoading={plansLoading}
             isLocked={isRenewal}
-            onSelect={setAdType}
+            onSelect={(plan) => {
+              const nextIsBanner =
+                plan?.id === 3 || String(plan?.type || "").toLowerCase() === "banner";
+              setAdType(plan);
+              if (nextIsBanner) {
+                setImages((prev) => prev.slice(0, 1));
+              }
+            }}
           />
 
 
@@ -687,20 +706,24 @@ export default function PostScreen() {
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Upload Images</ThemedText>
             <ThemedText style={styles.sectionSubtitle}>
-              Add up to 4 photos. First image will be the cover.
+              {isBannerPlan
+                ? "Add 1 photo. This will be used as the banner image."
+                : "Add up to 4 photos. First image will be the cover."}
             </ThemedText>
             <View style={styles.imagesContainer}>
               {/* Add Image Buttons */}
-              <View style={styles.imageActions}>
-                <TouchableOpacity style={styles.addImageBtn} onPress={takePhoto}>
-                  <Ionicons name="camera" size={24} color={COLORS.primary} />
-                  <ThemedText style={styles.addImageText}>Camera</ThemedText>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.addImageBtn} onPress={pickImage}>
-                  <Ionicons name="images" size={24} color={COLORS.primary} />
-                  <ThemedText style={styles.addImageText}>Gallery</ThemedText>
-                </TouchableOpacity>
-              </View>
+              {images.length < maxImages && (
+                <View style={styles.imageActions}>
+                  <TouchableOpacity style={styles.addImageBtn} onPress={takePhoto}>
+                    <Ionicons name="camera" size={24} color={COLORS.primary} />
+                    <ThemedText style={styles.addImageText}>Camera</ThemedText>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.addImageBtn} onPress={pickImage}>
+                    <Ionicons name="images" size={24} color={COLORS.primary} />
+                    <ThemedText style={styles.addImageText}>Gallery</ThemedText>
+                  </TouchableOpacity>
+                </View>
+              )}
 
               {/* Image Preview */}
               {images.length > 0 && (
@@ -715,7 +738,9 @@ export default function PostScreen() {
                       <Image source={{ uri }} style={styles.previewImage} />
                       {index === 0 && (
                         <View style={styles.coverBadge}>
-                          <ThemedText style={styles.coverText}>Cover</ThemedText>
+                          <ThemedText style={styles.coverText}>
+                            {isBannerPlan ? "Banner" : "Cover"}
+                          </ThemedText>
                         </View>
                       )}
                       <TouchableOpacity
@@ -1011,7 +1036,10 @@ export default function PostScreen() {
           imageHeight={cropImage.height}
           onClose={() => setCropImage(null)}
           onCrop={(croppedUri) => {
-            setImages(prev => [...prev, croppedUri]);
+            setImages((prev) => {
+              if (prev.length >= maxImages) return prev;
+              return [...prev, croppedUri].slice(0, maxImages);
+            });
             setCropImage(null);
           }}
         />
