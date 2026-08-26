@@ -1,0 +1,47 @@
+export const getRenewalProductType = (product: any) =>
+  String(product?.product_type || product?.plan_info?.plan_type || "").toLowerCase();
+
+export const matchesRenewalPlan = (plan: any, product: any) => {
+  const renewalProductType = getRenewalProductType(product);
+  const planType = String(plan?.type || plan?.plan_type || "").toLowerCase();
+  const isNormalPlan =
+    renewalProductType === "normal" && ["normal", "basic", "free"].includes(planType);
+
+  return (
+    planType === renewalProductType ||
+    isNormalPlan ||
+    String(plan?.id) === String(product?.plan_info?.plan_id)
+  );
+};
+
+export const normalizeHttpUrl = (value: string) => {
+  const trimmedValue = value.trim();
+  if (!trimmedValue) return "";
+
+  return /^https?:\/\//i.test(trimmedValue)
+    ? trimmedValue
+    : `https://${trimmedValue}`;
+};
+
+export const isValidHttpUrl = (value: string) => {
+  try {
+    const url = new URL(normalizeHttpUrl(value));
+    const isHttpUrl = url.protocol === "http:" || url.protocol === "https:";
+    const hasPublicHost =
+      url.hostname.includes(".") || /^\d{1,3}(\.\d{1,3}){3}$/.test(url.hostname);
+
+    return isHttpUrl && hasPublicHost;
+  } catch {
+    return false;
+  }
+};
+
+/** Matches typical MySQL VARCHAR(255) on product_plans.website_link */
+export const MAX_WEBSITE_LINK_LENGTH = 255;
+
+export const isBannerPlanType = (plan: any) =>
+  plan?.id === 3 || String(plan?.type || "").toLowerCase() === "banner";
+
+export const isNormalPlanType = (plan: any) =>
+  plan?.id === 1 ||
+  ["normal", "basic", "free"].includes(String(plan?.type || "").toLowerCase());
