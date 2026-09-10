@@ -22,6 +22,7 @@ import {
   getMyFeaturedAdsUrl,
   getMyProductsUrl,
   getFreeTrialStatusApi,
+  getFreeProductStatusApi,
   verifyRenewalApi,
 } from "@/constants/functions";
 import { setClearData } from "@/store/reducers/paymentReducer";
@@ -35,7 +36,7 @@ import {
 } from "@/store/reducers/userReducer";
 import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Alert, Image } from "react-native";
 import RazorpayCheckout from "react-native-razorpay";
 import { useDispatch, useSelector } from "react-redux";
@@ -71,6 +72,7 @@ export function usePostAd() {
   const [videoLink2, setVideoLink2] = useState("");
   const [cropImage, setCropImage] = useState<{ uri: string; width: number; height: number } | null>(null);
   const [isFreeTrial, setIsFreeTrial] = useState(false);
+  const [freeProductStatus, setFreeProductStatus] = useState<any>(null);
   const [plansLoading, setPlansLoading] = useState(true);
   const [renewalProduct, setRenewalProduct] = useState<any>(null);
   const isRenewal = Boolean(renewalProduct?.id);
@@ -86,9 +88,17 @@ export function usePostAd() {
   const hasFreeTrialAccess = isFreeTrial || user?.free_trial_enabled === true;
   const hasAssignedFreeAccess = Number(user?.is_free) === 1;
   const isZeroPriceNormalPlan = isNormalPlan && Number(adType?.price ?? 0) === 0;
-  const shouldPostWithoutPayment = !isRenewal && isNormalPlan && (
-    hasFreeTrialAccess || hasAssignedFreeAccess || isZeroPriceNormalPlan
+  const requiresPaymentForNormalProduct = Boolean(
+    freeProductStatus?.requires_payment_for_normal_product
   );
+  const canCreateFreeNormalProduct = Boolean(
+    freeProductStatus?.can_create_free_normal_product
+  );
+  const shouldPostWithoutPayment =
+    !isRenewal &&
+    isNormalPlan &&
+    !requiresPaymentForNormalProduct &&
+    (canCreateFreeNormalProduct || hasFreeTrialAccess || hasAssignedFreeAccess || isZeroPriceNormalPlan);
 
   const dispatch = useDispatch();
   // Filter sub-categories based on selected category
@@ -168,6 +178,16 @@ export function usePostAd() {
       setCropImage({ uri: asset.uri, width, height });
     }
   };
+  const refreshFreeProductStatus = useCallback(async () => {
+    try {
+      const data = await getFreeProductStatusApi();
+      setFreeProductStatus(data);
+      return data;
+    } catch {
+      return null;
+    }
+  }, []);
+
   useEffect(() => {
     setPlansLoading(true);
     Promise.resolve(dispatch(getPlansListApi(getPlansListUrl)))
@@ -176,7 +196,14 @@ export function usePostAd() {
     getFreeTrialStatusApi(user?.id).then((res: any) => {
       setIsFreeTrial(res);
     });
-  }, [])
+    refreshFreeProductStatus();
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshFreeProductStatus();
+    }, [refreshFreeProductStatus])
+  );
 
   useEffect(() => {
     if (!renewalProductParam) {
@@ -593,7 +620,20 @@ export function usePostAd() {
     if (!validateForm()) return;
     setIsLoading(true);
     try {
-      if (shouldPostWithoutPayment) {
+      let skipPayment = shouldPostWithoutPayment;
+      let requiresNormalPayment = requiresPaymentForNormalProduct;
+
+      if (isNormalPlan && !isRenewal) {
+        const status = await refreshFreeProductStatus();
+        requiresNormalPayment = Boolean(status?.requires_payment_for_normal_product);
+        if (requiresNormalPayment) {
+          skipPayment = false;
+        } else if (status?.can_create_free_normal_product) {
+          skipPayment = true;
+        }
+      }
+
+      if (skipPayment) {
         await submitProduct(null, Boolean(adType?.id));
         setIsLoading(false);
         return;
@@ -614,13 +654,13 @@ export function usePostAd() {
       console.log("Order response:", orderRes, "Parsed:", { totalAmount, razorpayOrderId });
 
       // Free plan via create-order (amount 0) — include plan_id like Free Product curl
-      if (!totalAmount || totalAmount === 0) {
+      if ((!totalAmount || totalAmount === 0) && !requiresNormalPayment) {
         await submitProduct(null, Boolean(adType?.id));
         setIsLoading(false);
         return;
       }
 
-      if (!razorpayOrderId) {
+      if (!razorpayOrderId || !totalAmount) {
         AppToast("Invalid order. Please try again.");
         setIsLoading(false);
         return;

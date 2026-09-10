@@ -33,9 +33,9 @@ const timeAgo = (dateStr: string) => {
 };
 
 const getLocationLabel = (item: any) => {
-  const city = item?.user?.city?.name || item?.city || "";
-  const state = item?.user?.state?.name || item?.state || "";
-  return [city, state].filter(Boolean).join(", ") || "India";
+  const city = item?.user?.city?.name || item?.city?.name || item?.city || "";
+  const state = item?.user?.state?.name || item?.state?.name || item?.state || "";
+  return [city, state].filter(Boolean).join(", ");
 };
 
 export const FeaturedCard = ({ item, isInline = false }: FeaturedCardProps) => {

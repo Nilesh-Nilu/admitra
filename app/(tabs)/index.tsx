@@ -447,7 +447,7 @@ export default function HomeScreen() {
     await AsyncStorage.setItem("selectedLocality", JSON.stringify(locality));
   };
 
-  const fullName = [selectedCity?.name, selectedLocality?.name].filter(Boolean).join(", ");
+  const fullName = [selectedLocality?.name,selectedCity?.name].filter(Boolean).join(", ");
   return (
     <ThemedView style={styles.container}>
       {isInitialHomeLoading ? (

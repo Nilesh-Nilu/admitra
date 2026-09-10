@@ -134,7 +134,7 @@ export default function SeeAllFreshScreen() {
           {item.name}
         </ThemedText>
         <ThemedText numberOfLines={1} style={styles.productLocation}>
-            {item.user?.city?.name || item.city || "India" + ", " + item.user?.state?.name}
+            {[item.user?.city?.name || item.city, item.user?.state?.name].filter(Boolean).join(", ")}
           </ThemedText>
         {item.created_at ? (
           <View style={styles.timeRow}>

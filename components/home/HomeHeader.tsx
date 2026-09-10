@@ -30,7 +30,7 @@ export const HomeHeader = ({ selectedCityName, onPressLocation }: HomeHeaderProp
         <View style={styles.locationIconBg}>
           <Ionicons name="location" size={16} color={COLORS.white} />
         </View>
-        <View>
+        <View style={styles.locationTextWrap}>
           <ThemedText style={styles.locationLabel}>Deliver to</ThemedText>
           <View style={styles.locationRow}>
             <ThemedText style={styles.locationCity} numberOfLines={1}>
@@ -51,20 +51,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: SIZES.padding8,
   },
-  logoContainer: { flex: 1 },
+  logoContainer: { flexShrink: 0 },
   logo: {
     width: ICON_SIZE_LARGE + 24,
     height: ICON_SIZE_MEDIUM + 20,
     resizeMode: "contain",
   },
   locationSelector: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: SIZES.padding8,
     backgroundColor: "#E8F0FE",
-    paddingHorizontal: SIZES.padding10,
+    paddingHorizontal: SIZES.padding12,
     paddingVertical: SIZES.padding8,
     borderRadius: SIZES.radius12,
+    marginLeft: SIZES.padding12,
+    minWidth: 120,
+    maxWidth: 180,
+  },
+  locationTextWrap: {
+    flex: 1,
   },
   locationIconBg: {
     width: ICON_SIZE_MEDIUM + 6,
@@ -88,6 +95,6 @@ const styles = StyleSheet.create({
     fontSize: SIZES.fontSize12,
     fontWeight: "700",
     color: "#0D47A1",
-    maxWidth: 90,
+    flexShrink: 1,
   },
 });

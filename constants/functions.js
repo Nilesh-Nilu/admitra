@@ -54,6 +54,7 @@ export const getMyBannerAdsUrl = "ads/my-banners"
 export const getMyProductsUrl = "ads/my-products?per_page=10"
 //payment
 export const createOrderUrl = "payment/create-order";
+export const freeProductStatusUrl = "payment/free-product-status";
 export const verifyAndStorePaymentUrl = "payment/verify-and-store";
 export const createRenewalOrderUrl = "payment/create-renewal-order";
 export const verifyRenewalUrl = "payment/verify-renewal";
@@ -374,6 +375,19 @@ export const getLocationListApi = async (setLocations) => {
     return locations;
   } catch (error) {
     console.log(error);
+  }
+};
+
+export const getFreeProductStatusApi = async () => {
+  try {
+    const response = await axios.get(
+      `${baseUrl}/${freeProductStatusUrl}`,
+      await getAuthToken()
+    );
+    return response.data?.data ?? response.data;
+  } catch (error) {
+    console.log(error?.response?.data || error, "getFreeProductStatusApi");
+    throw error;
   }
 };
 

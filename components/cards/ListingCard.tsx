@@ -26,6 +26,12 @@ const timeAgo = (dateStr: string) => {
   return `${days} day${days > 1 ? "s" : ""} ago`;
 };
 
+const getLocationLabel = (item: any) => {
+  const city = item?.user?.city?.name || item?.city?.name || item?.city || "";
+  const state = item?.user?.state?.name || item?.state?.name || item?.state || "";
+  return [city, state].filter(Boolean).join(", ");
+};
+
 export const formatPrice = (price: number) => {
   if (price >= 100000) return `₹${(price / 100000).toFixed(1)}L`;
   return `₹${price.toLocaleString("en-IN")}`;
@@ -90,7 +96,7 @@ export const ListingCard = ({ item }: ListingCardProps) => {
           {item.name}
         </ThemedText>
         <ThemedText style={styles.listingLocation} numberOfLines={1}>
-          {item.user?.city?.name || item.city || "India"}
+          {getLocationLabel(item)}
         </ThemedText>
         {item.created_at ? (
           <View style={styles.timeRow}>
