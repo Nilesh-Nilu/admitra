@@ -89,9 +89,6 @@ export function usePostAd() {
   const shouldPostWithoutPayment = !isRenewal && isNormalPlan && (
     hasFreeTrialAccess || hasAssignedFreeAccess || isZeroPriceNormalPlan
   );
-  // Only "Free Product" (zero-price plan) includes plan_id; trial / is_free omit it.
-  const shouldIncludeFreePlanId =
-    isZeroPriceNormalPlan && !hasFreeTrialAccess && !hasAssignedFreeAccess;
 
   const dispatch = useDispatch();
   // Filter sub-categories based on selected category
@@ -438,11 +435,14 @@ export function usePostAd() {
       clearForm();
     } catch (error: any) {
       console.log(error?.response?.data, "submitProduct");
-      const serverError = String(error?.response?.data?.error || error?.response?.data?.message || "");
+      const serverError = String(error?.response?.data?.error || error?.response?.data?.message || "").trim();
       if (serverError.includes("website_link") && serverError.includes("too long")) {
-        AppToast("Website link is too long. Use a shorter URL and try again.");
+        Alert.alert("Unable to post ad", "Website link is too long. Use a shorter URL and try again.");
       } else {
-        AppToast("Failed to submit listing. Please try again.");
+        Alert.alert(
+          "Unable to post ad",
+          serverError || "Failed to submit listing. Please try again."
+        );
       }
     }
   };
@@ -594,7 +594,7 @@ export function usePostAd() {
     setIsLoading(true);
     try {
       if (shouldPostWithoutPayment) {
-        await submitProduct(null, shouldIncludeFreePlanId);
+        await submitProduct(null, Boolean(adType?.id));
         setIsLoading(false);
         return;
       }

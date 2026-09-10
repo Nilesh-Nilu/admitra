@@ -108,9 +108,11 @@ export default function HomeScreen() {
   const safeCities = useMemo(() => (Array.isArray(cities) ? cities : []), [cities]);
   const safeBanners = useMemo(() => (Array.isArray(banners) ? banners : []), [banners]);
   const getProductsRequestUrl = useCallback((page = 1) => {
-    const cityId = selectedCity?.id;
+    const locationScope = selectedCity?.locationScope;
+    const isStateOnly = locationScope === "state" || !selectedCity?.id;
     const stateId = selectedCity?.state_id;
-    const localityId = selectedLocality?.id;
+    const cityId = isStateOnly ? null : selectedCity?.id;
+    const localityId = isStateOnly ? null : selectedLocality?.id;
 
     if (isLocationFilterEnabled && stateId) {
       const locationUrl = `${getProductsUrl}/filter/location?state_id=${encodeURIComponent(stateId)}${cityId ? `&city_id=${encodeURIComponent(cityId)}` : ""}${localityId ? `&locality_id=${encodeURIComponent(localityId)}` : ""}`;
@@ -118,7 +120,7 @@ export default function HomeScreen() {
     }
 
     return `${getProductsUrl}?per_page=20&page=${page}`;
-  }, [isLocationFilterEnabled, selectedCity?.id, selectedCity?.state_id, selectedLocality?.id]);
+  }, [isLocationFilterEnabled, selectedCity?.id, selectedCity?.locationScope, selectedCity?.state_id, selectedLocality?.id]);
   const filteredProducts = selectedCategory
     ? safeProducts.filter((p: any) => p.category_id === selectedCategory)
     : safeProducts;
@@ -159,6 +161,7 @@ export default function HomeScreen() {
           if (savedCity?.locationScope === "all" || (savedCity?.locationScope === "state" && savedCity?.state_id)) {
             setIsLocationFilterEnabled(savedCity.locationScope === "state");
             setSelectedCity(savedCity);
+            setSelectedLocality(null);
             setIsCityInitialized(true);
             return;
           }
@@ -197,6 +200,9 @@ export default function HomeScreen() {
   // Effect 2: Initialize locality once localities are fetched for the selected city
   useEffect(() => {
     if (safeLocalities.length === 0 || selectedLocality) return;
+    if (selectedCity?.locationScope === "state" || selectedCity?.locationScope === "all" || !selectedCity?.id) {
+      return;
+    }
     const initializeLocality = async () => {
       try {
         // Priority 1: Restore the locality explicitly selected on this device.
@@ -221,7 +227,7 @@ export default function HomeScreen() {
       }
     };
     initializeLocality();
-  }, [safeLocalities, selectedLocality, user?.locality_id]);
+  }, [safeLocalities, selectedCity?.id, selectedCity?.locationScope, selectedLocality, user?.locality_id]);
 
   useEffect(() => {
     if (hasBootstrappedRef.current) return;
@@ -255,9 +261,11 @@ export default function HomeScreen() {
   }, [dispatch, finishInitialHomeLoading, router]);
 
   useEffect(() => {
-    const cityId = selectedCity?.id;
+    const locationScope = selectedCity?.locationScope;
+    const isStateOnly = locationScope === "state" || !selectedCity?.id;
+    const cityId = isStateOnly ? null : selectedCity?.id;
     const stateId = selectedCity?.state_id;
-    const localityId = selectedLocality?.id;
+    const localityId = isStateOnly ? null : selectedLocality?.id;
     if (selectedCity) {
       const requestKey = isLocationFilterEnabled && stateId
         ? `location:${stateId}:${cityId || "all"}:${localityId || "all"}:${locationRequestVersion}`

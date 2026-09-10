@@ -2,17 +2,31 @@ import { HapticTab } from '@/components/HapticTab';
 import { ThemedText } from '@/components/ThemedText';
 import { COLORS } from '@/constants/Colors';
 import { getConversationApi } from '@/constants/functions';
-import { SIZES, SIZES_WITH_ALIASES } from '@/constants/Sizes';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Image, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Animated, Dimensions, Image, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import ImageViewer from 'react-native-image-zoom-viewer';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const WARNING_NOTICE_IMAGE = require('@/assets/images/warning.png');
+const WARNING_NOTICE_SIZE = Image.resolveAssetSource(WARNING_NOTICE_IMAGE);
+const WARNING_NOTICE_ASPECT_RATIO =
+  WARNING_NOTICE_SIZE?.width && WARNING_NOTICE_SIZE?.height
+    ? WARNING_NOTICE_SIZE.width / WARNING_NOTICE_SIZE.height
+    : 540 / 808;
+const WARNING_IMAGE_PADDING = 16;
+const WARNING_IMAGE_WIDTH = Dimensions.get('window').width - WARNING_IMAGE_PADDING * 2;
+const WARNING_IMAGE_HEIGHT = WARNING_IMAGE_WIDTH / WARNING_NOTICE_ASPECT_RATIO;
+
+const WINDOW_HEIGHT = Dimensions.get('window').height;
+const WARNING_FOOTER_RESERVE = 170;
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const bottomPosition = Math.max(insets.bottom, 10);
+  const imageScrollMaxHeight =
+    WINDOW_HEIGHT - insets.top - Math.max(insets.bottom, 16) - WARNING_FOOTER_RESERVE;
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const router = useRouter();
   const [showWarning, setShowWarning] = useState(false);
@@ -160,10 +174,11 @@ export default function TabLayout() {
         visible={showWarning}
         transparent
         animationType="slide"
+        statusBarTranslucent
         onRequestClose={() => { setShowWarning(false); setAgreed(false); }}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.warningModal}>
+          <SafeAreaView style={styles.warningModal} edges={['bottom']}>
             {/* Close (X) button */}
             <TouchableOpacity
               style={styles.modalCloseBtn}
@@ -174,81 +189,67 @@ export default function TabLayout() {
             </TouchableOpacity>
 
             <ScrollView
+              style={[styles.warningScrollView, { maxHeight: imageScrollMaxHeight }]}
               contentContainerStyle={styles.warningScroll}
-              showsVerticalScrollIndicator={false}
+              showsVerticalScrollIndicator
               bounces={false}
+              nestedScrollEnabled
             >
-              <TouchableOpacity activeOpacity={0.9} onPress={() => setShowImageZoom(true)}>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => setShowImageZoom(true)}
+                style={styles.warningImageWrap}
+              >
                 <Image
-                  source={require('@/assets/images/warning.png')}
+                  source={WARNING_NOTICE_IMAGE}
                   style={styles.warningImage}
+                  resizeMode="contain"
                 />
-                <View style={styles.zoomHint}>
-                  <Ionicons name="search" size={14} color="#fff" />
-                  <ThemedText style={styles.zoomHintText}>Tap to zoom</ThemedText>
-                </View>
               </TouchableOpacity>
             </ScrollView>
 
-            {/* Full-screen zoom viewer */}
-            <Modal visible={showImageZoom} transparent animationType="fade">
-              <ImageViewer
-                imageUrls={[{ url: '', props: { source: require('@/assets/images/warning.png') } }]}
-                enableSwipeDown
-                onSwipeDown={() => setShowImageZoom(false)}
-                renderHeader={() => (
-                  <TouchableOpacity
-                    style={styles.zoomCloseBtn}
-                    onPress={() => setShowImageZoom(false)}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <Ionicons name="close" size={24} color="#fff" />
-                  </TouchableOpacity>
-                )}
-                backgroundColor="rgba(0,0,0,0.95)"
-              />
-            </Modal>
+            <View style={styles.warningFooter}>
+              {/* Agreement checkbox */}
+              <TouchableOpacity
+                style={styles.agreementRow}
+                onPress={() => setAgreed(v => !v)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.checkbox, agreed && styles.checkboxChecked]}>
+                  {agreed && <Ionicons name="checkmark" size={14} color="#fff" />}
+                </View>
+                <ThemedText style={styles.agreementText}>
+                  मैंने सभी नियम और शर्तों को पढ़ा और समझा है तथा मैं उनसे सहमत हूँ।{' '}
+                  <ThemedText style={styles.agreementTextEn}>I have read all the rules and terms and agree.</ThemedText>
+                </ThemedText>
+              </TouchableOpacity>
 
-            {/* Agreement checkbox */}
-            <TouchableOpacity
-              style={styles.agreementRow}
-              onPress={() => setAgreed(v => !v)}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.checkbox, agreed && styles.checkboxChecked]}>
-                {agreed && <Ionicons name="checkmark" size={14} color="#fff" />}
+              <View style={styles.warningActions}>
+                <TouchableOpacity
+                  style={styles.cancelBtn}
+                  onPress={() => {
+                    setShowWarning(false);
+                    setAgreed(false);
+                    router.push('/(tabs)/post');
+                  }}
+                >
+                  <ThemedText style={styles.cancelBtnText}>Skip</ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.proceedBtn, !agreed && styles.proceedBtnDisabled]}
+                  onPress={() => {
+                    if (!agreed) return;
+                    setShowWarning(false);
+                    setAgreed(false);
+                    router.push('/(tabs)/post');
+                  }}
+                  activeOpacity={agreed ? 0.8 : 1}
+                >
+                  <ThemedText style={styles.proceedBtnText}>I Understand, Proceed</ThemedText>
+                </TouchableOpacity>
               </View>
-              <ThemedText style={styles.agreementText}>
-                मैंने सभी नियम और शर्तों को पढ़ा और समझा है तथा मैं उनसे सहमत हूँ।{' '}
-                <ThemedText style={styles.agreementTextEn}>I have read all the rules and terms and agree.</ThemedText>
-              </ThemedText>
-            </TouchableOpacity>
-
-            <View style={[styles.warningActions, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-              <TouchableOpacity
-                style={styles.cancelBtn}
-                onPress={() => {
-                  setShowWarning(false);
-                  setAgreed(false);
-                  router.push('/(tabs)/post');
-                }}
-              >
-                <ThemedText style={styles.cancelBtnText}>Skip</ThemedText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.proceedBtn, !agreed && styles.proceedBtnDisabled]}
-                onPress={() => {
-                  if (!agreed) return;
-                  setShowWarning(false);
-                  setAgreed(false);
-                  router.push('/(tabs)/post');
-                }}
-                activeOpacity={agreed ? 0.8 : 1}
-              >
-                <ThemedText style={styles.proceedBtnText}>I Understand, Proceed</ThemedText>
-              </TouchableOpacity>
             </View>
-          </View>
+          </SafeAreaView>
         </View>
       </Modal>
     </>
@@ -339,23 +340,37 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'flex-end',
-    alignItems: 'center',
   },
   warningModal: {
-    backgroundColor: 'transparent',
+    backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '92%',
     width: '100%',
+    maxHeight: '100%',
     overflow: 'hidden',
   },
+  warningScrollView: {
+    flexGrow: 0,
+  },
   warningScroll: {
-    padding: 16,
+    paddingHorizontal: WARNING_IMAGE_PADDING,
+    paddingTop: 8,
+    paddingBottom: 0,
+    alignItems: 'center',
+  },
+  warningImageWrap: {
+    width: WARNING_IMAGE_WIDTH,
+    height: WARNING_IMAGE_HEIGHT,
   },
   warningImage: {
-    width: SIZES_WITH_ALIASES.width * 0.9,
-    alignSelf: 'center',
-    resizeMode: 'contain',
+    width: WARNING_IMAGE_WIDTH,
+    height: WARNING_IMAGE_HEIGHT,
+  },
+  warningFooter: {
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    paddingBottom: 8,
   },
   zoomHint: {
     position: 'absolute',
@@ -430,10 +445,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
     gap: 10,
-    backgroundColor: '#fff',
   },
   checkbox: {
     width: 20,
@@ -467,10 +479,9 @@ const styles = StyleSheet.create({
   warningActions: {
     flexDirection: 'row',
     gap: 10,
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 8,
     width: '100%',
   },
   cancelBtn: {

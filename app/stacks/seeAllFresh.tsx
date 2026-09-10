@@ -2,9 +2,9 @@ import ThemeHeader from "@/components/headers/ThemeHeader";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
-import { addToFavoritesApi, getApprovedProductsUrl, removeFromFavoritesApi } from "@/constants/functions";
+import { addToFavoritesApi, getProductsUrl, removeFromFavoritesApi } from "@/constants/functions";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
-import { addFavoriteItem, getApprovedProductsApi, removeFavoriteById } from "@/store/reducers/userReducer";
+import { addFavoriteItem, getAllProducts, removeFavoriteById } from "@/store/reducers/userReducer";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect } from "react";
@@ -27,12 +27,17 @@ export default function SeeAllFreshScreen() {
   const dispatch = useDispatch();
   const { products, favorites } = useSelector((state: any) => state.entities.userReducer) || {};
   const safeProducts = Array.isArray(products)
-    ? products.filter((product: any) => product?.product_type === "normal")
+    ? products.filter((product: any) => {
+        const type = String(product?.product_type || product?.plan_info?.plan_type || "normal").toLowerCase();
+        return type === "normal";
+      })
     : [];
   const safeFavorites = Array.isArray(favorites) ? favorites : [];
 
   useEffect(() => {
-    dispatch(getApprovedProductsApi(getApprovedProductsUrl));
+    if (safeProducts.length === 0) {
+      dispatch(getAllProducts(`${getProductsUrl}?per_page=20&page=1`));
+    }
   }, []);
 
   useEffect(() => {
@@ -128,6 +133,9 @@ export default function SeeAllFreshScreen() {
         <ThemedText style={styles.productTitle} numberOfLines={1}>
           {item.name}
         </ThemedText>
+        <ThemedText numberOfLines={1} style={styles.productLocation}>
+            {item.user?.city?.name || item.city || "India" + ", " + item.user?.state?.name}
+          </ThemedText>
         {item.created_at ? (
           <View style={styles.timeRow}>
             <Ionicons name="time-outline" size={11} color="#94A3B8" />
@@ -248,6 +256,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
     color: COLORS.text,
+  },
+  productLocation: {
+    fontSize: 10,
+    color: COLORS.gray,
+    fontWeight: "500",
   },
   timeRow: {
     flexDirection: "row",

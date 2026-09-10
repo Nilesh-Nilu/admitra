@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "admitra",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.admitra.app"

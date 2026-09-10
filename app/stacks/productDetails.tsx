@@ -20,6 +20,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSelector } from "react-redux";
 import AppToast from "@/components/toasts/AppToast";
 import ThemeHeader from "@/components/headers/ThemeHeader";
 import ThemeLoader from "@/components/loader/ThemeLoader";
@@ -30,6 +31,7 @@ const IMAGE_HEIGHT = screenWidth * 0.65;
 export default function ProductDetailsScreen() {
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
+  const { user: currentUser } = useSelector((state: any) => state.entities.authReducer) || {};
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [product, setProduct] = useState<any>(null);
   const [zoomModalVisible, setZoomModalVisible] = useState(false);
@@ -173,6 +175,12 @@ export default function ProductDetailsScreen() {
 
   const productImages = product?.images || [];
   const isVerifiedSeller = product?.user?.is_verify === 1;
+  const sellerId = product?.user?.user_id ?? product?.user?.id ?? product?.user_id;
+  const currentUserId = currentUser?.id ?? currentUser?.user_id;
+  const isOwnListing =
+    sellerId != null &&
+    currentUserId != null &&
+    Number(sellerId) === Number(currentUserId);
 
   const handleImagePress = (index: number) => {
     setSelectedImageIndex(index);
@@ -480,17 +488,19 @@ export default function ProductDetailsScreen() {
             </View>
           )}
         </View>
-        <View style={styles.reportRow}>
-          <TouchableOpacity onPress={handleOpenReportModal} activeOpacity={0.8} style={styles.reportBtn}>
-            <Ionicons name="flag-outline" size={14} color={COLORS.error} />
-            <ThemedText style={styles.reportAdText}>Report Ad</ThemedText>
-          </TouchableOpacity>
-          <View style={styles.reportDivider} />
-          <TouchableOpacity onPress={() => { setReportUserReason(""); setReportUserModalVisible(true); }} activeOpacity={0.8} style={styles.reportBtn}>
-            <Ionicons name="person-remove-outline" size={14} color={COLORS.error} />
-            <ThemedText style={styles.reportAdText}>Report User</ThemedText>
-          </TouchableOpacity>
-        </View>
+        {!isOwnListing && (
+          <View style={styles.reportRow}>
+            <TouchableOpacity onPress={handleOpenReportModal} activeOpacity={0.8} style={styles.reportBtn}>
+              <Ionicons name="flag-outline" size={14} color={COLORS.error} />
+              <ThemedText style={styles.reportAdText}>Report Ad</ThemedText>
+            </TouchableOpacity>
+            <View style={styles.reportDivider} />
+            <TouchableOpacity onPress={() => { setReportUserReason(""); setReportUserModalVisible(true); }} activeOpacity={0.8} style={styles.reportBtn}>
+              <Ionicons name="person-remove-outline" size={14} color={COLORS.error} />
+              <ThemedText style={styles.reportAdText}>Report User</ThemedText>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
 
       {/* Bottom Action Bar */}

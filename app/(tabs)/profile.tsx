@@ -8,7 +8,6 @@ import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 import { setUser, updateUserProfile } from "@/store/reducers/authReducer";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import Constants from "expo-constants";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -23,6 +22,7 @@ import {
   View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
+import VersionCheck from "react-native-version-check";
 
 interface User {
   name?: string;
@@ -508,7 +508,7 @@ export default function ProfileScreen() {
 
         {/* Version */}
         <ThemedText style={styles.versionText}>
-          Version {Constants.expoConfig?.version || "1.0.0"}
+          Version {VersionCheck.getCurrentVersion()}
         </ThemedText>
 
         <View style={{ height: 100 }} />

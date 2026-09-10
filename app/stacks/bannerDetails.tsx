@@ -57,6 +57,7 @@ export default function BannerDetailsScreen() {
   const [reportTarget, setReportTarget] = useState<"ad" | "user">("ad");
 
   const favorites = useSelector((state: any) => state.entities.userReducer.favorites);
+  const { user: currentUser } = useSelector((state: any) => state.entities.authReducer) || {};
   const product = banner?.product;
 
   const favoriteEntry = useMemo(
@@ -64,6 +65,12 @@ export default function BannerDetailsScreen() {
     [favorites, product?.id]
   );
   const isFavorite = !!favoriteEntry;
+  const sellerId = product?.user?.user_id ?? product?.user?.id ?? product?.user_id;
+  const currentUserId = currentUser?.id ?? currentUser?.user_id;
+  const isOwnListing =
+    sellerId != null &&
+    currentUserId != null &&
+    Number(sellerId) === Number(currentUserId);
 
   const initializeBanner = useCallback(() => {
     if (params.bannerData) {
@@ -428,6 +435,7 @@ export default function BannerDetailsScreen() {
         </View>
 
         {/* ── Save & Report ── */}
+        {!isOwnListing && (
         <View style={styles.sectionCard}>
 
           <View style={styles.listDivider} />
@@ -466,6 +474,7 @@ export default function BannerDetailsScreen() {
             <Ionicons name="chevron-forward" size={20} color="#CBD5E1" />
           </TouchableOpacity>
         </View>
+        )}
       </ScrollView>
 
       <ReportModal

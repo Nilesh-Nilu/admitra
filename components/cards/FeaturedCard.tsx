@@ -32,6 +32,12 @@ const timeAgo = (dateStr: string) => {
   return `${days} day${days > 1 ? "s" : ""} ago`;
 };
 
+const getLocationLabel = (item: any) => {
+  const city = item?.user?.city?.name || item?.city || "";
+  const state = item?.user?.state?.name || item?.state || "";
+  return [city, state].filter(Boolean).join(", ") || "India";
+};
+
 export const FeaturedCard = ({ item, isInline = false }: FeaturedCardProps) => {
   const dispatch = useDispatch();
   const favorites = useSelector((state: any) => state.entities.userReducer.favorites) || [];
@@ -94,7 +100,7 @@ export const FeaturedCard = ({ item, isInline = false }: FeaturedCardProps) => {
             {item.name}
           </ThemedText>
           <ThemedText numberOfLines={1} style={styles.featuredLocation}>
-            {item.user?.city?.name || item.city || "India"}
+            {getLocationLabel(item)}
           </ThemedText>
           {item.created_at ? (
             <ThemedText style={styles.featuredTime}>
@@ -141,7 +147,7 @@ export const FeaturedCard = ({ item, isInline = false }: FeaturedCardProps) => {
           {item.name}
         </ThemedText>
         <ThemedText style={styles.featuredLocation} numberOfLines={1}>
-          {item.user?.city?.name || item.city || "India"}
+          {getLocationLabel(item)}
         </ThemedText>
         {item.created_at ? (
           <ThemedText style={styles.featuredTime}>
