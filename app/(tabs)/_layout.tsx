@@ -1,11 +1,11 @@
-import { HapticTab } from '@/components/HapticTab';
+import AnimatedTabBar from '@/components/navigation/AnimatedTabBar';
 import { ThemedText } from '@/components/ThemedText';
 import { COLORS } from '@/constants/Colors';
 import { getConversationApi } from '@/constants/functions';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs, useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Dimensions, Image, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { Dimensions, Image, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import ImageViewer from 'react-native-image-zoom-viewer';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -24,10 +24,8 @@ const WARNING_FOOTER_RESERVE = 170;
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
-  const bottomPosition = Math.max(insets.bottom, 10);
   const imageScrollMaxHeight =
     WINDOW_HEIGHT - insets.top - Math.max(insets.bottom, 16) - WARNING_FOOTER_RESERVE;
-  const scaleAnim = useRef(new Animated.Value(1)).current;
   const router = useRouter();
   const [showWarning, setShowWarning] = useState(false);
   const [agreed, setAgreed] = useState(false);
@@ -54,28 +52,11 @@ export default function TabLayout() {
     }, [checkUnreadChats])
   );
 
-  const animateIcon = () => {
-    Animated.sequence([
-      Animated.timing(scaleAnim, { toValue: 1.15, duration: 120, useNativeDriver: true }),
-      Animated.timing(scaleAnim, { toValue: 1, duration: 120, useNativeDriver: true }),
-    ]).start();
-  };
-
-  const AnimatedIcon = ({ focused, name, showDot }: { focused: boolean, name: any, showDot?: boolean }) => (
-    <Animated.View
-      style={[
-        styles.iconContainer,
-        focused && styles.iconContainerActive,
-        { transform: [{ scale: focused ? scaleAnim : 1 }] },
-      ]}
-    >
-      <Ionicons
-        name={name}
-        size={22}
-        color={focused ? COLORS.blue : '#404040'}
-      />
+  const TabIcon = ({ name, color, showDot }: { name: any; color: string; showDot?: boolean }) => (
+    <View style={styles.iconContainer}>
+      <Ionicons name={name} size={22} color={color} />
       {showDot && <View style={styles.unreadDot} />}
-    </Animated.View>
+    </View>
   );
 
   return (
@@ -83,39 +64,25 @@ export default function TabLayout() {
       <Tabs
         screenOptions={{
           headerShown: false,
-          tabBarButton: HapticTab,
-          tabBarActiveTintColor: COLORS.blue,
-          tabBarInactiveTintColor: '#404040',
-          tabBarShowLabel: true,
-          tabBarLabelStyle: styles.tabLabel,
-          tabBarStyle: [styles.tabBar, { bottom: bottomPosition }],
-          tabBarItemStyle: styles.tabItem,
         }}
+        tabBar={(props) => <AnimatedTabBar {...props} />}
       >
         <Tabs.Screen
           name="index"
           options={{
             title: 'Home',
-            tabBarIcon: ({ focused }) => {
-              if (focused) animateIcon();
-              return <AnimatedIcon focused={focused} name={focused ? "home" : "home-outline"} />;
-            },
+                        tabBarIcon: ({ focused, color }) => (
+              <TabIcon name={focused ? "home" : "home-outline"} color={color} />
+            ),
           }}
         />
         <Tabs.Screen
           name="chat"
           options={{
             title: 'Chat',
-            tabBarIcon: ({ focused }) => {
-              if (focused) animateIcon();
-              return (
-                <AnimatedIcon
-                  focused={focused}
-                  name={focused ? "chatbubbles" : "chatbubbles-outline"}
-                  showDot={hasUnreadChats}
-                />
-              );
-            },
+                        tabBarIcon: ({ focused, color }) => (
+              <TabIcon name={focused ? "chatbubbles" : "chatbubbles-outline"} color={color} showDot={hasUnreadChats} />
+            ),
           }}
         />
 
@@ -146,10 +113,9 @@ export default function TabLayout() {
           name="myListing"
           options={{
             title: 'My Ads',
-            tabBarIcon: ({ focused }) => {
-              if (focused) animateIcon();
-              return <AnimatedIcon focused={focused} name={focused ? "briefcase" : "briefcase-outline"} />;
-            },
+                        tabBarIcon: ({ focused, color }) => (
+              <TabIcon name={focused ? "briefcase" : "briefcase-outline"} color={color} />
+            ),
           }}
         />
 
@@ -157,15 +123,9 @@ export default function TabLayout() {
           name="profile"
           options={{
             title: "Profile",
-            tabBarIcon: ({ focused }) => {
-              if (focused) animateIcon();
-              return (
-                <AnimatedIcon
-                  focused={focused}
-                  name={focused ? "person" : "person-outline"}
-                />
-              );
-            },
+                        tabBarIcon: ({ focused, color }) => (
+              <TabIcon name={focused ? "person" : "person-outline"} color={color} />
+            ),
           }}
         />
       </Tabs>
@@ -257,39 +217,12 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  tabBar: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 66,
-    borderRadius: 0,
-    backgroundColor: COLORS.white,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    paddingBottom: 4,
-  },
-  tabItem: {
-    paddingVertical: 6,
-  },
-  tabLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 2,
-  },
   iconContainer: {
     width: 36,
     height: 36,
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  iconContainerActive: {
-    backgroundColor: 'rgba(31,60,136,0.08)',
   },
   unreadDot: {
     position: 'absolute',
@@ -305,6 +238,8 @@ const styles = StyleSheet.create({
   postButtonWrapper: {
     position: 'absolute',
     top: -28,
+    left: -16,
+    width: 56,
     alignItems: 'center',
     justifyContent: 'center',
   },

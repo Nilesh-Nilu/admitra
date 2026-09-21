@@ -4,7 +4,8 @@ import axios from "axios";
 import { logoutFromReducer, setUser } from "../store/reducers/authReducer";
 import { baseUrl as API_BASE_URL } from "./config";
 import AppToast from "@/components/toasts/AppToast";
-import { getfcmToken } from "../app/notification/notifications";
+// Lazy-loaded at call sites: notifications.js imports this file (avoids a require cycle).
+const getfcmToken = async () => (await import("../app/notification/notifications")).getfcmToken();
 
 export const baseUrl = API_BASE_URL;
 // Reusable API configuration with auth headers and credentials
@@ -396,7 +397,6 @@ export const getFreeProductStatusApi = async () => {
     );
     return response.data?.data ?? response.data;
   } catch (error) {
-    console.log(error?.response?.data || error, "getFreeProductStatusApi");
     throw error;
   }
 };
@@ -802,7 +802,6 @@ export const getFeaturedAdsInfoApi = async (
     );
     return response.data.data[0];
   } catch (error) {
-    console.log(error?.response?.data || error, "getFeaturedAdsInfoApi");
     if (error?.response?.status === 401) {
       throw new Error("Unauthenticated");
     }

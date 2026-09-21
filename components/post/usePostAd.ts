@@ -46,7 +46,6 @@ export function usePostAd() {
   const { renewalProduct: renewalProductParam } = useLocalSearchParams<{ renewalProduct?: string }>();
   const user = useSelector((state: any) => state.entities.authReducer?.user);
   const { categories, subCategories, plans } = useSelector((state: any) => state.entities.userReducer) || {};
-  console.log(plans,"plans")
   const [images, setImages] = useState<any[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -82,10 +81,7 @@ export function usePostAd() {
   const isBannerPlan = isBannerPlanType(adType);
   const maxImages = isBannerPlan ? 1 : 4;
   // Trial access is evaluated before the selected product plan.
-  // Free verify-and-store modes (no Razorpay):
-  // 1) Free plan (price 0)     → send plan_id
-  // 2) Free trial user         → omit plan_id
-  // 3) Admin assigned is_free  → omit plan_id
+  // Free verify-and-store (no Razorpay): always send plan_id, the API requires it.
   const hasFreeTrialAccess = isFreeTrial || user?.free_trial_enabled === true;
   const hasAssignedFreeAccess = Number(user?.is_free) === 1;
   const isZeroPriceNormalPlan = isNormalPlan && Number(adType?.price ?? 0) === 0;
@@ -102,7 +98,6 @@ export function usePostAd() {
     (canCreateFreeNormalProduct || hasFreeTrialAccess || hasAssignedFreeAccess || isZeroPriceNormalPlan);
 
   const dispatch = useDispatch();
-  // Filter sub-categories based on selected category
 
   const handleSubCategorySelect = async (subCat: any, currentTempCategory: any) => {
     setLoadingChildrenForId(subCat.id);
@@ -125,6 +120,7 @@ export function usePostAd() {
       setCategorySearchQuery("");
     }
   };
+
   // Clear form fields
   const clearForm = () => {
     dispatch(setClearData(null));
@@ -141,7 +137,7 @@ export function usePostAd() {
     setCustomFields([{ name: "", value: "" }]);
     setVideoLink2("");
     setVideoLink("");
-    setWebsiteLink("")
+    setWebsiteLink("");
   };
 
   const resolveImageSize = (uri: string, fallbackW?: number, fallbackH?: number): Promise<{ width: number; height: number }> => {
@@ -179,6 +175,7 @@ export function usePostAd() {
       setCropImage({ uri: asset.uri, width, height });
     }
   };
+
   const refreshFreeProductStatus = useCallback(async () => {
     try {
       const data = await getFreeProductStatusApi();
@@ -257,12 +254,13 @@ export function usePostAd() {
     const renewalPlan = plans.find((plan: any) => matchesRenewalPlan(plan, renewalProduct));
     if (renewalPlan) setAdType(renewalPlan);
   }, [plans, renewalProduct]);
+
   useFocusEffect(
     React.useCallback(() => {
       // When this screen is unfocused (navigated away from), clear images
       return () => {
         setImages([]);
-        clearForm()
+        clearForm();
       };
     }, [])
   );
@@ -407,7 +405,9 @@ export function usePostAd() {
           razorpay_payment_id: paymentData?.razorpay_payment_id || null,
           razorpay_signature: paymentData?.razorpay_signature || null,
         }),
-        ...(!isPaid && includeFreePlanId && {
+        // The API rejects free posts without plan_id ("The plan id field is required"),
+        // so it is always sent on the free path, including trial / is_free users.
+        ...(!isPaid && {
           plan_id: adType?.id,
         }),
         category_id: selectedCategory,
@@ -427,14 +427,6 @@ export function usePostAd() {
           video: videoLink2 || null,
         }),
       };
-
-      console.log("verify-and-store payload modes:", {
-        isPaid,
-        includeFreePlanId,
-        hasFreeTrialAccess,
-        hasAssignedFreeAccess,
-        plan_id: payload.plan_id ?? null,
-      });
  
       const response = await handleVerifyandAddProductApi(payload);
 
@@ -615,7 +607,6 @@ export function usePostAd() {
     }
   };
 
-
   // Handle submit with payment
   const handleSubmit = async () => {
     if (!validateForm()) return;
@@ -635,7 +626,12 @@ export function usePostAd() {
       }
 
       if (skipPayment) {
-        await submitProduct(null, Boolean(adType?.id));
+        // Free plan (price 0) → include plan_id
+        // Free trial / is_free → omit plan_id (matches the verify-and-store curl)
+        const includeFreePlanId =
+          isZeroPriceNormalPlan && !hasFreeTrialAccess && !hasAssignedFreeAccess;
+
+        await submitProduct(null, includeFreePlanId);
         setIsLoading(false);
         return;
       }
@@ -662,8 +658,11 @@ export function usePostAd() {
       console.log("Order response:", orderRes, "Parsed:", { totalAmount, razorpayOrderId });
 
       // Free plan via create-order (amount 0) — include plan_id like Free Product curl
+      // Free trial / is_free still omit plan_id
       if ((!totalAmount || totalAmount === 0) && !requiresNormalPayment) {
-        await submitProduct(null, Boolean(adType?.id));
+        const includeFreePlanId =
+          isZeroPriceNormalPlan && !hasFreeTrialAccess && !hasAssignedFreeAccess;
+        await submitProduct(null, includeFreePlanId);
         setIsLoading(false);
         return;
       }
@@ -713,7 +712,6 @@ export function usePostAd() {
       setIsLoading(false);
     }
   };
-
 
   return {
     router,

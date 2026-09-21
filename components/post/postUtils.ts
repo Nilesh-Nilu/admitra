@@ -42,6 +42,10 @@ export const MAX_WEBSITE_LINK_LENGTH = 255;
 export const isBannerPlanType = (plan: any) =>
   plan?.id === 3 || String(plan?.type || "").toLowerCase() === "banner";
 
+export const isFeaturedPlanType = (plan: any) =>
+  plan?.id === 2 || String(plan?.type || "").toLowerCase() === "featured";
+
+// Any plan that is not Featured or Banner is a normal listing plan, so the
+// free-quota flow (submitProduct without Razorpay) applies to it.
 export const isNormalPlanType = (plan: any) =>
-  plan?.id === 1 ||
-  ["normal", "basic", "free"].includes(String(plan?.type || "").toLowerCase());
+  Boolean(plan) && !isBannerPlanType(plan) && !isFeaturedPlanType(plan);

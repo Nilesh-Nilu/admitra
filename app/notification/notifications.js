@@ -65,7 +65,7 @@ export const createNotificationChannel = () => {
       importance: 4,
       vibrate: true,
     },
-    (created) => console.log(`Notification channel created: ${created}`),
+    (created) => console.log(``),
   );
 };
 
@@ -109,7 +109,6 @@ export const requestAndroidNotificationPermission = async () => {
       const granted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
       );
-      console.log('Android 13+ notification permission:', granted);
     } catch (err) {
       console.warn('Failed to request notification permission', err);
     }
@@ -319,7 +318,7 @@ export const notificationListner = async () => {
             // Handle notification action here with error handling
             handleNotificationAction(remoteMessage);
           } else {
-            console.log('No initial notification found');
+
           }
         } catch (error) {
           console.error('Error handling quit state notification:', error);
