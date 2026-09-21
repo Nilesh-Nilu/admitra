@@ -5,18 +5,35 @@ import { COLORS } from "@/constants/Colors";
 import { SIZES } from "@/constants/Sizes";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo } from "react";
-import { BackHandler, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
+import { getPolicyApi } from "@/constants/functions";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Linking, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import RenderHtml from "react-native-render-html";
 
 export default function PolicyScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const { title = "Policy", data: policyData, pageType } = useLocalSearchParams();
+  const [fetched, setFetched] = useState<any>(null);
+  const [loading, setLoading] = useState(!policyData);
+
+  useEffect(() => {
+    if (policyData) return;
+    let active = true;
+    getPolicyApi()
+      .then((res: any) => active && setFetched(res))
+      .catch(() => {})
+      .finally(() => active && setLoading(false));
+    return () => {
+      active = false;
+    };
+  }, [policyData]);
 
   // Parse the policy data from params
   const parsedData = useMemo(() => {
-    if (!policyData) return null;
+    if (!policyData) return fetched;
     try {
       // Handle both string and object formats
       if (typeof policyData === "string") {
@@ -27,7 +44,7 @@ export default function PolicyScreen() {
       console.error("Error parsing policy data:", error);
       return null;
     }
-  }, [policyData]);
+  }, [policyData, fetched]);
 
   const htmlContent = useMemo(() => {
     // If we have pageType and an array of policies, find the matching one
@@ -65,17 +82,10 @@ export default function PolicyScreen() {
   }, [parsedData, title, pageType]);
 
   const handleBackPress = useCallback(() => {
-    router.replace("/(tabs)/profile");
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)/profile");
     return true;
   }, [router]);
-
-  useEffect(() => {
-    const backHandler = BackHandler.addEventListener(
-      "hardwareBackPress",
-      handleBackPress
-    );
-    return () => backHandler.remove();
-  }, [handleBackPress]);
 
   // Custom HTML rendering styles
   const htmlStyles = {
@@ -88,41 +98,41 @@ export default function PolicyScreen() {
       fontSize: SIZES.fontSize20,
       fontWeight: "700" as const,
       color: COLORS.text,
-      marginBottom: SIZES.padding,
-      marginTop: SIZES.padding,
+      marginBottom: 12,
+      marginTop: 12,
     },
     h2: {
       fontSize: SIZES.fontSize18,
       fontWeight: "600" as const,
       color: COLORS.text,
-      marginBottom: SIZES.padding * 0.6,
-      marginTop: SIZES.padding * 0.8,
+      marginBottom: 8,
+      marginTop: 12,
     },
     h3: {
       fontSize: SIZES.fontSize16,
       fontWeight: "600" as const,
       color: COLORS.text,
-      marginBottom: SIZES.padding * 0.4,
-      marginTop: SIZES.padding * 0.6,
+      marginBottom: 6,
+      marginTop: 8,
     },
     p: {
       fontSize: SIZES.fontSize14,
       color: COLORS.text,
-      marginBottom: SIZES.padding * 0.4,
+      marginBottom: 6,
       lineHeight: SIZES.lineHeight14,
     },
     ul: {
-      marginLeft: SIZES.padding,
-      marginBottom: SIZES.padding * 0.6,
+      marginLeft: 8,
+      marginBottom: 8,
     },
     ol: {
-      marginLeft: SIZES.padding,
-      marginBottom: SIZES.padding * 0.6,
+      marginLeft: 8,
+      marginBottom: 8,
     },
     li: {
       fontSize: SIZES.fontSize14,
       color: COLORS.text,
-      marginBottom: SIZES.padding * 0.2,
+      marginBottom: 4,
       lineHeight: SIZES.lineHeight14,
     },
     strong: {
@@ -139,7 +149,7 @@ export default function PolicyScreen() {
     a: {
       onPress: (_: any, url: string) => {
         // Handle link presses if needed
-        console.log("Link pressed:", url);
+        if (url) Linking.openURL(url).catch(() => {});
       },
     },
   };
@@ -149,7 +159,8 @@ export default function PolicyScreen() {
       <ThemeHeader onBackPress={handleBackPress} title={(title as string) || "Policy"} />
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.contentContainer}
+        contentContainerStyle={[styles.contentContainer, { paddingBottom: insets.bottom + 24 }]}
+        showsVerticalScrollIndicator={false}
       >
         <View style={styles.logoContainer}>
           <View style={styles.logo}>
@@ -162,12 +173,16 @@ export default function PolicyScreen() {
 
         {/* Render HTML Content */}
         <View style={styles.htmlContainer}>
+          {loading ? (
+            <ActivityIndicator color={COLORS.primary} />
+          ) : (
           <RenderHtml
-            contentWidth={width - SIZES.padding * 6}
+            contentWidth={width - 40}
             source={{ html: htmlContent }}
             tagsStyles={htmlStyles}
             renderersProps={renderersProps}
           />
+          )}
         </View>
       </ScrollView>
     </ThemedView>
@@ -183,20 +198,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingVertical: SIZES.padding16,
-    paddingHorizontal: SIZES.padding,
-    paddingBottom: SIZES.padding2 * 1.4,
+    paddingTop: 16,
+    paddingHorizontal: 20,
   },
   logoContainer: {
     alignItems: "center",
-    marginBottom: SIZES.padding16,
+    marginBottom: 16,
   },
   logo: {
-    width: 100,
-    height: 100,
+    width: 90,
+    height: 90,
+    resizeMode: "contain",
   },
   htmlContainer: {
     flex: 1,
-    paddingHorizontal: SIZES.padding*5,
   },
 });

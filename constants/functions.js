@@ -18,6 +18,16 @@ export const getAuthToken = async () => {
     },
   };
 };
+
+export const isValidImageUri = (uri) => {
+  if (typeof uri !== "string") return false;
+  const value = uri.trim();
+  return value.length > 0 && value !== "null" && value !== "undefined";
+};
+
+export const remoteImageSource = (uri) =>
+  isValidImageUri(uri) ? { uri: uri.trim() } : require("../assets/images/image.png");
+
 // Razorpay Configuration
 export const RAZORPAY_CONFIG = {
   key_id: "rzp_live_NSC6Lu227rXAId",

@@ -2,7 +2,7 @@ import ThemeHeader from "@/components/headers/ThemeHeader";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
-import { addToFavoritesApi, getProductsUrl, removeFromFavoritesApi } from "@/constants/functions";
+import { addToFavoritesApi, getProductsUrl, remoteImageSource, removeFromFavoritesApi } from "@/constants/functions";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 import { addFavoriteItem, getAllProducts, removeFavoriteById } from "@/store/reducers/userReducer";
 import { Ionicons } from "@expo/vector-icons";
@@ -98,9 +98,9 @@ export default function SeeAllFreshScreen() {
     >
       <View style={styles.imageWrapper}>
         <Image
-          source={{
-            uri: item.images?.[0]?.image_path || item.images?.[0]?.image || item.product_images?.[0],
-          }}
+          source={remoteImageSource(
+            item.images?.[0]?.image_path || item.images?.[0]?.image || item.product_images?.[0]
+          )}
           style={styles.productImage}
           resizeMode="cover"
         />

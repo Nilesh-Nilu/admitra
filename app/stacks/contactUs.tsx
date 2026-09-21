@@ -25,20 +25,9 @@ export default function ContactUsScreen() {
   const insets = useSafeAreaInsets();
 
   const handleBack = () => {
-    router.replace("/(tabs)/profile");
-    return true;
-  }
-  useEffect(() => {
-    const backAction = () => {
-      router.replace("/(tabs)/profile");
-      return true;
-    };
-    const backHandler = BackHandler.addEventListener(
-      "hardwareBackPress",
-      backAction
-    );
-    return () => backHandler.remove();
-  }, []);
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)/profile");
+  };
   const openMaps = () => {
     const query = encodeURIComponent(CONTACT.address);
     const url = `https://www.google.com/maps/search/?api=1&query=${query}`;

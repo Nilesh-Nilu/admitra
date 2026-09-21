@@ -3,6 +3,7 @@ import { Image, ScrollView, StyleSheet, TouchableOpacity, View } from "react-nat
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { COLORS } from "@/constants/Colors";
+import { isValidImageUri } from "@/constants/functions";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 
 const ICON_SIZE_LARGE = 32;
@@ -70,7 +71,7 @@ export const HomeCategories = ({
                 selectedCategory === cat.id && styles.categoryIconBoxActive,
               ]}
             >
-              {cat.image ? (
+              {isValidImageUri(cat.image) ? (
                 <Image source={{ uri: cat.image }} style={styles.categoryImg} />
               ) : (
                 <Ionicons name="pricetag" size={22} color="#1565C0" />

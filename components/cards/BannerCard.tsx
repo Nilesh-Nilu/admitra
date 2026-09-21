@@ -13,7 +13,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { ThemedText } from "@/components/ThemedText";
 import { COLORS } from "@/constants/Colors";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
-import { addToFavoritesApi, removeFromFavoritesApi } from "@/constants/functions";
+import { addToFavoritesApi, remoteImageSource, removeFromFavoritesApi } from "@/constants/functions";
 import { addFavoriteItem, removeFavoriteById } from "@/store/reducers/userReducer";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -104,7 +104,7 @@ export const BannerCard = ({ item, isInline = false }: BannerCardProps) => {
       }
     >
       <ImageBackground
-        source={{ uri: item.banner_image }}
+        source={remoteImageSource(item.banner_image)}
         style={styles.bannerImage}
         resizeMode="cover"
       >

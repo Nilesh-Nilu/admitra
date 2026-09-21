@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { BannerCard } from "@/components/cards/BannerCard";
 import { COLORS } from "@/constants/Colors";
+import { isValidImageUri } from "@/constants/functions";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -79,7 +80,7 @@ export const HomeBannerAds = ({ promotionBanners, banners, onPressSeeAll }: Home
       {promotionBanners?.map((banner) => (
           <View key={banner.id} style={styles.topTextBanner}>
             <View style={styles.topTextBannerLeft}>
-              {banner.icon ? (
+              {isValidImageUri(banner.icon) ? (
                 <Image
                   source={{ uri: banner.icon }}
                   style={styles.topTextBannerIcon}

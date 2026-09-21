@@ -77,7 +77,7 @@ export default function ProfileScreen() {
     .filter((page: any) => page?.is_active === true)
     .map((page: any) => ({
       icon: "document-text-outline",
-      title: page.title.length > 35 ? page.title.slice(0, 32) + "..." : page.title || "Policy",
+      title: page.title || "Policy",
       pageType: page.page_type,
     }));
 
@@ -91,20 +91,10 @@ export default function ProfileScreen() {
     return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
   };
 
-  const handleMenuPress = async (title: string, pageType: string) => {
-    let responseData = undefined;
-    try {
-      responseData = await getPolicyApi();
-    } catch (error) {
-      console.log(error, "Failed to fetch policy data");
-    }
+  const handleMenuPress = (title: string, pageType: string) => {
     router.push({
       pathname: "/stacks/policy" as any,
-      params: {
-        title: title,
-        pageType: pageType,
-        ...(responseData ? { data: JSON.stringify(responseData) } : {}),
-      },
+      params: { title, pageType },
     });
   };
 
@@ -493,7 +483,7 @@ export default function ProfileScreen() {
                 <View style={[styles.menuIcon, { backgroundColor: COLORS.primary }]}>
                   <Ionicons name={item.icon as any} size={20} color={COLORS.white} />
                 </View>
-                <ThemedText style={styles.menuLabel}>{item.title}</ThemedText>
+                <ThemedText style={styles.menuLabel} numberOfLines={1}>{item.title}</ThemedText>
               </View>
               <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
             </TouchableOpacity>
@@ -930,6 +920,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   menuItemLeft: {
+    flex: 1,
+    minWidth: 0,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
@@ -942,6 +934,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   menuLabel: {
+    flex: 1,
     fontSize: 15,
     fontWeight: "500",
     color: COLORS.text,

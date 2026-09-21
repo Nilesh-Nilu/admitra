@@ -46,6 +46,7 @@ export function usePostAd() {
   const { renewalProduct: renewalProductParam } = useLocalSearchParams<{ renewalProduct?: string }>();
   const user = useSelector((state: any) => state.entities.authReducer?.user);
   const { categories, subCategories, plans } = useSelector((state: any) => state.entities.userReducer) || {};
+  console.log(plans,"plans")
   const [images, setImages] = useState<any[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -635,6 +636,13 @@ export function usePostAd() {
 
       if (skipPayment) {
         await submitProduct(null, Boolean(adType?.id));
+        setIsLoading(false);
+        return;
+      }
+
+      // Free quota is used up: a price-0 plan cannot create a Razorpay order (min ₹1)
+      if (requiresNormalPayment && isNormalPlan && Number(adType?.price ?? 0) <= 0) {
+        AppToast("Free limit reached. Please choose a paid plan to post this ad.");
         setIsLoading(false);
         return;
       }

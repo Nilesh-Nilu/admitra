@@ -258,7 +258,8 @@ const styles = StyleSheet.create({
   subGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
+    columnGap: "3.5%",
     rowGap: 16,
   },
   subCard: {

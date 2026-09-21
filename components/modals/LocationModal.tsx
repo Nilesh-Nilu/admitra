@@ -116,6 +116,7 @@ export const LocationModal = ({
   };
 
   const handleSkipLocality = () => {
+    onSelectLocality(null);
     reset();
     onClose();
   };

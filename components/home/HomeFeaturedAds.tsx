@@ -5,7 +5,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { FeaturedCard } from "@/components/cards/FeaturedCard";
 import { COLORS } from "@/constants/Colors";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
-import { getFeaturedAdsInfoApi, logoutUser } from "@/constants/functions";
+import { getFeaturedAdsInfoApi, isValidImageUri, logoutUser } from "@/constants/functions";
 import { useDispatch } from "react-redux";
 import { useRouter } from "expo-router";
 
@@ -47,7 +47,7 @@ export const HomeFeaturedAds = ({ featuredAds, onPressSeeAll }: HomeFeaturedAdsP
       {featuredAdsInfo && (
         <TouchableOpacity style={styles.topTextBanner} activeOpacity={0.85}>
           <View style={styles.topTextBannerIconWrap}>
-            {featuredAdsInfo.icon ? (
+            {isValidImageUri(featuredAdsInfo.icon) ? (
               <Image
                 source={{ uri: featuredAdsInfo.icon }}
                 style={styles.topTextBannerIcon}

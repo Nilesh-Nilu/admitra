@@ -3,7 +3,10 @@ import ThemeSelect from "@/components/inputs/ThemeSelect";
 import { ThemedText } from "@/components/ThemedText";
 import { COLORS } from "@/constants/Colors";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
+import { getLocalitiesApi } from "@/store/reducers/userReducer";
+import { getLocalitiesUrl } from "@/constants/functions";
 import { Ionicons } from "@expo/vector-icons";
+import { useDispatch } from "react-redux";
 import React, { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -85,6 +88,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const [selectedState, setSelectedState] = useState<State | null>(null);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [selectedLocality, setSelectedLocality] = useState<Locality | null>(null);
+  const dispatch = useDispatch();
 
   const filteredCities = selectedState
     ? cities.filter((city) => city.state_id === selectedState.id)
@@ -108,12 +112,26 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
       const userState = states.find((s) => s.id === userData.state_id) || null;
       const userCity = cities.find((c) => c.id === userData.city_id) || null;
-      const userLocality = (localities || []).find((l) => l.id === userData.locality_id) || null;
       setSelectedState(userState);
       setSelectedCity(userCity);
-      setSelectedLocality(userLocality);
+      setSelectedLocality(null);
     }
-  }, [isVisible, userData, states, cities, localities]);
+  }, [isVisible, userData, states, cities]);
+
+  // The store only holds localities for the last fetched city, so load them for the selected one
+  useEffect(() => {
+    if (isVisible && selectedCity?.id) {
+      dispatch(getLocalitiesApi(`${getLocalitiesUrl}?city_id=${selectedCity.id}`) as any);
+    }
+  }, [isVisible, selectedCity?.id, dispatch]);
+
+  // Restore the user's saved locality once its list has loaded
+  useEffect(() => {
+    if (!isVisible || selectedLocality || !userData?.locality_id) return;
+    if (selectedCity?.id !== userData.city_id) return;
+    const match = (localities || []).find((l) => l.id === userData.locality_id);
+    if (match) setSelectedLocality(match);
+  }, [isVisible, localities, selectedCity?.id, selectedLocality, userData]);
 
   const handleStateChange = (state: State) => {
     setSelectedState(state);

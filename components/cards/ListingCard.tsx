@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { ThemedText } from "@/components/ThemedText";
 import { COLORS } from "@/constants/Colors";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
-import { addToFavoritesApi, removeFromFavoritesApi } from "@/constants/functions";
+import { addToFavoritesApi, remoteImageSource, removeFromFavoritesApi } from "@/constants/functions";
 import { addFavoriteItem, removeFavoriteById } from "@/store/reducers/userReducer";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -72,7 +72,7 @@ export const ListingCard = ({ item }: ListingCardProps) => {
     >
       <View style={styles.listingImgWrap}>
         <Image
-          source={{ uri: item.images?.[0]?.image_path || item.images?.[0]?.image }}
+          source={remoteImageSource(item.images?.[0]?.image_path || item.images?.[0]?.image)}
           style={styles.listingImg}
         />
         <View style={styles.typeBadge}>
@@ -185,11 +185,10 @@ const styles = StyleSheet.create({
   listingTitle: {
     fontSize: SIZES.fontSize12,
     color: COLORS.gray,
-    lineHeight: SIZES.padding16,
   },
   listingLocation: {
     fontSize: SIZES.fontSize10 + 1,
-    color: "#94A3B8",
+    color: "black",
   },
   timeRow: {
     flexDirection: "row",

@@ -26,6 +26,7 @@ import {
   getAuthToken,
   getNormalAdsInfoApi,
   getNotifications,
+  isValidImageUri,
   logoutUser,
 } from "@/constants/functions";
 import axios from "axios";
@@ -207,6 +208,9 @@ export default function HomeScreen() {
       try {
         // Priority 1: Restore the locality explicitly selected on this device.
         const savedLocalityJson = await AsyncStorage.getItem("selectedLocality");
+        if (savedLocalityJson === "" || savedLocalityJson === "null") {
+          return;
+        }
         if (savedLocalityJson) {
           const savedLocality = JSON.parse(savedLocalityJson);
           const savedLocalityFromList = safeLocalities.find((l: any) => Number(l.id) === Number(savedLocality.id));
@@ -215,7 +219,11 @@ export default function HomeScreen() {
             return;
           }
         }
-        // Priority 2: Use the profile locality when there is no saved choice.
+        // Priority 2: Use the profile locality only when this device has no saved choice.
+        const savedCityJson = await AsyncStorage.getItem("selectedCity");
+        if (savedCityJson) {
+          return;
+        }
         if (user?.locality_id) {
           const userLocality = safeLocalities.find((l: any) => Number(l.id) === Number(user.locality_id));
           if (userLocality) {
@@ -444,7 +452,10 @@ export default function HomeScreen() {
     requestAnimationFrame(() => {
       flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
     });
-    await AsyncStorage.setItem("selectedLocality", JSON.stringify(locality));
+    await AsyncStorage.setItem(
+      "selectedLocality",
+      locality ? JSON.stringify(locality) : ""
+    );
   };
 
   const fullName = [selectedLocality?.name,selectedCity?.name].filter(Boolean).join(", ");
@@ -531,7 +542,7 @@ export default function HomeScreen() {
                   activeOpacity={0.8}
                 >
                   <View style={styles.topTextBannerLeft}>
-                    {normalAdsInfo.icon ? (
+                    {isValidImageUri(normalAdsInfo.icon) ? (
                       <Image
                         source={{ uri: normalAdsInfo.icon }}
                         style={{ width: 32, height: 32, marginRight: 8, borderRadius: 4, flexShrink: 0 }}

@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { ThemedText } from "@/components/ThemedText";
 import { COLORS } from "@/constants/Colors";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
-import { addToFavoritesApi, removeFromFavoritesApi } from "@/constants/functions";
+import { addToFavoritesApi, remoteImageSource, removeFromFavoritesApi } from "@/constants/functions";
 import { addFavoriteItem, removeFavoriteById } from "@/store/reducers/userReducer";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -87,9 +87,7 @@ export const FeaturedCard = ({ item, isInline = false }: FeaturedCardProps) => {
           </View>
         )}
         <Image
-          source={{
-            uri: item.images?.[0]?.image_path || item.images?.[0]?.image,
-          }}
+          source={remoteImageSource(item.images?.[0]?.image_path || item.images?.[0]?.image)}
           style={styles.inlineFeaturedImage}
         />
         <View style={{ padding: 10 }}>
@@ -136,7 +134,7 @@ export const FeaturedCard = ({ item, isInline = false }: FeaturedCardProps) => {
         </View>
       )}
       <Image
-        source={{ uri: item.images?.[0]?.image_path || item.images?.[0]?.image }}
+        source={remoteImageSource(item.images?.[0]?.image_path || item.images?.[0]?.image)}
         style={styles.featuredImg}
       />
       <View style={styles.featuredInfo}>
