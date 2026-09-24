@@ -80,6 +80,16 @@ const PASSWORD_RULES = [
   },
 ] as const;
 
+const ID_TYPE_OPTIONS = ["Aadhaar", "Voter ID", "PAN Card", "Driving License"] as const;
+
+// Matches the documentType convention used by GetVerifiedProfileModal / the profile screen
+const ID_TYPE_TO_DOCUMENT_TYPE: Record<typeof ID_TYPE_OPTIONS[number], string> = {
+  Aadhaar: "aadhar",
+  "Voter ID": "voter_id",
+  "PAN Card": "pan",
+  "Driving License": "driving_license",
+};
+
 const SignupScreen = () => {
   const insets = useSafeAreaInsets();
   const { user: userParam } = useLocalSearchParams<{ user?: any }>();
@@ -88,6 +98,7 @@ const SignupScreen = () => {
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
   const [address, setAddress] = useState("");
+  const [selectedIdType, setSelectedIdType] = useState<typeof ID_TYPE_OPTIONS[number]>("Aadhaar");
   const [aadharPhoto, setAadharPhoto] = useState<string | null>(null);
   const [selfiePhoto, setSelfiePhoto] = useState<string | null>(null);
   const [cropImage, setCropImage] = useState<{ uri: string; width: number; height: number; type: "aadhar" | "selfie" } | null>(null);
@@ -129,6 +140,10 @@ const SignupScreen = () => {
   const handleCitySelect = (city: any) => {
     setSelectedCity(city);
     setSelectedLocality(null); // Reset locality when city changes
+    if (city?.id) {
+      // The store only holds localities for the last fetched city, so load them for this one
+      dispatch(getLocalitiesApi(`${getLocalitiesUrl}?city_id=${city.id}`));
+    }
   };
 
   const handleLocalitySelect = (locality: any) => {
@@ -138,8 +153,6 @@ const SignupScreen = () => {
   useEffect(() => {
     dispatch(getStatesApi(getStatesUrl));
     dispatch(getCitiesApi(getCitiesUrl));
-    dispatch(getLocalitiesApi(getLocalitiesUrl));
-
 
     let parsedUser = null;
     if (userParam) {
@@ -265,7 +278,7 @@ const SignupScreen = () => {
           role: "user",
           phone: mobile.trim(),
           address: address.trim() || "",
-          documentType: "aadhar",
+          documentType: ID_TYPE_TO_DOCUMENT_TYPE[selectedIdType],
           AadharImage: aadharPhoto || "",
           state_id: selectedState?.id || null,
           city_id: selectedCity?.id || null,
@@ -319,7 +332,7 @@ const SignupScreen = () => {
         role: "user",
         phone: mobile.trim(),
         address: address.trim() || "",
-        documentType: "aadhar",
+        documentType: ID_TYPE_TO_DOCUMENT_TYPE[selectedIdType],
         AadharImage: aadharPhoto || "",
         state_id: selectedState?.id || null,
         city_id: selectedCity?.id || null,
@@ -654,11 +667,41 @@ const SignupScreen = () => {
                 />
               </View>
 
-              {/* Aadhar Photo Upload */}
+              {/* ID Type Selection */}
               <View style={styles.inputGroup}>
                 <View style={styles.inputLabelRow}>
                   <Ionicons name="card-outline" size={16} color={config.gradient[0]} />
-                  <ThemedText style={styles.inputLabel}>{selectedRole === "vendor" ? "Business ID / Aadhar" : "Aadhar Photo"}</ThemedText>
+                  <ThemedText style={styles.inputLabel}>{selectedRole === "vendor" ? "Business ID Type" : "ID Type"}</ThemedText>
+                  <ThemedText style={styles.required}>*</ThemedText>
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.idTypeRow}
+                >
+                  {ID_TYPE_OPTIONS.map((item) => {
+                    const isSelected = selectedIdType === item;
+                    return (
+                      <Pressable
+                        key={item}
+                        style={[styles.idTypeButton, isSelected && styles.idTypeButtonSelected]}
+                        onPress={() => setSelectedIdType(item)}
+                        disabled={loading}
+                      >
+                        <ThemedText style={[styles.idTypeText, isSelected && styles.idTypeTextSelected]}>
+                          {item}
+                        </ThemedText>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+
+              {/* ID Photo Upload */}
+              <View style={styles.inputGroup}>
+                <View style={styles.inputLabelRow}>
+                  <Ionicons name="card-outline" size={16} color={config.gradient[0]} />
+                  <ThemedText style={styles.inputLabel}>{selectedIdType} Photo</ThemedText>
                   <ThemedText style={styles.required}>*</ThemedText>
                 </View>
                 <Pressable
@@ -684,7 +727,7 @@ const SignupScreen = () => {
                   ) : (
                     <View style={styles.uploadPlaceholder}>
                       <Ionicons name="cloud-upload-outline" size={32} color={COLORS.gray} />
-                      <ThemedText style={styles.uploadText}>Upload Aadhar Photo</ThemedText>
+                      <ThemedText style={styles.uploadText}>Upload {selectedIdType} Photo</ThemedText>
                       <ThemedText style={styles.uploadSubtext}>Tap to select or take photo</ThemedText>
                     </View>
                   )}
@@ -997,6 +1040,30 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+  },
+  idTypeRow: {
+    paddingVertical: 8,
+    gap: 10,
+  },
+  idTypeButton: {
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  idTypeButtonSelected: {
+    borderColor: "#1565C0",
+    backgroundColor: "#E3F2FD",
+  },
+  idTypeText: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: "#111827",
+  },
+  idTypeTextSelected: {
+    color: "#1565C0",
+    fontWeight: "700",
   },
   inputLabel: {
     fontSize: 14,

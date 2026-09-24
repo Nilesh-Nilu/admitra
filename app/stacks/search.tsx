@@ -6,7 +6,7 @@ import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 import { getCategoriesApi, getSubCategoriesApi } from "@/store/reducers/userReducer";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dimensions,
   FlatList,
@@ -44,6 +44,9 @@ export default function SearchScreen() {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(
     params.categoryId ? parseInt(params.categoryId as string) : null
   );
+  const [selectedSubCategory, setSelectedSubCategory] = useState<number | null>(
+    params.subCategoryId ? parseInt(params.subCategoryId as string) : null
+  );
   const [priceRange, setPriceRange] = useState({ min: "", max: "" });
   const [selectedSort, setSelectedSort] = useState("Most Recent");
   const [showFilters, setShowFilters] = useState(false);
@@ -57,11 +60,13 @@ export default function SearchScreen() {
     } else {
       dispatch(getSubCategoriesApi(`${getSubCategoriesUrl}`));
     }
-  }, [params.category, params.categoryId]);
+    setSelectedSubCategory(params.subCategoryId ? parseInt(params.subCategoryId as string) : null);
+  }, [params.category, params.categoryId, params.subCategoryId]);
   useEffect(() => {
     const backAction = () => {
       dispatch(getCategoriesApi(getCategoriesUrl));
       dispatch(getSubCategoriesApi(`${getSubCategoriesUrl}`));
+      clearFilters();
       router.back();
       return true;
     };
@@ -73,7 +78,7 @@ export default function SearchScreen() {
     if (safeProducts.length > 0) {
       filterResults();
     }
-  }, [safeProducts, selectedCategory, searchQuery, selectedSort]);
+  }, [safeProducts, selectedCategory, selectedSubCategory, searchQuery, selectedSort]);
 
   const formatPrice = (price: number, isMonthly?: boolean) => {
     if (price >= 100000) {
@@ -94,6 +99,11 @@ export default function SearchScreen() {
     // Filter by category
     if (selectedCategory !== null) {
       filtered = filtered.filter(item => item.category_id === selectedCategory);
+    }
+
+    // Filter by subcategory
+    if (selectedSubCategory !== null) {
+      filtered = filtered.filter(item => item.sub_category_id === selectedSubCategory);
     }
 
     // Filter by price range
@@ -141,19 +151,13 @@ export default function SearchScreen() {
 
   const clearFilters = () => {
     setSelectedCategory(null);
+    setSelectedSubCategory(null);
     setPriceRange({ min: "", max: "" });
     setSelectedSort("Most Recent");
     setSearchQuery("");
     setResults(safeProducts);
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      return () => {
-        clearFilters();
-      };
-    }, [])
-  );
 
   const renderListingCard = ({ item }: { item: any }) => (
     <TouchableOpacity
@@ -224,7 +228,7 @@ export default function SearchScreen() {
                   styles.filterChip,
                   selectedCategory === null && styles.filterChipActive,
                 ]}
-                onPress={() => setSelectedCategory(null)}
+                onPress={() => { setSelectedCategory(null); setSelectedSubCategory(null); }}
               >
                 <ThemedText
                   style={[
@@ -242,7 +246,7 @@ export default function SearchScreen() {
                     styles.filterChip,
                     selectedCategory === cat.id && styles.filterChipActive,
                   ]}
-                  onPress={() => setSelectedCategory(cat.id)}
+                  onPress={() => { setSelectedCategory(cat.id); setSelectedSubCategory(null); }}
                 >
                   <ThemedText
                     style={[

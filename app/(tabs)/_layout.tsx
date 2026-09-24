@@ -9,7 +9,7 @@ import { Dimensions, Image, Modal, ScrollView, StyleSheet, TouchableOpacity, Vie
 import ImageViewer from 'react-native-image-zoom-viewer';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const WARNING_NOTICE_IMAGE = require('@/assets/images/warning.png');
+const WARNING_NOTICE_IMAGE = require('@/assets/images/warning.jpeg');
 const WARNING_NOTICE_SIZE = Image.resolveAssetSource(WARNING_NOTICE_IMAGE);
 const WARNING_NOTICE_ASPECT_RATIO =
   WARNING_NOTICE_SIZE?.width && WARNING_NOTICE_SIZE?.height
@@ -165,6 +165,10 @@ export default function TabLayout() {
                   style={styles.warningImage}
                   resizeMode="contain"
                 />
+                <View style={styles.zoomHint}>
+                  <Ionicons name="expand-outline" size={12} color="#fff" />
+                  <ThemedText style={styles.zoomHintText}>Tap to zoom</ThemedText>
+                </View>
               </TouchableOpacity>
             </ScrollView>
 
@@ -211,6 +215,30 @@ export default function TabLayout() {
             </View>
           </SafeAreaView>
         </View>
+      </Modal>
+
+      <Modal
+        visible={showImageZoom}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setShowImageZoom(false)}
+      >
+        <ImageViewer
+          imageUrls={[{ url: '', props: { source: WARNING_NOTICE_IMAGE } } as any]}
+          enableSwipeDown
+          onSwipeDown={() => setShowImageZoom(false)}
+          onCancel={() => setShowImageZoom(false)}
+          backgroundColor="rgba(0,0,0,0.95)"
+          renderIndicator={() => <></>}
+        />
+        <TouchableOpacity
+          style={styles.zoomCloseBtn}
+          onPress={() => setShowImageZoom(false)}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="close" size={22} color="#fff" />
+        </TouchableOpacity>
       </Modal>
     </>
   );

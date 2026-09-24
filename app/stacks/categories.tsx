@@ -101,7 +101,10 @@ export default function CategoriesScreen() {
                       onPress={() =>
                         router.push({
                           pathname: "/stacks/search",
-                          params: { categoryId: selectedCategory?.toString() || "" },
+                          params: {
+                            categoryId: selectedCategory?.toString() || "",
+                            subCategoryId: subCat.id?.toString() || "",
+                          },
                         })
                       }
                     >
