@@ -107,15 +107,6 @@ export default function ProductDetailsScreen() {
     }).catch(() => { });
   }, [product?.id]);
 
-  useEffect(() => {
-    const backAction = () => {
-      router.back();
-      return true;
-    };
-    const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
-    return () => backHandler.remove();
-  }, []);
-
   const handleScroll = (event: any) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
     const index = Math.round(contentOffsetX / (screenWidth - 32));
@@ -276,7 +267,7 @@ export default function ProductDetailsScreen() {
     <ThemedView style={styles.container}>
 
       {/* Header */}
-      <ThemeHeader onBackPress={() => router.push("/(tabs)")} title="Ad Details" />
+      <ThemeHeader onBackPress={() => router.back()} title="Ad Details" />
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]}
         nestedScrollEnabled={true}

@@ -27,6 +27,10 @@ const withAndroidSecurity = (config) => {
       // Set application to allow backup = false for security
       application.$['android:allowBackup'] = 'false';
       application.$['android:fullBackupContent'] = 'false';
+
+      // targetSdk 36 enables predictive back, which bypasses RN's BackHandler/
+      // navigation stack and closes the app. Opt out so back pops screens.
+      application.$['android:enableOnBackInvokedCallback'] = 'false';
       
       // Add activities security
       if (application.activity) {

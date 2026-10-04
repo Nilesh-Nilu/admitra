@@ -256,7 +256,7 @@ const sendTokenToServer = async (token, retriesLeft = 2) => {
         );
 
         if (response && response.status === 200) {
-          console.log('FCM token saved to server successfully');
+          // console.log('FCM token saved to server successfully');
         }
       } catch (apiError) {
         // A generic "Network Error" (no response received) can happen even when

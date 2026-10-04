@@ -5,8 +5,9 @@ import { getCategoriesUrl, getSubCategoriesUrl } from "@/constants/functions";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 import { getCategoriesApi, getSubCategoriesApi } from "@/store/reducers/userReducer";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useIsFocused } from "@react-navigation/native";
+import { useCallback, useEffect, useState } from "react";
 import {
   Dimensions,
   FlatList,
@@ -32,6 +33,7 @@ const SORT_OPTIONS = ["Most Recent", "Price: Low to High", "Price: High to Low"]
 export default function SearchScreen() {
 
   const router = useRouter();
+  const isFocused = useIsFocused();
   const params = useLocalSearchParams();
   const dispatch = useDispatch();
   const insets = useSafeAreaInsets();
@@ -63,16 +65,17 @@ export default function SearchScreen() {
     setSelectedSubCategory(params.subCategoryId ? parseInt(params.subCategoryId as string) : null);
   }, [params.category, params.categoryId, params.subCategoryId]);
   useEffect(() => {
-    const backAction = () => {
+    if (!isFocused) return;
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
       dispatch(getCategoriesApi(getCategoriesUrl));
       dispatch(getSubCategoriesApi(`${getSubCategoriesUrl}`));
       clearFilters();
-      router.back();
+      if (router.canGoBack()) router.back();
+      else router.replace("/(tabs)");
       return true;
-    };
-    const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
+    });
     return () => backHandler.remove();
-  }, [router]);
+  }, [router, isFocused]);
 
  useEffect(() => {
     if (safeProducts.length > 0) {
@@ -336,7 +339,7 @@ export default function SearchScreen() {
             onChangeText={setSearchQuery}
             onSubmitEditing={applyFilters}
             returnKeyType="search"
-            autoFocus={true}
+            // autoFocus={true}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery("")}>
