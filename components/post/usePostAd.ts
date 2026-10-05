@@ -344,6 +344,10 @@ export function usePostAd() {
       Alert.alert("Sub Category Required", "Please select a sub category");
       return false;
     }
+    if (!selectedChildCategory) {
+      Alert.alert("Child Category Required", "Please select a child category");
+      return false;
+    }
     if (!price.trim()) {
       Alert.alert("Price Required", "Please enter a price");
       return false;

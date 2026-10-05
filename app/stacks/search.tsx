@@ -37,9 +37,10 @@ export default function SearchScreen() {
   const params = useLocalSearchParams();
   const dispatch = useDispatch();
   const insets = useSafeAreaInsets();
-  const { products, categories } = useSelector((state: any) => state.entities.userReducer) || {};
-
+  const { products, categories,banners, featuredAds, } = useSelector((state: any) => state.entities.userReducer) || {};
   const safeProducts = products || [];
+  const safeBanners = banners || [];
+  const safeFeaturedAds = featuredAds || [];
   const safeCategories = categories || [];
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -69,9 +70,9 @@ export default function SearchScreen() {
     const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
       dispatch(getCategoriesApi(getCategoriesUrl));
       dispatch(getSubCategoriesApi(`${getSubCategoriesUrl}`));
-      clearFilters();
       if (router.canGoBack()) router.back();
       else router.replace("/(tabs)");
+      clearFilters();
       return true;
     });
     return () => backHandler.remove();
@@ -87,7 +88,7 @@ export default function SearchScreen() {
     if (price >= 100000) {
       return `₹${(price / 100000).toFixed(1)}L${isMonthly ? "/mo" : ""}`;
     }
-    return `₹${price.toLocaleString("en-IN")}${isMonthly ? "/mo" : ""}`;
+    return `₹${price?.toLocaleString("en-IN")}${isMonthly ? "/mo" : ""}`;
   };
 
   // Core filtering logic (doesn't close modal)
@@ -97,7 +98,7 @@ export default function SearchScreen() {
       return;
     }
 
-    let filtered = [...safeProducts];
+    let filtered = [...safeProducts, ...safeBanners, ...safeFeaturedAds];
 
     // Filter by category
     if (selectedCategory !== null) {
@@ -158,7 +159,7 @@ export default function SearchScreen() {
     setPriceRange({ min: "", max: "" });
     setSelectedSort("Most Recent");
     setSearchQuery("");
-    setResults(safeProducts);
+    // setResults([...safeProducts, ...safeBanners, ...safeFeaturedAds]);
   };
 
 
@@ -173,7 +174,7 @@ export default function SearchScreen() {
     >
       <View style={styles.listingImageContainer}>
         <Image
-          source={{ uri: item.images?.[0]?.image }}
+          source={{ uri: item.images?.[0]?.image|| item.images?.[0]?.image_path }}
           style={styles.listingImage}
         />
         {item.approve === "approved" && (
