@@ -39,7 +39,7 @@ export default function CategoriesScreen() {
 
   const selectedCategoryData = safeCategories.find((c: any) => c.id === selectedCategory);
   const filteredSubCategories = safeSubCategories.filter(
-    (sc: any) => sc.category_id === selectedCategory
+    (sc: any) => Number(sc.category_id) === Number(selectedCategory)
   );
 
   return (

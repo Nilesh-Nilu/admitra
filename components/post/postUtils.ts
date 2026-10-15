@@ -49,3 +49,19 @@ export const isFeaturedPlanType = (plan: any) =>
 // free-quota flow (submitProduct without Razorpay) applies to it.
 export const isNormalPlanType = (plan: any) =>
   Boolean(plan) && !isBannerPlanType(plan) && !isFeaturedPlanType(plan);
+
+// Matrimony ads use a dedicated profile form instead of price / condition.
+export const isMatrimonyCategoryName = (name?: string) =>
+  /matrimon/i.test(String(name || ""));
+
+// A banner's website link is shown to other users only after Admin has verified it.
+// Fail closed: a banner without a verification flag is treated as unverified.
+export const isBannerWebsiteLinkVerified = (banner: any) => {
+  const source = banner?.plan_info?.website_link_verified != null ? banner.plan_info : banner;
+  const flag = source?.website_link_verified;
+  const status = String(source?.website_link_status || "").toLowerCase();
+  return flag === true || Number(flag) === 1 || status === "approved" || status === "verified";
+};
+
+export const getVerifiedBannerWebsiteLink = (banner: any): string | undefined =>
+  banner?.website_link && isBannerWebsiteLinkVerified(banner) ? banner.website_link : undefined;

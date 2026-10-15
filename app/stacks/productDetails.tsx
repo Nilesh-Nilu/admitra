@@ -166,6 +166,10 @@ export default function ProductDetailsScreen() {
 
   const productImages = product?.images || [];
   const isVerifiedSeller = product?.user?.is_verify === 1;
+  // List payloads flag the plan either directly or only via plan_info.plan_type.
+  const planType = String(product?.plan_info?.plan_type || product?.product_type || "").toLowerCase();
+  const isFeaturedAd = Boolean(product?.is_featured || product?.featured || planType === "featured");
+  const isBannerAd = Boolean(product?.is_banner || product?.banner || planType === "banner");
   const sellerId = product?.user?.user_id ?? product?.user?.id ?? product?.user_id;
   const currentUserId = currentUser?.id ?? currentUser?.user_id;
   const isOwnListing =
@@ -322,13 +326,13 @@ export default function ProductDetailsScreen() {
           )}
 
           {/* Type Badge */}
-          {(product?.is_featured || product?.featured) && (
+          {isFeaturedAd && (
             <View style={[styles.typeBadge, { backgroundColor: "#E65100" }]}>
               <Ionicons name="star" size={11} color="#fff" />
               <ThemedText style={styles.typeBadgeText}>Featured</ThemedText>
             </View>
           )}
-          {!product?.is_featured && !product?.featured && !product?.is_banner && !product?.banner && (
+          {!isFeaturedAd && !isBannerAd && (
             <View style={[styles.typeBadge, { backgroundColor: "#2E7D32" }]}>
               <Ionicons name="card" size={11} color="#fff" />
               <ThemedText style={styles.typeBadgeText}>Normal</ThemedText>
@@ -496,7 +500,7 @@ export default function ProductDetailsScreen() {
 
       {/* Bottom Action Bar */}
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
-        {((!product?.is_featured && callManagement === true) || product?.is_featured) && (
+        {(isFeaturedAd || callManagement === true) && (
           <TouchableOpacity style={styles.callButton} onPress={handleCall} activeOpacity={0.8}>
             <Ionicons name="call" size={18} color={COLORS.white} />
             <ThemedText style={styles.callBtnText}>Call</ThemedText>

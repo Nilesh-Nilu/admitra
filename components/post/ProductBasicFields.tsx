@@ -14,6 +14,7 @@ type Props = {
   onTitleChange: (value: string) => void;
   description: string;
   onDescriptionChange: (value: string) => void;
+  isMatrimony?: boolean;
 };
 
 export default function ProductBasicFields({
@@ -27,9 +28,12 @@ export default function ProductBasicFields({
   onTitleChange,
   description,
   onDescriptionChange,
+  isMatrimony = false,
 }: Props) {
   return (
     <>
+      {!isMatrimony && (
+      <>
       <View style={styles.section}>
         <ThemedText style={styles.sectionTitle}>Product Price</ThemedText>
         <View style={styles.priceRow}>
@@ -79,12 +83,16 @@ export default function ProductBasicFields({
           ))}
         </View>
       </View>
+      </>
+      )}
 
       <View style={styles.section}>
-        <ThemedText style={styles.sectionTitle}>Ad Title *</ThemedText>
+        <ThemedText style={styles.sectionTitle}>
+          {isMatrimony ? "Profile Title *" : "Ad Title *"}
+        </ThemedText>
         <TextInput
           style={styles.input}
-          placeholder="Enter ad title"
+          placeholder={isMatrimony ? "e.g. Software Engineer, 27, Ranchi" : "Enter ad title"}
           placeholderTextColor={COLORS.gray}
           value={title}
           onChangeText={onTitleChange}
@@ -93,10 +101,16 @@ export default function ProductBasicFields({
       </View>
 
       <View style={styles.section}>
-        <ThemedText style={styles.sectionTitle}>Description *</ThemedText>
+        <ThemedText style={styles.sectionTitle}>
+          {isMatrimony ? "About & Partner Preference *" : "Description *"}
+        </ThemedText>
         <TextInput
           style={[styles.input, styles.textArea]}
-          placeholder="Describe your item in detail..."
+          placeholder={
+            isMatrimony
+              ? "Write about the bride/groom, family and partner expectations..."
+              : "Describe your item in detail..."
+          }
           placeholderTextColor={COLORS.gray}
           value={description}
           onChangeText={onDescriptionChange}

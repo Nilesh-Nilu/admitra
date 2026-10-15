@@ -1,6 +1,7 @@
 import {
   getRenewalProductType,
   isBannerPlanType,
+  isMatrimonyCategoryName,
   isNormalPlanType,
   isValidHttpUrl,
   matchesRenewalPlan,
@@ -8,9 +9,23 @@ import {
   normalizeHttpUrl,
 } from "@/components/post/postUtils";
 import AppToast from "@/components/toasts/AppToast";
+
+// Razorpay surfaces raw gateway JSON (e.g. BAD_REQUEST_ERROR); never show that to users.
+const getPaymentErrorMessage = (error: any): string => {
+  const raw = String(error?.description ?? error?.message ?? "");
+  const looksTechnical = /BAD_REQUEST|GATEWAY_ERROR|SERVER_ERROR|^\s*[{\[]|"error"|"code"/i.test(raw);
+  if (!raw || looksTechnical) {
+    return "We couldn't complete your payment. Please try again.";
+  }
+  return raw;
+};
 import { COLORS } from "@/constants/Colors";
+import { getMatrimonyValidationError, MatrimonyMasters } from "@/constants/matrimony";
 import {
+  createMatrimonyProfileApi,
   createOrderApi,
+  getMatrimonyMasterDataApi,
+  toUploadableImage,
   createRenewalOrderApi,
   getApprovedProductsUrl,
   getChildCategoriesApi,
@@ -69,6 +84,9 @@ export function usePostAd() {
   const [condition, setCondition] = useState("New");
   const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
   const [customFields, setCustomFields] = useState<{ name: string; value: string }[]>([{ name: "Warranty", value: "" }]);
+  const [matrimonyDetails, setMatrimonyDetails] = useState<Record<string, any>>({});
+  const [matrimonyMasters, setMatrimonyMasters] = useState<MatrimonyMasters | null>(null);
+  const [matrimonyMastersLoading, setMatrimonyMastersLoading] = useState(false);
   const [videoLink2, setVideoLink2] = useState("");
   const [cropImage, setCropImage] = useState<{ uri: string; width: number; height: number } | null>(null);
   const [isFreeTrial, setIsFreeTrial] = useState(false);
@@ -79,7 +97,11 @@ export function usePostAd() {
   const renewalProductType = getRenewalProductType(renewalProduct);
   const isNormalPlan = isNormalPlanType(adType);
   const isBannerPlan = isBannerPlanType(adType);
-  const maxImages = isBannerPlan ? 1 : 4;
+  const isMatrimony =
+    !renewalProduct &&
+    isMatrimonyCategoryName((categories || []).find((c: any) => c.id === selectedCategory)?.name);
+  // Matrimony profiles take a single profile photo.
+  const maxImages = isBannerPlan || isMatrimony ? 1 : 4;
   // Trial access is evaluated before the selected product plan.
   // Free verify-and-store (no Razorpay): always send plan_id, the API requires it.
   const hasFreeTrialAccess = isFreeTrial || user?.free_trial_enabled === true;
@@ -98,6 +120,19 @@ export function usePostAd() {
     (canCreateFreeNormalProduct || hasFreeTrialAccess || hasAssignedFreeAccess || isZeroPriceNormalPlan);
 
   const dispatch = useDispatch();
+
+  // Matrimony masters are managed in Admin; load them the first time the category is picked.
+  useEffect(() => {
+    if (!isMatrimony || matrimonyMasters || matrimonyMastersLoading) return;
+    setMatrimonyMastersLoading(true);
+    getMatrimonyMasterDataApi()
+      .then((data: MatrimonyMasters) => setMatrimonyMasters(data))
+      .finally(() => setMatrimonyMastersLoading(false));
+  }, [isMatrimony, matrimonyMasters, matrimonyMastersLoading]);
+
+  useEffect(() => {
+    if (isMatrimony && images.length > 1) setImages((prev) => prev.slice(0, 1));
+  }, [isMatrimony]);
 
   const handleSubCategorySelect = async (subCat: any, currentTempCategory: any) => {
     setLoadingChildrenForId(subCat.id);
@@ -135,6 +170,7 @@ export function usePostAd() {
     setIsNegotiable(false);
     setCondition("New");
     setCustomFields([{ name: "", value: "" }]);
+    setMatrimonyDetails({});
     setVideoLink2("");
     setVideoLink("");
     setWebsiteLink("");
@@ -324,6 +360,22 @@ export function usePostAd() {
 
   // Validate form fields
   const validateForm = () => {
+    if (isMatrimony) {
+      if (!title.trim()) {
+        Alert.alert("Profile Title Required", "Please enter a profile title");
+        return false;
+      }
+      if (!description.trim()) {
+        Alert.alert("Description Required", "Please describe the profile");
+        return false;
+      }
+      const matrimonyError = getMatrimonyValidationError(matrimonyDetails, matrimonyMasters);
+      if (matrimonyError) {
+        Alert.alert("Matrimony Details Required", matrimonyError);
+        return false;
+      }
+      return true;
+    }
     if (images.length === 0) {
       Alert.alert("Images Required", "Please add at least one image");
       return false;
@@ -600,7 +652,7 @@ export function usePostAd() {
           if (error?.code === "payment_cancelled" || error?.description === "Payment Cancelled") {
             AppToast("Payment cancelled");
           } else {
-            AppToast(error?.message || error?.description || "Unable to renew this ad. Please try again.");
+            AppToast(getPaymentErrorMessage(error));
           }
         })
         .finally(() => setIsLoading(false));
@@ -611,9 +663,51 @@ export function usePostAd() {
     }
   };
 
+  // Matrimony ads are registered as matrimony profiles (no plan / payment).
+  const submitMatrimonyProfile = async () => {
+    setIsLoading(true);
+    try {
+      const profilePhoto = images[0] ? await toUploadableImage(images[0]) : "";
+      const response = await createMatrimonyProfileApi({
+        ...matrimonyDetails,
+        full_name: String(matrimonyDetails.full_name || "").trim(),
+        mother_tongue: String(matrimonyDetails.mother_tongue || "").trim(),
+        hobbies_interest: matrimonyDetails.hobbies_interest || [],
+        product_category_id: selectedCategory,
+        profile_title: title.trim(),
+        profile_description: description.trim(),
+        additional_details: customFields
+          .filter((f) => f.name.trim() && f.value.trim())
+          .map((f) => ({ field: f.name.trim(), value: f.value.trim() })),
+        declaration: true,
+        ...(profilePhoto && { profile_photo: profilePhoto }),
+      });
+      Alert.alert(
+        "Profile Submitted!",
+        response?.message || "Your matrimony profile has been created successfully.",
+        [{ text: "OK", onPress: () => router.push("/(tabs)") }]
+      );
+      clearForm();
+    } catch (error: any) {
+      console.log(error?.response?.data || error, "submitMatrimonyProfile");
+      const errors = error?.response?.data?.errors;
+      const firstFieldError = errors && Object.values(errors).flat()[0];
+      Alert.alert(
+        "Unable to submit profile",
+        String(firstFieldError || error?.response?.data?.message || "Please try again.")
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Handle submit with payment
   const handleSubmit = async () => {
     if (!validateForm()) return;
+    if (isMatrimony) {
+      await submitMatrimonyProfile();
+      return;
+    }
     setIsLoading(true);
     try {
       let skipPayment = shouldPostWithoutPayment;
@@ -704,7 +798,7 @@ export function usePostAd() {
           if (error?.code === "payment_cancelled" || error?.description === "Payment Cancelled") {
             AppToast("Payment cancelled");
           } else {
-            AppToast(`Payment failed: ${error?.description || "Unknown error"}`);
+            AppToast(getPaymentErrorMessage(error));
           }
         })
         .finally(() => {
@@ -783,5 +877,10 @@ export function usePostAd() {
     setSelectedCategory,
     setSelectedSubCategory,
     setSelectedChildCategory,
+    isMatrimony,
+    matrimonyDetails,
+    setMatrimonyDetails,
+    matrimonyMasters,
+    matrimonyMastersLoading,
   };
 }

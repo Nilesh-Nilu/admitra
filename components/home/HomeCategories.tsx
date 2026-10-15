@@ -82,7 +82,9 @@ export const HomeCategories = ({
                 styles.categoryLabel,
                 selectedCategory === cat.id && styles.categoryLabelActive,
               ]}
-              numberOfLines={1}
+              numberOfLines={2}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
             >
               {cat.name}
             </ThemedText>
@@ -112,8 +114,9 @@ const styles = StyleSheet.create({
     marginBottom: SIZES.padding12,
   },
   categoriesSection: { marginBottom: SIZES.padding16 },
-  categoriesScroll: { gap: SIZES.padding14, paddingRight: SIZES.padding8 },
-  categoryItem: { alignItems: "center", width: ICON_SIZE_LARGE + 28 },
+  categoriesScroll: { gap: SIZES.padding4, paddingRight: SIZES.padding8 },
+  // Wide enough for a full single-word name such as "MATRIMONY" on one line.
+  categoryItem: { alignItems: "center", width: ICON_SIZE_LARGE + 44 },
   categoryIconBox: {
     width: ICON_SIZE_LARGE + 18,
     height: ICON_SIZE_LARGE + 18,

@@ -1,4 +1,5 @@
 import ThemeHeader from "@/components/headers/ThemeHeader";
+import { getVerifiedBannerWebsiteLink } from "@/components/post/postUtils";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
@@ -167,17 +168,19 @@ export default function SeeAllBannersScreen() {
         ) : null}
       </View>
       <View style={styles.bannerActions}>
-        <TouchableOpacity
-          style={styles.bannerBtnLeft}
-          activeOpacity={0.8}
-          onPress={(e) => {
-            e.stopPropagation();
-            handleVisitWebsite(item.website_link);
-          }}
-        >
-          <Ionicons name="globe-outline" size={16} color="#1565C0" />
-          <ThemedText style={styles.bannerBtnLeftText}>Visit Website</ThemedText>
-        </TouchableOpacity>
+        {getVerifiedBannerWebsiteLink(item) ? (
+          <TouchableOpacity
+            style={styles.bannerBtnLeft}
+            activeOpacity={0.8}
+            onPress={(e) => {
+              e.stopPropagation();
+              handleVisitWebsite(item.website_link);
+            }}
+          >
+            <Ionicons name="globe-outline" size={16} color="#1565C0" />
+            <ThemedText style={styles.bannerBtnLeftText}>Visit Website</ThemedText>
+          </TouchableOpacity>
+        ) : null}
         <TouchableOpacity
           style={styles.bannerBtnRight}
           activeOpacity={0.8}

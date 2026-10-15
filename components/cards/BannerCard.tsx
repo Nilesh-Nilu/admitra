@@ -1,4 +1,5 @@
 import React from "react";
+import { getVerifiedBannerWebsiteLink } from "@/components/post/postUtils";
 import {
   Dimensions,
   ImageBackground,
@@ -144,17 +145,19 @@ export const BannerCard = ({ item, isInline = false }: BannerCardProps) => {
           )}
         </View>
         <View style={styles.btnRow}>
-          <TouchableOpacity
-            style={styles.bannerBtnLeft}
-            activeOpacity={0.8}
-            onPress={(e) => {
-              e.stopPropagation();
-              handleVisitWebsite(item.website_link);
-            }}
-          >
-            <Ionicons name="globe-outline" size={16} color="#1565C0" />
-            <ThemedText style={styles.bannerBtnLeftText}>Visit Website</ThemedText>
-          </TouchableOpacity>
+          {getVerifiedBannerWebsiteLink(item) ? (
+            <TouchableOpacity
+              style={styles.bannerBtnLeft}
+              activeOpacity={0.8}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleVisitWebsite(item.website_link);
+              }}
+            >
+              <Ionicons name="globe-outline" size={16} color="#1565C0" />
+              <ThemedText style={styles.bannerBtnLeftText}>Visit Website</ThemedText>
+            </TouchableOpacity>
+          ) : null}
           <TouchableOpacity
             style={styles.bannerBtnRight}
             activeOpacity={0.8}

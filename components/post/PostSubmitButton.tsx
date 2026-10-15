@@ -14,6 +14,8 @@ type Props = {
   isRenewal: boolean;
   adType: any;
   shouldPostWithoutPayment: boolean;
+  /** Overrides the plan-based label and hides the price (e.g. matrimony profiles). */
+  label?: string;
   onPress: () => void;
 };
 
@@ -22,6 +24,7 @@ export default function PostSubmitButton({
   isRenewal,
   adType,
   shouldPostWithoutPayment,
+  label,
   onPress,
 }: Props) {
   const price = parseFloat(adType?.price || "0");
@@ -40,13 +43,15 @@ export default function PostSubmitButton({
           </>
         ) : (
           <>
-            {adType && price > 0 && (
+            {!label && adType && price > 0 && (
               <ThemedText style={styles.submitBtnPrice}>
                 ₹{isRenewal ? adType.price : shouldPostWithoutPayment ? 0 : adType.price}
               </ThemedText>
             )}
             <ThemedText style={styles.submitBtnText}>
-              {isRenewal
+              {label
+                ? label
+                : isRenewal
                 ? price > 0
                   ? "Pay & Renew Ad"
                   : "Renew Ad"

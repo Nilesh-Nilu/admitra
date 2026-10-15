@@ -87,6 +87,22 @@ export const RAZORPAY_SECRET = "2oBi1D8Wae98kGE7tr957Oek"
 // verifing warning
 export const getVerifyingWarningUrl = "getverifywarning"
 
+// matrimony
+export const matrimonyMasterDataUrl = "matrimony/master-data";
+export const matrimonyProfilesUrl = "matrimony/profiles";
+const MATRIMONY_MASTER_ENDPOINTS = {
+  genders: "genders",
+  heights: "heights",
+  marital_statuses: "marital-statuses",
+  religions: "religions",
+  caste_communities: "caste-communities",
+  nationalities: "nationalities",
+  diets: "diets",
+  smoking_habits: "smoking-habits",
+  drinking_habits: "drinking-habits",
+  hobbies: "hobbies",
+};
+
 /** Convert local/remote/server-path images into a data URI the update API accepts. */
 export const toUploadableImage = async (value) => {
   if (!value || typeof value !== "string") return "";
@@ -876,3 +892,35 @@ export const getProductByIdApi = async (productId) => {
   }
 };
 
+
+/** All active matrimony masters (Admin-managed). Falls back to the per-master endpoints. */
+export const getMatrimonyMasterDataApi = async () => {
+  const authConfig = await getAuthToken();
+  try {
+    const response = await axios.get(`${baseUrl}/${matrimonyMasterDataUrl}`, authConfig);
+    if (response.data?.data && typeof response.data.data === "object") return response.data.data;
+  } catch (error) {
+    console.log(error?.response?.status || error, "matrimony master-data error");
+  }
+
+  const entries = await Promise.all(
+    Object.entries(MATRIMONY_MASTER_ENDPOINTS).map(async ([key, path]) => {
+      try {
+        const response = await axios.get(`${baseUrl}/matrimony/master/${path}`, authConfig);
+        return [key, Array.isArray(response.data?.data) ? response.data.data : []];
+      } catch {
+        return [key, []];
+      }
+    })
+  );
+  return Object.fromEntries(entries);
+};
+
+export const createMatrimonyProfileApi = async (data) => {
+  const authConfig = await getAuthToken();
+  const response = await axios.post(`${baseUrl}/${matrimonyProfilesUrl}`, data, {
+    ...authConfig,
+    headers: { ...(authConfig.headers || {}), accept: "application/json" },
+  });
+  return response.data;
+};

@@ -1,9 +1,9 @@
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
-import { getCategoriesUrl, getSubCategoriesUrl } from "@/constants/functions";
+import { getCategoriesUrl } from "@/constants/functions";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
-import { getCategoriesApi, getSubCategoriesApi } from "@/store/reducers/userReducer";
+import { getCategoriesApi } from "@/store/reducers/userReducer";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
@@ -57,11 +57,10 @@ export default function SearchScreen() {
 
 
   useEffect(() => {
+    // The store's subCategories list is shared with the Categories screen and the
+    // post-ad picker, so it must never be replaced with a category-scoped list here.
     if (params.categoryId) {
       setSelectedCategory(parseInt(params.categoryId as string));
-      dispatch(getSubCategoriesApi(`${getSubCategoriesUrl}/${params.categoryId}`));
-    } else {
-      dispatch(getSubCategoriesApi(`${getSubCategoriesUrl}`));
     }
     setSelectedSubCategory(params.subCategoryId ? parseInt(params.subCategoryId as string) : null);
   }, [params.category, params.categoryId, params.subCategoryId]);
@@ -69,7 +68,6 @@ export default function SearchScreen() {
     if (!isFocused) return;
     const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
       dispatch(getCategoriesApi(getCategoriesUrl));
-      dispatch(getSubCategoriesApi(`${getSubCategoriesUrl}`));
       if (router.canGoBack()) router.back();
       else router.replace("/(tabs)");
       clearFilters();
@@ -78,11 +76,9 @@ export default function SearchScreen() {
     return () => backHandler.remove();
   }, [router, isFocused]);
 
- useEffect(() => {
-    if (safeProducts.length > 0) {
-      filterResults();
-    }
-  }, [safeProducts, selectedCategory, selectedSubCategory, searchQuery, selectedSort]);
+  useEffect(() => {
+    filterResults();
+  }, [safeProducts, safeBanners, safeFeaturedAds, selectedCategory, selectedSubCategory, searchQuery, selectedSort]);
 
   const formatPrice = (price: number, isMonthly?: boolean) => {
     if (price >= 100000) {
@@ -93,21 +89,32 @@ export default function SearchScreen() {
 
   // Core filtering logic (doesn't close modal)
   const filterResults = () => {
-    if (safeProducts.length === 0) {
-      setResults([]);
-      return;
-    }
-
-    let filtered = [...safeProducts, ...safeBanners, ...safeFeaturedAds];
+    // Banner ads wrap their listing in `product`; unwrap them so every row has the
+    // same shape, then drop duplicates (a featured ad is also in the products list).
+    const bannerProducts = safeBanners
+      .filter((banner: any) => banner?.product?.id)
+      .map((banner: any) => ({
+        ...banner.product,
+        images: banner.product.images?.length
+          ? banner.product.images
+          : [{ image: banner.banner_image }],
+      }));
+    const seenIds = new Set<number>();
+    let filtered = [...safeProducts, ...safeFeaturedAds, ...bannerProducts].filter((item: any) => {
+      const id = Number(item?.id);
+      if (!id || seenIds.has(id)) return false;
+      seenIds.add(id);
+      return true;
+    });
 
     // Filter by category
     if (selectedCategory !== null) {
-      filtered = filtered.filter(item => item.category_id === selectedCategory);
+      filtered = filtered.filter(item => Number(item.category_id) === Number(selectedCategory));
     }
 
     // Filter by subcategory
     if (selectedSubCategory !== null) {
-      filtered = filtered.filter(item => item.sub_category_id === selectedSubCategory);
+      filtered = filtered.filter(item => Number(item.sub_category_id) === Number(selectedSubCategory));
     }
 
     // Filter by price range
@@ -423,13 +430,16 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    // Same fixed height as filterBtn so the two line up on every platform.
+    height: 44,
     gap: 8,
   },
   searchInput: {
     flex: 1,
+    height: "100%",
     fontSize: 15,
     color: COLORS.text,
+    paddingVertical: 0,
   },
   filterBtn: {
     width: 44,

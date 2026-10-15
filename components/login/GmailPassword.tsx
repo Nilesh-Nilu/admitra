@@ -211,7 +211,7 @@ export default function GmailPasswordScreen({ onBack }: { onBack: () => void }) 
     fieldWrap: {
       flexDirection: "row", alignItems: "center", width: "100%", marginBottom: 26,
       backgroundColor: "#FFFFFF", borderRadius: 14, borderWidth: 1.5, borderColor: "#E2E8F0",
-      paddingHorizontal: 16, paddingVertical: 14, gap: 10,
+      paddingHorizontal: 16, paddingVertical: 6, gap: 10,
     },
     fieldInput: { flex: 1, fontSize: 15, fontWeight: "500", color: "#1E293B" },
   

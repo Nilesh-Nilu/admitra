@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import { getBannerWarningApi, createConversationApi, reportProductApi, reportUserApi, addToFavoritesApi, getFavoritesListApi, removeFromFavoritesApi } from "@/constants/functions";
 import AppToast from "@/components/toasts/AppToast";
+import { getVerifiedBannerWebsiteLink } from "@/components/post/postUtils";
 import { COLORS } from "@/constants/Colors";
 import ImageZoomModal from "@/components/modals/ImageZoomModal";
 import RenderHTML from "react-native-render-html";
@@ -317,14 +318,16 @@ export default function BannerDetailsScreen() {
 
         {/* ── CTA Buttons ── */}
         <View style={styles.ctaRow}>
-          <TouchableOpacity
-            style={[styles.ctaBtn, styles.ctaBtnPrimary]}
-            onPress={() => openUrl(banner?.website_link, "Website link")}
-            activeOpacity={0.85}
-          >
-            <Ionicons name="globe-outline" size={20} color="#fff" />
-            <ThemedText style={styles.ctaBtnText}>Book Now</ThemedText>
-          </TouchableOpacity>
+          {getVerifiedBannerWebsiteLink(banner) ? (
+            <TouchableOpacity
+              style={[styles.ctaBtn, styles.ctaBtnPrimary]}
+              onPress={() => openUrl(banner?.website_link, "Website link")}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="globe-outline" size={20} color="#fff" />
+              <ThemedText style={styles.ctaBtnText}>Book Now</ThemedText>
+            </TouchableOpacity>
+          ) : null}
 
           <TouchableOpacity
             style={[styles.ctaBtn, styles.ctaBtnRed]}

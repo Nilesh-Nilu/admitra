@@ -1,4 +1,5 @@
 import ThemeHeader from "@/components/headers/ThemeHeader";
+import { isBannerWebsiteLinkVerified } from "@/components/post/postUtils";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
@@ -362,7 +363,7 @@ export default function MyListingsScreen() {
               <View style={styles.bannerLinkChip}>
                 <Ionicons name="link-outline" size={14} color='#1565C0' />
                 <ThemedText style={[styles.bannerLinkText, { color: '#1565C0' }]} numberOfLines={1}>
-                  Website linked
+                  {isBannerWebsiteLinkVerified(item) ? "Website linked" : "Website link pending verification"}
                 </ThemedText>
               </View>
             ) : null}

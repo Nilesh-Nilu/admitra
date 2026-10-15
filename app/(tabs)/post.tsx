@@ -5,6 +5,7 @@ import BannerLinksSection from "@/components/post/BannerLinksSection";
 import CategoryPickerModal from "@/components/post/CategoryPickerModal";
 import CategorySelectField from "@/components/post/CategorySelectField";
 import ImageUploadSection from "@/components/post/ImageUploadSection";
+import MatrimonyDetailsSection from "@/components/post/MatrimonyDetailsSection";
 import PostSubmitButton from "@/components/post/PostSubmitButton";
 import PostWarningNotice from "@/components/post/PostWarningNotice";
 import ProductBasicFields from "@/components/post/ProductBasicFields";
@@ -91,6 +92,11 @@ export default function PostScreen() {
     setSelectedCategory,
     setSelectedSubCategory,
     setSelectedChildCategory,
+    isMatrimony,
+    matrimonyDetails,
+    setMatrimonyDetails,
+    matrimonyMasters,
+    matrimonyMastersLoading,
   } = usePostAd();
 
   const categoryLabel = useMemo(() => {
@@ -155,6 +161,7 @@ export default function PostScreen() {
             />
           )}
 
+          {!isMatrimony && (
           <AdTypeSelector
             plans={(plans || []).filter(
               (plan: any) => !isRenewal || matchesRenewalPlan(plan, renewalProduct)
@@ -169,6 +176,7 @@ export default function PostScreen() {
               }
             }}
           />
+          )}
 
           <PostWarningNotice />
 
@@ -176,6 +184,11 @@ export default function PostScreen() {
             pointerEvents={isRenewal ? "none" : "auto"}
             style={isRenewal ? styles.lockedFields : undefined}
           >
+            <CategorySelectField
+              label={categoryLabel}
+              onPress={() => setShowCategoryModal(true)}
+            />
+
             <ImageUploadSection
               images={images}
               maxImages={maxImages}
@@ -185,12 +198,19 @@ export default function PostScreen() {
               onRemoveImage={removeImage}
             />
 
-            <CategorySelectField
-              label={categoryLabel}
-              onPress={() => setShowCategoryModal(true)}
-            />
+            {isMatrimony && (
+              <MatrimonyDetailsSection
+                masters={matrimonyMasters}
+                isLoading={matrimonyMastersLoading}
+                values={matrimonyDetails}
+                onChange={(key, value) =>
+                  setMatrimonyDetails((prev) => ({ ...prev, [key]: value }))
+                }
+              />
+            )}
 
             <ProductBasicFields
+              isMatrimony={isMatrimony}
               price={price}
               onPriceChange={setPrice}
               isNegotiable={isNegotiable}
@@ -210,7 +230,7 @@ export default function PostScreen() {
               onChangeFields={setCustomFields}
             />
 
-            {isBannerPlan && (
+            {isBannerPlan && !isMatrimony && (
               <BannerLinksSection
                 websiteLink={websiteLink}
                 videoLink={videoLink}
@@ -235,6 +255,7 @@ export default function PostScreen() {
             isRenewal={isRenewal}
             adType={adType}
             shouldPostWithoutPayment={shouldPostWithoutPayment}
+            label={isMatrimony ? "Submit Profile" : undefined}
             onPress={isRenewal ? handleRenewal : handleSubmit}
           />
         </ScrollView>

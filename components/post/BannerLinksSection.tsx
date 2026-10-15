@@ -45,7 +45,7 @@ export default function BannerLinksSection({
         />
         <ThemedText style={websiteLinkError ? styles.linkError : styles.linkHint}>
           {websiteLinkError ||
-            `Add your website link (max ${MAX_WEBSITE_LINK_LENGTH} chars). Prefer short product URLs.`}
+            `Add your website link (max ${MAX_WEBSITE_LINK_LENGTH} chars). It becomes visible to other users after Admin verifies it.`}
         </ThemedText>
       </View>
 
