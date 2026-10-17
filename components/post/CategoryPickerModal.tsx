@@ -1,5 +1,6 @@
 import { ThemedText } from "@/components/ThemedText";
 import { COLORS } from "@/constants/Colors";
+import { isMatrimonyCategoryName } from "@/components/post/postUtils";
 import { Ionicons } from "@expo/vector-icons";
 import {
   ActivityIndicator,
@@ -126,7 +127,9 @@ export default function CategoryPickerModal({
                     />
                     <ThemedText style={styles.itemText}>{cat.name}</ThemedText>
                   </View>
-                  <Ionicons name="chevron-forward" size={18} color={COLORS.gray} />
+                  {!isMatrimonyCategoryName(cat.name) && (
+                    <Ionicons name="chevron-forward" size={18} color={COLORS.gray} />
+                  )}
                 </TouchableOpacity>
               ))}
 

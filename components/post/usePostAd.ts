@@ -2,6 +2,7 @@ import {
   getRenewalProductType,
   isBannerPlanType,
   isMatrimonyCategoryName,
+  isMatrimonyPlanType,
   isNormalPlanType,
   isValidHttpUrl,
   matchesRenewalPlan,
@@ -100,6 +101,10 @@ export function usePostAd() {
   const isMatrimony =
     !renewalProduct &&
     isMatrimonyCategoryName((categories || []).find((c: any) => c.id === selectedCategory)?.name);
+  // Matrimony category shows only the matrimony plan; other categories show normal/featured/banner.
+  const visiblePlans = isRenewal
+    ? plans || []
+    : (plans || []).filter((plan: any) => isMatrimonyPlanType(plan) === isMatrimony);
   // Matrimony profiles take a single profile photo.
   const maxImages = isBannerPlan || isMatrimony ? 1 : 4;
   // Trial access is evaluated before the selected product plan.
@@ -279,10 +284,11 @@ export function usePostAd() {
   }, [renewalProductParam]);
 
   useEffect(() => {
-    if (plans?.length > 0 && !adType) {
-      setAdType(plans[0]);
+    if (isRenewal || !visiblePlans.length) return;
+    if (!adType || !visiblePlans.some((plan: any) => plan.id === adType.id)) {
+      setAdType(visiblePlans[0]);
     }
-  }, [plans]);
+  }, [plans, isMatrimony, isRenewal]);
 
   useEffect(() => {
     if (!renewalProduct || !plans?.length) return;
@@ -816,6 +822,7 @@ export function usePostAd() {
     categories,
     subCategories,
     plans,
+    visiblePlans,
     images,
     setImages,
     title,

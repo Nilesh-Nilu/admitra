@@ -76,3 +76,24 @@ export const getMatrimonyValidationError = (
 
   return null;
 };
+
+// ---- Profile display helpers (GET matrimony/profiles rows) ----
+
+/** Name of a master relation, e.g. profile.religion → "Hindu". Accepts a nested object or a flat *_name field. */
+export const getProfileMasterName = (profile: any, relation: string) => {
+  const value = profile?.[relation];
+  if (value && typeof value === "object") return getMasterLabel(value);
+  return String(value ?? profile?.[`${relation}_name`] ?? "").trim();
+};
+
+export const getProfileAge = (profile: any) => {
+  const dob = parseDateOfBirth(String(profile?.date_of_birth || "").slice(0, 10));
+  return dob ? getAge(dob) : null;
+};
+
+export const getProfilePhoto = (profile: any, imageBaseUrl: string) => {
+  const photo = String(profile?.profile_photo_url || profile?.profile_photo || "").trim();
+  if (!photo) return "";
+  if (/^(https?:|data:|file:)/.test(photo)) return photo;
+  return `${imageBaseUrl}/${photo.replace(/^\//, "")}`;
+};

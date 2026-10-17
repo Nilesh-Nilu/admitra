@@ -54,6 +54,10 @@ export const isNormalPlanType = (plan: any) =>
 export const isMatrimonyCategoryName = (name?: string) =>
   /matrimon/i.test(String(name || ""));
 
+// Matrimony has its own plan; it is offered only for the Matrimony category.
+export const isMatrimonyPlanType = (plan: any) =>
+  /matrimon/i.test(`${plan?.name || ""} ${plan?.type || ""} ${plan?.title || ""}`);
+
 // A banner's website link is shown to other users only after Admin has verified it.
 // Fail closed: a banner without a verification flag is treated as unverified.
 export const isBannerWebsiteLinkVerified = (banner: any) => {

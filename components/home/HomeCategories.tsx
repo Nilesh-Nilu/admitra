@@ -5,6 +5,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { COLORS } from "@/constants/Colors";
 import { isValidImageUri } from "@/constants/functions";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
+import { isMatrimonyCategoryName } from "@/components/post/postUtils";
 
 const ICON_SIZE_LARGE = 32;
 
@@ -58,7 +59,8 @@ export const HomeCategories = ({
           </ThemedText>
         </TouchableOpacity>
 
-        {categories.map((cat: any) => (
+        {/* Matrimony has its own home section, so it is left out of this row. */}
+        {categories.filter((cat: any) => !isMatrimonyCategoryName(cat?.name)).map((cat: any) => (
           <TouchableOpacity
             key={cat.id}
             style={styles.categoryItem}

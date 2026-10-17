@@ -5,6 +5,7 @@ import { HomeBannerAds } from "@/components/home/HomeBannerAds";
 import { HomeCategories } from "@/components/home/HomeCategories";
 import { HomeFeaturedAds } from "@/components/home/HomeFeaturedAds";
 import { HomeHeader } from "@/components/home/HomeHeader";
+import { HomeMatrimonyProfiles } from "@/components/home/HomeMatrimonyProfiles";
 import { HomeSearchBar } from "@/components/home/HomeSearchBar";
 import { UserShimmerLoader } from "@/components/loader/UserShimmerLoader";
 import { LocationModal } from "@/components/modals/LocationModal";
@@ -523,6 +524,9 @@ export default function HomeScreen() {
                 banners={safeBanners.slice(0, 10)}
                 onPressSeeAll={() => router.push({ pathname: "/stacks/seeAllBanners" })}
               />
+              <HomeMatrimonyProfiles
+                  onPressSeeAll={() => router.push({ pathname: "/stacks/seeAllMatrimony" })}
+                />
               <HomeFeaturedAds
                 featuredAds={featuredAds}
                 onPressSeeAll={() => router.push({ pathname: "/stacks/seeAllFeatured" })}

@@ -924,3 +924,17 @@ export const createMatrimonyProfileApi = async (data) => {
   });
   return response.data;
 };
+
+/** Paginated matrimony profiles: resolves to the paginator ({ data, current_page, last_page, ... }). */
+export const getMatrimonyProfilesApi = async (page = 1, perPage = 20) => {
+  const response = await axios.get(
+    `${baseUrl}/${matrimonyProfilesUrl}?page=${page}&per_page=${perPage}&sort_by=created_at&sort_direction=desc`,
+    await getAuthToken()
+  );
+  return response.data?.data || { data: [] };
+};
+
+export const getMatrimonyProfileByIdApi = async (id) => {
+  const response = await axios.get(`${baseUrl}/${matrimonyProfilesUrl}/${id}`, await getAuthToken());
+  return response.data?.data || null;
+};

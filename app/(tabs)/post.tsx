@@ -10,7 +10,7 @@ import PostSubmitButton from "@/components/post/PostSubmitButton";
 import PostWarningNotice from "@/components/post/PostWarningNotice";
 import ProductBasicFields from "@/components/post/ProductBasicFields";
 import RenewalNotice from "@/components/post/RenewalNotice";
-import { isBannerPlanType, matchesRenewalPlan } from "@/components/post/postUtils";
+import { isBannerPlanType, isMatrimonyCategoryName, matchesRenewalPlan } from "@/components/post/postUtils";
 import { usePostAd } from "@/components/post/usePostAd";
 import ThemeHeader from "@/components/headers/ThemeHeader";
 import { ThemedView } from "@/components/ThemedView";
@@ -30,7 +30,7 @@ export default function PostScreen() {
     router,
     categories,
     subCategories,
-    plans,
+    visiblePlans,
     images,
     setImages,
     title,
@@ -161,25 +161,6 @@ export default function PostScreen() {
             />
           )}
 
-          {!isMatrimony && (
-          <AdTypeSelector
-            plans={(plans || []).filter(
-              (plan: any) => !isRenewal || matchesRenewalPlan(plan, renewalProduct)
-            )}
-            selectedPlan={adType}
-            isLoading={plansLoading}
-            isLocked={isRenewal}
-            onSelect={(plan) => {
-              setAdType(plan);
-              if (isBannerPlanType(plan)) {
-                setImages((prev) => prev.slice(0, 1));
-              }
-            }}
-          />
-          )}
-
-          <PostWarningNotice />
-
           <View
             pointerEvents={isRenewal ? "none" : "auto"}
             style={isRenewal ? styles.lockedFields : undefined}
@@ -189,6 +170,31 @@ export default function PostScreen() {
               onPress={() => setShowCategoryModal(true)}
             />
 
+          </View>
+
+          {(isRenewal || selectedCategory) && (
+            <AdTypeSelector
+              plans={visiblePlans.filter(
+                (plan: any) => !isRenewal || matchesRenewalPlan(plan, renewalProduct)
+              )}
+              selectedPlan={adType}
+              isLoading={plansLoading}
+              isLocked={isRenewal}
+              onSelect={(plan) => {
+                setAdType(plan);
+                if (isBannerPlanType(plan)) {
+                  setImages((prev) => prev.slice(0, 1));
+                }
+              }}
+            />
+          )}
+
+          <PostWarningNotice />
+
+          <View
+            pointerEvents={isRenewal ? "none" : "auto"}
+            style={isRenewal ? styles.lockedFields : undefined}
+          >
             <ImageUploadSection
               images={images}
               maxImages={maxImages}
@@ -299,6 +305,18 @@ export default function PostScreen() {
         onBack={handleCategoryModalBack}
         onSearchChange={setCategorySearchQuery}
         onSelectCategory={(cat) => {
+          // Matrimony has no sub/child step: bride/groom is captured by the Gender field.
+          if (isMatrimonyCategoryName(cat?.name)) {
+            setSelectedCategory(cat.id);
+            setSelectedSubCategory(null);
+            setSelectedChildCategory(null);
+            setChildCategories([]);
+            setTempSelectedCategory(null);
+            setTempSelectedSubCategory(null);
+            setShowCategoryModal(false);
+            setCategorySearchQuery("");
+            return;
+          }
           setTempSelectedCategory(cat);
           setCategorySearchQuery("");
         }}
