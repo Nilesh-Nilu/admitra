@@ -90,6 +90,12 @@ export const getVerifyingWarningUrl = "getverifywarning"
 // matrimony
 export const matrimonyMasterDataUrl = "matrimony/master-data";
 export const matrimonyProfilesUrl = "matrimony/profiles";
+export const myMatrimonyProfilesUrl = "matrimony/my-profiles";
+export const matrimonyPlansUrl = "matrimony/plans";
+export const matrimonyCreateOrderUrl = "matrimony/payment/create-order";
+export const matrimonyVerifyAndSaveUrl = "matrimony/payment/verify-and-save";
+export const matrimonyRenewUrl = "matrimony/payment/renew";
+export const matrimonyPaymentHistoryUrl = "matrimony/payment/history";
 const MATRIMONY_MASTER_ENDPOINTS = {
   genders: "genders",
   heights: "heights",
@@ -934,7 +940,83 @@ export const getMatrimonyProfilesApi = async (page = 1, perPage = 20) => {
   return response.data?.data || { data: [] };
 };
 
+/** The signed-in user's matrimony profiles (GET matrimony/my-profiles). Falls back to paging the public list. */
+export const getMyMatrimonyProfilesApi = async (userId, perPage = 50, maxPages = 10) => {
+  try {
+    const response = await axios.get(`${baseUrl}/${myMatrimonyProfilesUrl}`, await getAuthToken());
+    const rows = response.data?.data;
+    if (Array.isArray(rows)) return rows;
+    if (Array.isArray(rows?.data)) return rows.data;
+  } catch (error) {
+    console.log(error?.response?.status || error, "matrimony my-profiles error");
+  }
+  if (userId == null) return [];
+  const mine = [];
+  for (let page = 1; page <= maxPages; page++) {
+    const paginator = await getMatrimonyProfilesApi(page, perPage);
+    const rows = Array.isArray(paginator?.data) ? paginator.data : [];
+    rows.forEach((row) => {
+      const ownerId = row?.user?.user_id ?? row?.user?.id ?? row?.user_id;
+      if (ownerId != null && Number(ownerId) === Number(userId)) mine.push(row);
+    });
+    if (!paginator?.last_page || page >= paginator.last_page) break;
+  }
+  return mine;
+};
+
 export const getMatrimonyProfileByIdApi = async (id) => {
   const response = await axios.get(`${baseUrl}/${matrimonyProfilesUrl}/${id}`, await getAuthToken());
   return response.data?.data || null;
+};
+
+const matrimonyJsonConfig = async () => {
+  const authConfig = await getAuthToken();
+  return {
+    ...authConfig,
+    headers: {
+      ...(authConfig.headers || {}),
+      accept: "application/json",
+      "Content-Type": "application/json",
+    },
+  };
+};
+
+/** Active matrimony plans: { plans, registrationFee }. */
+export const getMatrimonyPlansApi = async () => {
+  const response = await axios.get(`${baseUrl}/${matrimonyPlansUrl}`, await getAuthToken());
+  return {
+    plans: Array.isArray(response.data?.data) ? response.data.data : [],
+    registrationFee: Number(response.data?.registration_fee ?? 0) || 0,
+  };
+};
+
+/** Razorpay order for a matrimony plan: { order_id, total_amount, razorpay_key, ... }. */
+export const createMatrimonyOrderApi = async (plan_id) => {
+  const response = await axios.post(
+    `${baseUrl}/${matrimonyCreateOrderUrl}`,
+    { plan_id },
+    await matrimonyJsonConfig()
+  );
+  return response.data?.data ?? response.data;
+};
+
+/** Verifies the Razorpay payment and creates the matrimony profile. */
+export const verifyMatrimonyPaymentAndSaveApi = async (data) => {
+  const response = await axios.post(
+    `${baseUrl}/${matrimonyVerifyAndSaveUrl}`,
+    data,
+    await matrimonyJsonConfig()
+  );
+  return response.data;
+};
+
+/** Renews the user's matrimony plan after a Razorpay payment. */
+export const renewMatrimonyPlanApi = async (data) => {
+  const response = await axios.post(`${baseUrl}/${matrimonyRenewUrl}`, data, await matrimonyJsonConfig());
+  return response.data;
+};
+
+export const getMatrimonyPaymentHistoryApi = async () => {
+  const response = await axios.get(`${baseUrl}/${matrimonyPaymentHistoryUrl}`, await getAuthToken());
+  return response.data?.data ?? null;
 };

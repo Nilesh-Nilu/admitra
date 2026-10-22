@@ -1,10 +1,12 @@
 import ThemeHeader from "@/components/headers/ThemeHeader";
+import MatrimonyRenewPlanModal, { isMatrimonyProfileExpired } from "@/components/modals/MatrimonyRenewPlanModal";
 import { isBannerWebsiteLinkVerified } from "@/components/post/postUtils";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
-import { favoritesUrl, getMyBannerAdsUrl, getMyFeaturedAdsUrl, getMyProductsUrl, ImageUrl } from "@/constants/functions";
+import { favoritesUrl, getMyBannerAdsUrl, getMyFeaturedAdsUrl, getMatrimonyPaymentHistoryApi, getMyMatrimonyProfilesApi, getMyProductsUrl, ImageUrl } from "@/constants/functions";
+import { getProfileAge, getProfileMasterName, getProfilePhoto } from "@/constants/matrimony";
 import { getFavoritesApi, getMyBannerAdsApi, getMyFeaturedAdsApi, getMyProductsApi } from "@/store/reducers/userReducer";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -37,6 +39,7 @@ const filterOptions = [
   { id: 'pending', label: 'Pending Ads', icon: 'time-outline', color: '#F57F17', bgColor: '#FFF8E1', borderColor: '#FFECB3' },
   { id: 'favorites', label: 'Favorite Ads', icon: 'heart-outline', color: '#f5af19', bgColor: '#f5af1915', borderColor: '#f5af1915' },
   { id: 'renewed', label: 'Renew Ads', icon: 'refresh-outline', color: '#1565C0', bgColor: '#1565C015', borderColor: '#1565C015' },
+  { id: 'matrimony', label: 'Matrimony', icon: 'heart-circle-outline', color: '#C2185B', bgColor: '#FCE4EC', borderColor: '#F8BBD0' },
 ];
 
 const getStatusConfig = (status: string) => {
@@ -83,6 +86,12 @@ export default function MyListingsScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
   const { favorites, myFeaturedAds, myBannerAds, myProducts } = useSelector((state: any) => state.entities.userReducer) || {};
+  const { user: currentUser } = useSelector((state: any) => state.entities.authReducer) || {};
+  const currentUserId = currentUser?.id ?? currentUser?.user_id;
+  const [myMatrimonyProfiles, setMyMatrimonyProfiles] = useState<any[]>([]);
+  const [matrimonyLoading, setMatrimonyLoading] = useState(false);
+  const [matrimonyPaymentHistory, setMatrimonyPaymentHistory] = useState<any>(null);
+  const [renewingMatrimonyProfile, setRenewingMatrimonyProfile] = useState<any>(null);
   const safeProducts = Array.isArray(myProducts) ? myProducts : (myProducts?.data || []);
   const safeFavorites = Array.isArray(favorites) ? favorites : [];
   const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -150,6 +159,22 @@ export default function MyListingsScreen() {
     dispatch(getMyBannerAdsApi(`${getMyBannerAdsUrl}`));
     dispatch(getMyProductsApi(`${getMyProductsUrl}`));
   }, []);
+
+  const loadMyMatrimonyProfiles = () => {
+    if (currentUserId == null) return;
+    setMatrimonyLoading(true);
+    getMyMatrimonyProfilesApi(currentUserId)
+      .then((rows: any[]) => setMyMatrimonyProfiles(rows))
+      .catch((error: any) => console.log(error?.response?.status || error, "my matrimony profiles"))
+      .finally(() => setMatrimonyLoading(false));
+    getMatrimonyPaymentHistoryApi()
+      .then(setMatrimonyPaymentHistory)
+      .catch((error: any) => console.log(error?.response?.status || error, "matrimony payment history"));
+  };
+
+  useEffect(() => {
+    if (selectedFilter === 'matrimony') loadMyMatrimonyProfiles();
+  }, [selectedFilter, currentUserId]);
 
 
   const buildImageUrl = (imagePath: string | null | undefined) => {
@@ -250,6 +275,88 @@ export default function MyListingsScreen() {
 
   const isBannerTab = selectedFilter === 'banner';
   const isFeaturedTab = selectedFilter === 'featured';
+  const isMatrimonyTab = selectedFilter === 'matrimony';
+
+  const renderMatrimonyCard = ({ item }: { item: any }) => {
+    const photo = getProfilePhoto(item, ImageUrl);
+    const age = getProfileAge(item);
+    const subtitle = [age ? `${age} yrs` : "", getProfileMasterName(item, "height"), getProfileMasterName(item, "religion")]
+      .filter(Boolean)
+      .join(" • ");
+    const isExpired = isMatrimonyProfileExpired(item, matrimonyPaymentHistory);
+    const status = isExpired ? "expired" : item?.approve ?? item?.status;
+    const statusConfig = typeof status === "string" ? getStatusConfig(status.toLowerCase()) : null;
+
+    return (
+      <TouchableOpacity
+        style={styles.listingCard}
+        activeOpacity={0.8}
+        onPress={() =>
+          router.push({
+            pathname: "/stacks/matrimonyProfileDetails",
+            params: { profileData: JSON.stringify(item) },
+          })
+        }
+      >
+        {photo ? (
+          <Image source={{ uri: photo }} style={styles.productImage} resizeMode="cover" />
+        ) : (
+          <View style={styles.imagePlaceholder}>
+            <LinearGradient colors={['#C2185B', '#F48FB1']} style={styles.imagePlaceholderGradient}>
+              <Ionicons name="person" size={32} color={COLORS.white} />
+            </LinearGradient>
+          </View>
+        )}
+
+        <View style={styles.listingInfo}>
+          <View style={styles.listingHeader}>
+            <ThemedText style={styles.listingTitle} numberOfLines={1}>{item?.full_name || "Profile"}</ThemedText>
+            {statusConfig && statusConfig.label !== "Unknown" ? (
+              <View style={[styles.statusBadge, { backgroundColor: statusConfig.bgColor }]}>
+                <Ionicons name={statusConfig.icon as any} size={12} color={statusConfig.color} />
+                <ThemedText style={[styles.statusText, { color: statusConfig.color }]}>{statusConfig.label}</ThemedText>
+              </View>
+            ) : (
+              <View style={[styles.statusBadge, { backgroundColor: '#FCE4EC' }]}>
+                <Ionicons name="heart" size={12} color="#C2185B" />
+                <ThemedText style={[styles.statusText, { color: '#C2185B' }]}>Matrimony</ThemedText>
+              </View>
+            )}
+          </View>
+
+          <ThemedText style={styles.listingDescription} numberOfLines={2}>
+            {item?.profile_title || subtitle || "No description"}
+          </ThemedText>
+
+          <View style={styles.listingFooter}>
+            <ThemedText style={[styles.listingDescription, { flex: 1 }]} numberOfLines={1}>
+              {item?.profile_title ? subtitle : ""}
+            </ThemedText>
+            {!!item?.created_at && (
+              <View style={styles.listingDate}>
+                <Ionicons name="calendar-outline" size={12} color={COLORS.gray} />
+                <ThemedText style={styles.listingDateText}>{formatDate(item.created_at)}</ThemedText>
+              </View>
+            )}
+          </View>
+
+          {isExpired && (
+            <TouchableOpacity
+              style={styles.renewButton}
+              onPress={(event) => {
+                event.stopPropagation();
+                setRenewingMatrimonyProfile(item);
+              }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="refresh-outline" size={14} color={COLORS.white} />
+              <ThemedText style={styles.renewButtonText}>Renew Plan</ThemedText>
+            </TouchableOpacity>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   const renderFeaturedAdCard = ({ item }: { item: any }) => {
     const statusConfig = getStatusConfig(item.approve);
@@ -377,13 +484,17 @@ export default function MyListingsScreen() {
     <View style={styles.emptyState}>
       <View style={styles.emptyIconContainer}>
         <Ionicons
-          name={isFavoritesTab ? "heart-outline" : "cube-outline"}
+          name={isFavoritesTab ? "heart-outline" : isMatrimonyTab ? "heart-circle-outline" : "cube-outline"}
           size={64}
           color={COLORS.gray}
         />
       </View>
       <ThemedText style={styles.emptyTitle}>
-        {isFavoritesTab ? "No Favorites Yet" : "No Listings Yet"}
+        {isFavoritesTab
+          ? "No Favorites Yet"
+          : isMatrimonyTab
+          ? matrimonyLoading ? "Loading profiles..." : "No Matrimony Profiles Yet"
+          : "No Listings Yet"}
       </ThemedText>
     </View>
   );
@@ -566,15 +677,15 @@ export default function MyListingsScreen() {
       <ThemeHeader onBackPress={() => router.back()} title="My Listings" />
       {renderFilters()}
       <FlatList
-        data={isBannerTab ? (myBannerAds || []) : isFeaturedTab ? (myFeaturedAds || []) : filteredProducts}
-        renderItem={isBannerTab ? renderBannerAdCard : isFeaturedTab ? renderFeaturedAdCard : renderListingCard}
+        data={isMatrimonyTab ? myMatrimonyProfiles : isBannerTab ? (myBannerAds || []) : isFeaturedTab ? (myFeaturedAds || []) : filteredProducts}
+        renderItem={isMatrimonyTab ? renderMatrimonyCard : isBannerTab ? renderBannerAdCard : isFeaturedTab ? renderFeaturedAdCard : renderListingCard}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={renderEmptyState}
         refreshControl={
           <RefreshControl
-            refreshing={false}
-            onRefresh={() => { }}
+            refreshing={isMatrimonyTab && matrimonyLoading}
+            onRefresh={() => { if (isMatrimonyTab) loadMyMatrimonyProfiles(); }}
             tintColor={COLORS.primary}
           />
         }
@@ -583,6 +694,12 @@ export default function MyListingsScreen() {
 
       {/* Product Detail Modal */}
       {renderDetailModal()}
+      <MatrimonyRenewPlanModal
+        profile={renewingMatrimonyProfile}
+        user={currentUser}
+        onClose={() => setRenewingMatrimonyProfile(null)}
+        onRenewed={loadMyMatrimonyProfiles}
+      />
     </ThemedView>
   );
 }

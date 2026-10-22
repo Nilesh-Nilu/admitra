@@ -23,9 +23,12 @@ const getPaymentErrorMessage = (error: any): string => {
 import { COLORS } from "@/constants/Colors";
 import { getMatrimonyValidationError, MatrimonyMasters } from "@/constants/matrimony";
 import {
+  createMatrimonyOrderApi,
   createMatrimonyProfileApi,
   createOrderApi,
   getMatrimonyMasterDataApi,
+  getMatrimonyPlansApi,
+  verifyMatrimonyPaymentAndSaveApi,
   toUploadableImage,
   createRenewalOrderApi,
   getApprovedProductsUrl,
@@ -88,6 +91,8 @@ export function usePostAd() {
   const [matrimonyDetails, setMatrimonyDetails] = useState<Record<string, any>>({});
   const [matrimonyMasters, setMatrimonyMasters] = useState<MatrimonyMasters | null>(null);
   const [matrimonyMastersLoading, setMatrimonyMastersLoading] = useState(false);
+  const [matrimonyPlans, setMatrimonyPlans] = useState<any[] | null>(null);
+  const [matrimonyPlansLoading, setMatrimonyPlansLoading] = useState(false);
   const [videoLink2, setVideoLink2] = useState("");
   const [cropImage, setCropImage] = useState<{ uri: string; width: number; height: number } | null>(null);
   const [isFreeTrial, setIsFreeTrial] = useState(false);
@@ -101,12 +106,15 @@ export function usePostAd() {
   const isMatrimony =
     !renewalProduct &&
     isMatrimonyCategoryName((categories || []).find((c: any) => c.id === selectedCategory)?.name);
-  // Matrimony category shows only the matrimony plan; other categories show normal/featured/banner.
+  // Matrimony category shows only matrimony plans (GET matrimony/plans, falling back to
+  // admin/plans); other categories show normal/featured/banner.
   const visiblePlans = isRenewal
     ? plans || []
+    : isMatrimony && matrimonyPlans?.length
+    ? matrimonyPlans
     : (plans || []).filter((plan: any) => isMatrimonyPlanType(plan) === isMatrimony);
-  // Matrimony profiles take a single profile photo.
-  const maxImages = isBannerPlan || isMatrimony ? 1 : 4;
+  // All posts take a single photo.
+  const maxImages = 1;
   // Trial access is evaluated before the selected product plan.
   // Free verify-and-store (no Razorpay): always send plan_id, the API requires it.
   const hasFreeTrialAccess = isFreeTrial || user?.free_trial_enabled === true;
@@ -120,6 +128,7 @@ export function usePostAd() {
   );
   const shouldPostWithoutPayment =
     !isRenewal &&
+    !isMatrimony &&
     isNormalPlan &&
     !requiresPaymentForNormalProduct &&
     (canCreateFreeNormalProduct || hasFreeTrialAccess || hasAssignedFreeAccess || isZeroPriceNormalPlan);
@@ -134,6 +143,30 @@ export function usePostAd() {
       .then((data: MatrimonyMasters) => setMatrimonyMasters(data))
       .finally(() => setMatrimonyMastersLoading(false));
   }, [isMatrimony, matrimonyMasters, matrimonyMastersLoading]);
+
+  // Matrimony plans come from their own endpoint; the registration fee is folded into the
+  // shown price because create-order charges plan price + registration fee.
+  useEffect(() => {
+    if (!isMatrimony || matrimonyPlans || matrimonyPlansLoading) return;
+    setMatrimonyPlansLoading(true);
+    getMatrimonyPlansApi()
+      .then(({ plans: rows, registrationFee }: { plans: any[]; registrationFee: number }) =>
+        setMatrimonyPlans(
+          rows.map((plan: any) => ({
+            ...plan,
+            type: "matrimony",
+            plan_price: plan.price,
+            registration_fee: registrationFee,
+            price: Number(plan.price ?? 0) + registrationFee,
+          }))
+        )
+      )
+      .catch((error: any) => {
+        console.log(error?.response?.status || error, "matrimony plans error");
+        setMatrimonyPlans([]);
+      })
+      .finally(() => setMatrimonyPlansLoading(false));
+  }, [isMatrimony, matrimonyPlans, matrimonyPlansLoading]);
 
   useEffect(() => {
     if (isMatrimony && images.length > 1) setImages((prev) => prev.slice(0, 1));
@@ -198,7 +231,7 @@ export function usePostAd() {
         "Maximum Images",
         isBannerPlan
           ? "Banner ads allow only 1 photo"
-          : "You can only upload up to 4 images"
+          : "You can only upload 1 photo"
       );
       return;
     }
@@ -288,7 +321,7 @@ export function usePostAd() {
     if (!adType || !visiblePlans.some((plan: any) => plan.id === adType.id)) {
       setAdType(visiblePlans[0]);
     }
-  }, [plans, isMatrimony, isRenewal]);
+  }, [plans, matrimonyPlans, isMatrimony, isRenewal]);
 
   useEffect(() => {
     if (!renewalProduct || !plans?.length) return;
@@ -313,7 +346,7 @@ export function usePostAd() {
         "Maximum Images",
         isBannerPlan
           ? "Banner ads allow only 1 photo"
-          : "You can only upload up to 4 images"
+          : "You can only upload 1 photo"
       );
       return;
     }
@@ -669,12 +702,21 @@ export function usePostAd() {
     }
   };
 
-  // Matrimony ads are registered as matrimony profiles (no plan / payment).
-  const submitMatrimonyProfile = async () => {
+  // Paid: matrimony/payment/verify-and-save with plan_id + razorpay_*.
+  // Free (no plan, or plan total is 0): matrimony/profiles.
+  const submitMatrimonyProfile = async (paymentData: any = null) => {
     setIsLoading(true);
     try {
       const profilePhoto = images[0] ? await toUploadableImage(images[0]) : "";
-      const response = await createMatrimonyProfileApi({
+      const isPaid = Boolean(paymentData?.razorpay_payment_id);
+      const saveProfile = isPaid ? verifyMatrimonyPaymentAndSaveApi : createMatrimonyProfileApi;
+      const response = await saveProfile({
+        ...(isPaid && {
+          plan_id: adType?.id,
+          razorpay_order_id: paymentData.razorpay_order_id,
+          razorpay_payment_id: paymentData.razorpay_payment_id,
+          razorpay_signature: paymentData.razorpay_signature,
+        }),
         ...matrimonyDetails,
         full_name: String(matrimonyDetails.full_name || "").trim(),
         mother_tongue: String(matrimonyDetails.mother_tongue || "").trim(),
@@ -700,9 +742,76 @@ export function usePostAd() {
       const firstFieldError = errors && Object.values(errors).flat()[0];
       Alert.alert(
         "Unable to submit profile",
-        String(firstFieldError || error?.response?.data?.message || "Please try again.")
+        String(
+          firstFieldError ||
+            error?.response?.data?.message ||
+            (paymentData?.razorpay_payment_id
+              ? "Your payment was received but the profile could not be saved. Please contact support."
+              : "Please try again.")
+        )
       );
     } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Same flow as featured/banner: create-order → Razorpay → verify-and-save.
+  const handleMatrimonySubmit = async () => {
+    // No matrimony plan configured, or a free plan: Razorpay can't take orders below ₹1.
+    if (!adType?.id || Number(adType?.price ?? 0) < 1) {
+      await submitMatrimonyProfile();
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const order = await createMatrimonyOrderApi(adType.id);
+      const totalAmount = Number(order?.total_amount ?? 0);
+      const razorpayOrderId = order?.order_id || order?.id;
+
+      if (!totalAmount) {
+        await submitMatrimonyProfile();
+        return;
+      }
+      if (!razorpayOrderId) {
+        AppToast("Invalid order. Please try again.");
+        setIsLoading(false);
+        return;
+      }
+
+      RazorpayCheckout.open({
+        key: order?.razorpay_key || RAZORPAY_KEY,
+        amount: Math.round(totalAmount * 100),
+        currency: "INR",
+        name: "Gaxa Marketplace",
+        description: "Matrimony Profile Fee",
+        order_id: razorpayOrderId,
+        prefill: {
+          name: user?.name || "",
+          email: user?.email || "",
+          contact: user?.phone || "",
+        },
+        theme: {
+          color: COLORS.primary,
+        },
+      } as any)
+        .then((paymentResponse: any) =>
+          submitMatrimonyProfile({
+            ...paymentResponse,
+            razorpay_order_id: paymentResponse?.razorpay_order_id || razorpayOrderId,
+          })
+        )
+        .catch((error: any) => {
+          if (error?.code === "payment_cancelled" || error?.description === "Payment Cancelled") {
+            AppToast("Payment cancelled");
+          } else {
+            AppToast(getPaymentErrorMessage(error));
+          }
+          setIsLoading(false);
+        });
+    } catch (error: any) {
+      console.log(error?.response?.data || error, "matrimony payment flow error");
+      AppToast(error?.response?.data?.message || "Unable to start payment. Please try again.");
       setIsLoading(false);
     }
   };
@@ -711,7 +820,7 @@ export function usePostAd() {
   const handleSubmit = async () => {
     if (!validateForm()) return;
     if (isMatrimony) {
-      await submitMatrimonyProfile();
+      await handleMatrimonySubmit();
       return;
     }
     setIsLoading(true);
@@ -864,7 +973,7 @@ export function usePostAd() {
     setCustomFields,
     cropImage,
     setCropImage,
-    plansLoading,
+    plansLoading: plansLoading || (isMatrimony && matrimonyPlansLoading),
     renewalProduct,
     isRenewal,
     renewalProductType,

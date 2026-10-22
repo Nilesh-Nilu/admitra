@@ -261,7 +261,13 @@ export default function PostScreen() {
             isRenewal={isRenewal}
             adType={adType}
             shouldPostWithoutPayment={shouldPostWithoutPayment}
-            label={isMatrimony ? "Submit Profile" : undefined}
+            label={
+              isMatrimony
+                ? Number(adType?.price ?? 0) >= 1
+                  ? "Pay & Submit Profile"
+                  : "Submit Profile"
+                : undefined
+            }
             onPress={isRenewal ? handleRenewal : handleSubmit}
           />
         </ScrollView>

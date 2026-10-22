@@ -32,7 +32,9 @@ export default function ImageUploadSection({
       <ThemedText style={styles.sectionSubtitle}>
         {isBannerPlan
           ? "Add 1 photo. This will be used as the banner image."
-          : "Add up to 4 photos. First image will be the cover."}
+          : maxImages === 1
+            ? "Add 1 photo. This will be used as the cover image."
+            : `Add up to ${maxImages} photos. First image will be the cover.`}
       </ThemedText>
       <View style={styles.imagesContainer}>
         {images.length < maxImages && (

@@ -58,6 +58,7 @@ export default function SafetyTipsModal({ visible, onClose }: SafetyTipsModalPro
       visible={visible}
       transparent={true}
       animationType="fade"
+      statusBarTranslucent
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>

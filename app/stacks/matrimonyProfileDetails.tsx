@@ -2,12 +2,14 @@ import ThemeHeader from "@/components/headers/ThemeHeader";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
-import { getMatrimonyProfileByIdApi, ImageUrl } from "@/constants/functions";
+import { createConversationApi, getMatrimonyProfileByIdApi, ImageUrl } from "@/constants/functions";
 import { getProfileAge, getProfileMasterName, getProfilePhoto } from "@/constants/matrimony";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Image, ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSelector } from "react-redux";
 
 const DETAIL_ROWS: { label: string; relation: string }[] = [
   { label: "Gender", relation: "gender" },
@@ -42,7 +44,10 @@ const getHobbyNames = (profile: any): string[] => {
 export default function MatrimonyProfileDetailsScreen() {
   const router = useRouter();
   const { profileData } = useLocalSearchParams<{ profileData?: string }>();
+  const insets = useSafeAreaInsets();
+  const { user: currentUser } = useSelector((state: any) => state.entities.authReducer) || {};
   const [profile, setProfile] = useState<any>(() => parseProfile(profileData));
+  const [chatLoading, setChatLoading] = useState(false);
 
   useEffect(() => {
     const listProfile = parseProfile(profileData);
@@ -64,6 +69,38 @@ export default function MatrimonyProfileDetailsScreen() {
     (row: any) => row?.field && row?.value
   );
 
+  const memberId = profile?.user?.user_id ?? profile?.user?.id ?? profile?.user_id;
+  const currentUserId = currentUser?.id ?? currentUser?.user_id;
+  const isOwnProfile = memberId != null && currentUserId != null && Number(memberId) === Number(currentUserId);
+  const canChat = memberId != null && !isOwnProfile;
+
+  const handleChat = async () => {
+    if (chatLoading) return;
+    setChatLoading(true);
+    try {
+      const response = await createConversationApi({
+        vendor_id: memberId,
+        subject: "Matrimony inquiry",
+      });
+      if (response?.id) {
+        router.push({
+          pathname: "/stacks/chatDetail",
+          params: {
+            conversation_id: response.id,
+            receiverId: response.vendor_id,
+            userName: profile?.full_name || profile?.user?.name,
+          },
+        });
+      } else {
+        Alert.alert("Error", "Failed to create conversation");
+      }
+    } catch (error) {
+      console.log(error, "matrimony chat");
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
   return (
     <ThemedView style={styles.container}>
       <ThemeHeader onBackPress={() => router.back()} title="Matrimony Profile" />
@@ -72,7 +109,7 @@ export default function MatrimonyProfileDetailsScreen() {
           <ThemedText style={styles.muted}>Profile not available</ThemedText>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView contentContainerStyle={[styles.content, canChat && { paddingBottom: 100 + insets.bottom }]}>
           <View style={styles.card}>
             <View style={styles.photoBox}>
               {photo ? (
@@ -128,6 +165,19 @@ export default function MatrimonyProfileDetailsScreen() {
           )}
         </ScrollView>
       )}
+
+      {!!profile && canChat && (
+        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
+          <TouchableOpacity style={styles.chatButton} onPress={handleChat} activeOpacity={0.8} disabled={chatLoading}>
+            {chatLoading ? (
+              <ActivityIndicator size="small" color={COLORS.white} />
+            ) : (
+              <Ionicons name="chatbubble-ellipses" size={18} color={COLORS.white} />
+            )}
+            <ThemedText style={styles.chatBtnText}>Chat with Member</ThemedText>
+          </TouchableOpacity>
+        </View>
+      )}
     </ThemedView>
   );
 }
@@ -165,4 +215,30 @@ const styles = StyleSheet.create({
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: { backgroundColor: "#FCE4EC", borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6 },
   chipText: { fontSize: 13, color: "#C2185B", fontWeight: "600" },
+  bottomBar: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: COLORS.white,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: "#E8E8E8",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  chatButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 10,
+    backgroundColor: "#1565C0",
+  },
+  chatBtnText: { fontSize: 15, fontWeight: "700", color: COLORS.white },
 });

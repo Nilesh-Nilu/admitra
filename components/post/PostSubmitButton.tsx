@@ -14,7 +14,7 @@ type Props = {
   isRenewal: boolean;
   adType: any;
   shouldPostWithoutPayment: boolean;
-  /** Overrides the plan-based label and hides the price (e.g. matrimony profiles). */
+  /** Overrides the plan-based label (e.g. matrimony profiles). */
   label?: string;
   onPress: () => void;
 };
@@ -43,7 +43,7 @@ export default function PostSubmitButton({
           </>
         ) : (
           <>
-            {!label && adType && price > 0 && (
+            {adType && price > 0 && (
               <ThemedText style={styles.submitBtnPrice}>
                 ₹{isRenewal ? adType.price : shouldPostWithoutPayment ? 0 : adType.price}
               </ThemedText>
