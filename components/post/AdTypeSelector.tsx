@@ -1,6 +1,7 @@
 import { ThemedText } from "@/components/ThemedText";
 import { COLORS } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
+import { isMatrimonyPlanType } from "@/components/post/postUtils";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 type Props = {
@@ -42,7 +43,11 @@ export default function AdTypeSelector({ plans, selectedPlan, isLoading, isLocke
               ? ["Chat & call with buyers", "Top placement in category", "More visibility, more buyers"]
               : isBanner
                 ? ["Chat & call with buyers", "Homepage banner placement", "Maximum reach & visibility"]
-                : ["Chat with buyers", "Standard listing visibility", "28-day active period"];
+                : [
+                    isMatrimonyPlanType(plan) ? "Chat with Interested Profile/Member" : "Chat with buyers",
+                    "Standard listing visibility",
+                    "28-day active period",
+                  ];
             const badgeText = isFeatured ? "Recommended" : isBanner ? "" : "Free limited time offer";
 
             return (

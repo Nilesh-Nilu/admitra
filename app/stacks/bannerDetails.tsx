@@ -73,15 +73,28 @@ export default function BannerDetailsScreen() {
     currentUserId != null &&
     Number(sellerId) === Number(currentUserId);
 
+  const banners = useSelector((state: any) => state.entities.userReducer.banners);
+
+  // Prefer the banner from the store: JSON passed through route params can fail to
+  // parse when the banner text contains characters like "%".
   const initializeBanner = useCallback(() => {
+    const storeBanner = Array.isArray(banners)
+      ? banners.find((b: any) => String(b?.id) === String(params.bannerId))
+      : undefined;
+    if (storeBanner) {
+      setBanner(storeBanner);
+      return;
+    }
     if (params.bannerData) {
       try {
         setBanner(JSON.parse(params.bannerData as string));
       } catch (error) {
+        console.log("Failed to parse banner data:", error);
         setBanner(null);
       }
     }
-  }, [params.bannerData]);
+  }, [banners, params.bannerId, params.bannerData]);
+  console.log(banner)
 
   const handleCall = () => {
     if (product?.user?.phone) {
@@ -92,9 +105,12 @@ export default function BannerDetailsScreen() {
   };
   useEffect(() => {
     initializeBanner();
+  }, [initializeBanner]);
+
+  useEffect(() => {
     getBannerWarningApi().then(setBannerWarnings).catch(console.error);
     dispatch(getFavoritesApi(favoritesUrl) as any);
-  }, [initializeBanner]);
+  }, []);
 
   useEffect(() => {
     const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -318,16 +334,14 @@ export default function BannerDetailsScreen() {
 
         {/* ── CTA Buttons ── */}
         <View style={styles.ctaRow}>
-          {getVerifiedBannerWebsiteLink(banner) ? (
-            <TouchableOpacity
-              style={[styles.ctaBtn, styles.ctaBtnPrimary]}
-              onPress={() => openUrl(banner?.website_link, "Website link")}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="globe-outline" size={20} color="#fff" />
-              <ThemedText style={styles.ctaBtnText}>Book Now</ThemedText>
-            </TouchableOpacity>
-          ) : null}
+          <TouchableOpacity
+            style={[styles.ctaBtn, styles.ctaBtnWebsite]}
+            onPress={() => openUrl(getVerifiedBannerWebsiteLink(banner), "Website link")}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="globe-outline" size={20} color="#1565C0" />
+            <ThemedText style={[styles.ctaBtnText, styles.ctaBtnWebsiteText]}>Visit Website</ThemedText>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.ctaBtn, styles.ctaBtnRed]}
@@ -704,8 +718,13 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
   },
-  ctaBtnPrimary: {
-    backgroundColor: "#1D4ED8",
+  ctaBtnWebsite: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+  },
+  ctaBtnWebsiteText: {
+    color: "#1565C0",
   },
   ctaBtnRed: {
     backgroundColor: "#DC2626",

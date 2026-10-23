@@ -10,6 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect } from "react";
 import {
+  Alert,
   BackHandler,
   Dimensions,
   FlatList,
@@ -78,18 +79,20 @@ export default function SeeAllBannersScreen() {
   };
 
   const handleVisitWebsite = async (websiteLink?: string) => {
-    if (websiteLink) {
-      try {
-        const url = websiteLink.startsWith("http")
-          ? websiteLink
-          : `https://${websiteLink}`;
-        const supported = await Linking.canOpenURL(url);
-        if (supported) {
-          await Linking.openURL(url);
-        }
-      } catch (error) {
-        console.log("Error opening website:", error);
+    if (!websiteLink) {
+      Alert.alert("Coming Soon", "Website link not available");
+      return;
+    }
+    try {
+      const url = websiteLink.startsWith("http")
+        ? websiteLink
+        : `https://${websiteLink}`;
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
       }
+    } catch (error) {
+      console.log("Error opening website:", error);
     }
   };
 
@@ -117,7 +120,7 @@ export default function SeeAllBannersScreen() {
       onPress={() =>
         router.push({
           pathname: "/stacks/bannerDetails",
-          params: { bannerData: JSON.stringify(item) },
+          params: { bannerId: String(item.id), bannerData: JSON.stringify(item) },
         })
       }
     >
@@ -168,19 +171,17 @@ export default function SeeAllBannersScreen() {
         ) : null}
       </View>
       <View style={styles.bannerActions}>
-        {getVerifiedBannerWebsiteLink(item) ? (
-          <TouchableOpacity
+        <TouchableOpacity
             style={styles.bannerBtnLeft}
             activeOpacity={0.8}
             onPress={(e) => {
               e.stopPropagation();
-              handleVisitWebsite(item.website_link);
+              handleVisitWebsite(getVerifiedBannerWebsiteLink(item));
             }}
           >
             <Ionicons name="globe-outline" size={16} color="#1565C0" />
             <ThemedText style={styles.bannerBtnLeftText}>Visit Website</ThemedText>
           </TouchableOpacity>
-        ) : null}
         <TouchableOpacity
           style={styles.bannerBtnRight}
           activeOpacity={0.8}

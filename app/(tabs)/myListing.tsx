@@ -34,11 +34,11 @@ const filterCardWidth =
 
 const filterOptions = [
   { id: 'normal', label: 'Normal Ads', icon: 'card-outline', color: '#2E7D32', bgColor: '#E8F5E9', borderColor: '#C8E6C9' },
-  { id: 'featured', label: 'Features Ads', icon: 'star-outline', color: '#E65100', bgColor: '#FFF3E0', borderColor: '#FFE0B2' },
-  { id: 'banner', label: 'Baner Ads', icon: 'images-outline', color: '#7B1FA2', bgColor: '#F3E5F5', borderColor: '#E1BEE7' },
+  { id: 'featured', label: 'Featured Ads', icon: 'star-outline', color: '#E65100', bgColor: '#FFF3E0', borderColor: '#FFE0B2' },
+  { id: 'banner', label: 'Banner Ads', icon: 'images-outline', color: '#7B1FA2', bgColor: '#F3E5F5', borderColor: '#E1BEE7' },
   { id: 'pending', label: 'Pending Ads', icon: 'time-outline', color: '#F57F17', bgColor: '#FFF8E1', borderColor: '#FFECB3' },
   { id: 'favorites', label: 'Favorite Ads', icon: 'heart-outline', color: '#f5af19', bgColor: '#f5af1915', borderColor: '#f5af1915' },
-  { id: 'renewed', label: 'Renew Ads', icon: 'refresh-outline', color: '#1565C0', bgColor: '#1565C015', borderColor: '#1565C015' },
+  { id: 'renewed', label: 'Renewed Ads', icon: 'refresh-outline', color: '#1565C0', bgColor: '#1565C015', borderColor: '#1565C015' },
   { id: 'matrimony', label: 'Matrimony', icon: 'heart-circle-outline', color: '#C2185B', bgColor: '#FCE4EC', borderColor: '#F8BBD0' },
 ];
 
