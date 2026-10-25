@@ -44,7 +44,6 @@ export default function LoginScreen() {
       const list = await getAuthManagementListApi();
       setAuthManagementList(list);
     } catch (error) {
-      console.log("Error in getAuthManagementList:", error);
     } finally {
       setLoadingList(false);
     }

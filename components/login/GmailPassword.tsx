@@ -63,11 +63,10 @@ export default function GmailPasswordScreen({ onBack }: { onBack: () => void }) 
           dispatch(setUser(response.data.user));
           await AsyncStorage.setItem("user", JSON.stringify(response.data.user));
           await AsyncStorage.setItem("authToken", response.data.access_token);
-          getfcmToken().catch((err) => console.log(err, "getfcmToken after Gmail password login"));
+          getfcmToken().catch(() => {});
           router.replace("/(tabs)");
         }
       } catch (error: any) {
-        console.log("LOGIN ERROR:", error.response?.data || error.message || error);
         
         let errorMsg = "Login failed. Please try again.";
         const responseData = error.response?.data;

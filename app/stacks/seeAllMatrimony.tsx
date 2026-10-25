@@ -30,7 +30,6 @@ export default function SeeAllMatrimonyScreen() {
       hasMoreRef.current =
         list.length > 0 && (paginator?.last_page == null || page < paginator.last_page);
     } catch (error: any) {
-      console.log(error?.response?.status || error, "matrimony profiles");
       hasMoreRef.current = false;
     }
   }, []);

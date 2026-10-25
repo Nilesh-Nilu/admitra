@@ -75,7 +75,6 @@ export const BannerCard = ({ item, isInline = false }: BannerCardProps) => {
         await Linking.openURL(url);
       }
     } catch (error) {
-      console.log("Error opening website:", error);
     }
   };
 
@@ -90,7 +89,6 @@ export const BannerCard = ({ item, isInline = false }: BannerCardProps) => {
           await Linking.openURL(url);
         }
       } catch (error) {
-        console.log("Error opening video:", error);
       }
     }
   };

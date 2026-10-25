@@ -11,7 +11,6 @@ export const baseUrl = API_BASE_URL;
 // Reusable API configuration with auth headers and credentials
 export const getAuthToken = async () => {
   const authToken = await AsyncStorage.getItem("authToken");
-  // console.log(authToken, "authToken");
   return {
     headers: {
       Authorization: `Bearer ${authToken}`,
@@ -138,7 +137,6 @@ export const toUploadableImage = async (value) => {
     });
     return `data:image/jpeg;base64,${base64}`;
   } catch (error) {
-    console.log("toUploadableImage failed:", error);
     return "";
   }
 };
@@ -155,7 +153,6 @@ export const logoutUser = async (dispatch, router, role) => {
       }
     });
   } catch (error) {
-    console.log(error);
   }
 };
 
@@ -175,7 +172,6 @@ export const getAuthManagementListApi = async () => {
     const list = response?.data?.data;
     return Array.isArray(list) ? list : [];
   } catch (error) {
-    console.log("Error fetching auth management list:", error.response?.data || error.message || error);
     throw error;
   }
 };
@@ -192,7 +188,6 @@ export const handleSendmailOtp = async (email, setLoading, setStep) => {
         },
       }
     );
-    console.log(response.data, "response");
     // API returns { success: true, message: "OTP sent" } or similar
     if (response.data?.success === false) {
       AppToast(response.data?.message || "Failed to send OTP.");
@@ -202,7 +197,6 @@ export const handleSendmailOtp = async (email, setLoading, setStep) => {
     // AppToast(`OTP sent to your Gmail! ${response.data.otp}`);
     setStep("otp");
   } catch (error) {
-    console.log(error)
   } finally {
     setLoading(false);
   }
@@ -233,11 +227,10 @@ export const handleVerifymailOtp = async (email, otp, setLoading, router, dispat
       AppToast(response.data?.message || "Invalid OTP.");
       return;
     }
-    console.log(response.data, "handleVerifymailOtp");
     dispatch(setUser(response.data.user));
     await AsyncStorage.setItem("user", JSON.stringify(response.data.user));
     await AsyncStorage.setItem("authToken", response.data.access_token);
-    getfcmToken().catch((err) => console.log(err, "getfcmToken after mail OTP login"));
+    getfcmToken().catch(() => {});
     if (response.data.user.name === null) {
       router.replace({
         pathname: "/(auth)/loginFields",
@@ -271,14 +264,12 @@ export const handleSendPhoneOtp = async (phone, setLoading, setStep) => {
         headers: {},
       }
     );
-    console.log(response.data, "response");
     if (response.data?.success) {
       // AppToast(`OTP sent successfully! ${response.data.otp}`);
       setStep("otp");
       // Optionally, handle navigation or further state logic here
     }
   } catch (error) {
-    console.log(error)
   } finally {
     setLoading(false);
   }
@@ -296,13 +287,12 @@ export const handleVerifyPhoneOtp = async (phone, otp, setLoading, router, dispa
         headers: {},
       }
     );
-    console.log(response.data, "response");
     if (response.data?.success) {
       AppToast("Login successful!");
       dispatch(setUser(response.data.user));
       await AsyncStorage.setItem("user", JSON.stringify(response.data.user));
       await AsyncStorage.setItem("authToken", response.data.access_token);
-      getfcmToken().catch((err) => console.log(err, "getfcmToken after phone OTP login"));
+      getfcmToken().catch(() => {});
       if (response.data.user.name === null) {
         router.replace({
           pathname: "/(auth)/loginFields",
@@ -343,7 +333,6 @@ export const getUserDetailsApi = async (id, dispatch, func) => {
       dispatch(setUser(user));
     }
   } catch (error) {
-    console.log(error);
   } finally {
     if (func) {
       func();
@@ -360,7 +349,6 @@ export const getSubscriptionApi = async (id) => {
     const subscription = response.data;
     return subscription;
   } catch (error) {
-    console.log(error.response.data, "error");
   }
 }
 
@@ -374,7 +362,6 @@ export const getServicesByCategoryIdApi = async (categoryId, dispatch, func) => 
     dispatch(setAllServicesbyCategoryIdRecieved(services));
     return services;
   } catch (error) {
-    console.log(error.response.data, "error");
   } finally {
     if (func) {
       func();
@@ -393,7 +380,6 @@ export const getServicesByLocationIdApi = async (locationId, dispatch) => {
     return services;
   }
   catch (error) {
-    console.log(error.response.data, "error");
   }
 }
 
@@ -407,7 +393,6 @@ export const getLocationListApi = async (setLocations) => {
     setLocations(locations);
     return locations;
   } catch (error) {
-    console.log(error);
   }
 };
 
@@ -443,7 +428,6 @@ export const createOrderApi = async (plan_id) => {
     );
     return response.data;
   } catch (error) {
-    console.log(error?.response?.data || error, "error");
   }
 };
 
@@ -465,7 +449,6 @@ export const createRenewalOrderApi = async (product_id, plan_id) => {
     );
     return response.data;
   } catch (error) {
-    console.log(error?.response?.data || error, "create renewal order error");
     throw error;
   }
 };
@@ -488,7 +471,6 @@ export const verifyRenewalApi = async (data) => {
     );
     return response.data;
   } catch (error) {
-    console.log(error?.response?.data || error, "verify renewal error");
     throw error;
   }
 };
@@ -509,11 +491,9 @@ export const handleVerifyandAddProductApi = async (data) => {
       data,
       config
     );
-    console.log(response.data, "response");
     return response.data;
   }
   catch (error) {
-    console.log(error?.response?.data || error, "error");
     throw error;
   }
 }
@@ -541,7 +521,6 @@ export const sendChatMessageApi = async (data) => {
     );
     return response.data;
   } catch (error) {
-    console.log(error?.response?.data || error, "error");
     throw error;
   }
 };
@@ -567,7 +546,6 @@ export const getConversationMessagesApi = async (conversationId, perPage = 20) =
     );
     return response.data.data.messages;
   } catch (error) {
-    console.log(error?.response?.data || error, "error");
     throw error;
   }
 }
@@ -580,7 +558,6 @@ export const getConversationApi = async () => {
     );
     return response.data.data;
   } catch (error) {
-    console.log(error?.response?.data || error, "error");
     throw error;
   }
 }
@@ -604,7 +581,6 @@ export const markConversationAsReadApi = async (conversationId) => {
     );
     return response.data;
   } catch (error) {
-    console.log(error?.response?.data || error, "error");
     throw error;
   }
 };
@@ -617,7 +593,6 @@ export const getPolicyApi = async () => {
     );
     return response.data.data;
   } catch (error) {
-    console.log(error?.response?.data, "error");
     throw error;
   }
 }
@@ -631,7 +606,6 @@ export const reportUserApi = async (data) => {
     );
     return response.data;
   } catch (error) {
-    console.log(error?.response?.data || error, "error");
     throw error;
   }
 }
@@ -645,7 +619,6 @@ export const reportProductApi = async (data) => {
     );
     return response.data;
   } catch (error) {
-    console.log(error?.response?.data || error, "error");
     throw error;
   }
 }
@@ -658,7 +631,6 @@ export const getPromotionBannerApi = async () => {
     );
     return response.data.data;
   } catch (error) {
-    console.log(error?.response?.data || error, "error");
     throw error;
   }
 }
@@ -671,7 +643,6 @@ export const getBannerWarningApi = async () => {
     );
     return response.data.data;
   } catch (error) {
-    console.log(error?.response?.data || error, "error");
     throw error;
   }
 }
@@ -683,7 +654,6 @@ export const getCallManagementApi = async () => {
     );
     return response.data.data[0];
   } catch (error) {
-    console.log(error?.response?.data || error, "error");
     throw error;
   }
 }
@@ -696,7 +666,6 @@ export const getChildCategoriesApi = async (subCategoryId) => {
     );
     return response.data.data || [];
   } catch (error) {
-    console.log(error?.response?.data || error, "error");
     return [];
   }
 };
@@ -719,7 +688,6 @@ export const addToFavoritesApi = async (product_id) => {
     );
     return response.data;
   } catch (error) {
-    console.log(error?.response?.data || error, "error");
     throw error;
   }
 };
@@ -738,7 +706,6 @@ export const getFavoritesListApi = async () => {
     const response = await axios.get(`${baseUrl}/favorites`, config);
     return response.data;
   } catch (error) {
-    console.log(error?.response?.data || error, "error");
     throw error;
   }
 };
@@ -757,7 +724,6 @@ export const removeFromFavoritesApi = async (id) => {
     const response = await axios.delete(`${baseUrl}/favorites/${id}`, config);
     return response.data;
   } catch (error) {
-    console.log(error?.response?.data || error, "error");
     throw error;
   }
 };
@@ -770,7 +736,6 @@ export const getVerifyingWarningApi = async () => {
     );
     return response.data.data || [];
   } catch (error) {
-    console.log(error?.response?.data || error, "error");
     return [];
   }
 };
@@ -807,7 +772,6 @@ export const getNormalAdsInfoApi = async (
     );
     return response.data.data[0];
   } catch (error) {
-    console.log(error?.response?.data || error, "getNormalAdsInfoApi");
     if (error?.response?.status === 401) {
       // Return a sentinel value or throw so the caller knows it's unauthenticated
       throw new Error("Unauthenticated");
@@ -847,11 +811,8 @@ export const getFreeTrialStatusApi = async (
   
     const isFree = Boolean(response.data?.data?.is_free);
     const isTrialActive = Boolean(responseTrial.data?.data?.is_active);
-    // console.log(response.data?.data, "isFree");
-    // console.log(responseTrial.data?.data, "isTrialActive");
     return isFree || isTrialActive;
   } catch (error) {
-    console.log(error?.response?.data || error, "error");
     throw error;
   }
 };
@@ -893,7 +854,6 @@ export const getProductByIdApi = async (productId) => {
     );
     return response.data;
   } catch (error) {
-    console.log(error?.response?.data || error, "getProductByIdApi error");
     throw error;
   }
 };
@@ -906,7 +866,6 @@ export const getMatrimonyMasterDataApi = async () => {
     const response = await axios.get(`${baseUrl}/${matrimonyMasterDataUrl}`, authConfig);
     if (response.data?.data && typeof response.data.data === "object") return response.data.data;
   } catch (error) {
-    console.log(error?.response?.status || error, "matrimony master-data error");
   }
 
   const entries = await Promise.all(
@@ -948,7 +907,6 @@ export const getMyMatrimonyProfilesApi = async (userId, perPage = 50, maxPages =
     if (Array.isArray(rows)) return rows;
     if (Array.isArray(rows?.data)) return rows.data;
   } catch (error) {
-    console.log(error?.response?.status || error, "matrimony my-profiles error");
   }
   if (userId == null) return [];
   const mine = [];

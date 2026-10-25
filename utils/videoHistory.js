@@ -13,7 +13,6 @@ export const saveVideoProgress = async (videoId, progress) => {
     };
     await AsyncStorage.setItem(VIDEO_PROGRESS_KEY, JSON.stringify(existingProgress));
   } catch (error) {
-    console.error('Error saving video progress:', error);
   }
 };
 
@@ -23,7 +22,6 @@ export const loadVideoProgress = async () => {
     const progress = await AsyncStorage.getItem(VIDEO_PROGRESS_KEY);
     return progress ? JSON.parse(progress) : {};
   } catch (error) {
-    console.error('Error loading video progress:', error);
     return {};
   }
 };
@@ -34,7 +32,6 @@ export const getVideoProgress = async (videoId) => {
     const progress = await loadVideoProgress();
     return progress[videoId] || null;
   } catch (error) {
-    console.error('Error getting video progress:', error);
     return null;
   }
 };
@@ -67,10 +64,8 @@ export const updateVideoTime = async (videoId, currentTime, duration) => {
           progress[videoId].lastUpdated = new Date().toISOString();
           
           await AsyncStorage.setItem(VIDEO_PROGRESS_KEY, JSON.stringify(progress));
-          console.log(`Updated video progress for ${videoId}: ${Math.floor(currentTime)}s`);
         }
       } catch (error) {
-        console.error('Error in debounced video time update:', error);
       } finally {
         pendingUpdates.delete(videoId);
       }
@@ -78,7 +73,6 @@ export const updateVideoTime = async (videoId, currentTime, duration) => {
     
     pendingUpdates.set(videoId, timeoutId);
   } catch (error) {
-    console.error('Error setting up video time update:', error);
   }
 };
 
@@ -89,7 +83,6 @@ export const clearVideoProgress = async (videoId) => {
     delete progress[videoId];
     await AsyncStorage.setItem(VIDEO_PROGRESS_KEY, JSON.stringify(progress));
   } catch (error) {
-    console.error('Error clearing video progress:', error);
   }
 };
 
@@ -98,7 +91,6 @@ export const clearAllVideoProgress = async () => {
   try {
     await AsyncStorage.removeItem(VIDEO_PROGRESS_KEY);
   } catch (error) {
-    console.error('Error clearing all video progress:', error);
   }
 };
 
@@ -110,7 +102,6 @@ export const cleanupPendingUpdates = (videoId = null) => {
       if (pendingUpdates.has(videoId)) {
         clearTimeout(pendingUpdates.get(videoId));
         pendingUpdates.delete(videoId);
-        console.log(`Cleaned up pending updates for video: ${videoId}`);
       }
     } else {
       // Clean up all pending updates
@@ -118,10 +109,8 @@ export const cleanupPendingUpdates = (videoId = null) => {
         clearTimeout(timeoutId);
       }
       pendingUpdates.clear();
-      console.log('Cleaned up all pending video updates');
     }
   } catch (error) {
-    console.error('Error cleaning up pending updates:', error);
   }
 };
 
@@ -141,9 +130,7 @@ export const forceUpdateVideoTime = async (videoId, currentTime, duration) => {
     progress[videoId].lastUpdated = new Date().toISOString();
     
     await AsyncStorage.setItem(VIDEO_PROGRESS_KEY, JSON.stringify(progress));
-    console.log(`Force updated video progress for ${videoId}: ${Math.floor(currentTime)}s`);
   } catch (error) {
-    console.error('Error force updating video time:', error);
   }
 };
 

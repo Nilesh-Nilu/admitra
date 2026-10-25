@@ -45,7 +45,6 @@ export default function ChatDetailScreen() {
       }
       await markConversationAsReadApi(conversation_id);
     } catch (error) {
-      console.log(error, "error");
     }
   };
   useEffect(() => {
@@ -100,7 +99,6 @@ export default function ChatDetailScreen() {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
     } catch (error) {
-      console.log(error, "error");
     } finally {
       getMessages();
     }

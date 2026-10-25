@@ -37,7 +37,6 @@ SplashScreen.preventAutoHideAsync();
 
 // ✅ Must be outside the component, at module level
 messaging().setBackgroundMessageHandler(async remoteMessage => {
-  console.log('Background message received:', remoteMessage);
 });
 
 export default function RootLayout() {
@@ -73,7 +72,6 @@ export default function RootLayout() {
           );
         }
       } catch (error) {
-        console.error('Error checking app version:', error);
       }
     };
     checkAppVersion();
@@ -95,7 +93,6 @@ export default function RootLayout() {
         await requestAndroidNotificationPermission();
         notificationListner();
       } catch (error) {
-        console.error('Error initializing notification system:', error);
       }
     };
     initializeNotifications();
@@ -106,7 +103,6 @@ export default function RootLayout() {
       try {
         await requestUserPermission();
       } catch (error) {
-        console.error('Error setting up FCM permissions:', error);
       }
     }, 1000);
     return () => clearTimeout(timer);

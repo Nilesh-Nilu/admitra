@@ -34,12 +34,10 @@ const SecureVideoWrapper: React.FC<SecureVideoWrapperProps> = ({
         // - ADB connections
         
         // For now, we'll log security status
-        // console.log('Video Security Check - Protected:', securityEnabled);
       }, 3000);
 
       // Show warning about protected content
       if (enableExtraProtection) {
-        // console.log('Secure video content loaded - Screenshots and recording disabled');
       }
     }
 

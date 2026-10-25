@@ -165,11 +165,11 @@ export default function MyListingsScreen() {
     setMatrimonyLoading(true);
     getMyMatrimonyProfilesApi(currentUserId)
       .then((rows: any[]) => setMyMatrimonyProfiles(rows))
-      .catch((error: any) => console.log(error?.response?.status || error, "my matrimony profiles"))
+      .catch(() => {})
       .finally(() => setMatrimonyLoading(false));
     getMatrimonyPaymentHistoryApi()
       .then(setMatrimonyPaymentHistory)
-      .catch((error: any) => console.log(error?.response?.status || error, "matrimony payment history"));
+      .catch(() => {});
   };
 
   useEffect(() => {

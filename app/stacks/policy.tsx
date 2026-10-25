@@ -41,7 +41,6 @@ export default function PolicyScreen() {
       }
       return policyData;
     } catch (error) {
-      console.error("Error parsing policy data:", error);
       return null;
     }
   }, [policyData, fetched]);

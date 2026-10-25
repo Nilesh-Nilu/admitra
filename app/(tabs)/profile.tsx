@@ -129,7 +129,6 @@ export default function ProfileScreen() {
       setShowEditModal(false);
       await AsyncStorage.setItem("user", JSON.stringify({ ...user, ...data }));
     } catch (error: any) {
-      console.log(error, "error");
       Alert.alert(
         "Update Failed",
         error?.response?.data?.message || "Failed to update profile. Please try again."
@@ -199,7 +198,6 @@ export default function ProfileScreen() {
       setShowVerificationModal(false);
       router.push("/stacks/verificationPending" as any);
     } catch (error: any) {
-      console.log(error, "error");
       Alert.alert(
         "Verification Failed",
         error?.response?.data?.message || "Failed to submit verification. Please try again."

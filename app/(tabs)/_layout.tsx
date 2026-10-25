@@ -38,7 +38,6 @@ export default function TabLayout() {
       const hasUnread = Array.isArray(conversations) && conversations.some((c: any) => c.unread_count > 0);
       setHasUnreadChats(hasUnread);
     } catch (error) {
-      console.log(error, "Failed to fetch unread chat status");
     }
   }, []);
 

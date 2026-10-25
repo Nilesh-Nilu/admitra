@@ -18,7 +18,6 @@ export const useScreenSecurity = (options: ScreenSecurityOptions = {}) => {
           await ScreenCapture.preventScreenCaptureAsync();
         }
       } catch (error) {
-        console.log('Screen security setup error:', error);
       }
     };
 
@@ -26,7 +25,6 @@ export const useScreenSecurity = (options: ScreenSecurityOptions = {}) => {
       try {
         await ScreenCapture.allowScreenCaptureAsync();
       } catch (error) {
-        console.log('Screen security cleanup error:', error);
       }
     };
 

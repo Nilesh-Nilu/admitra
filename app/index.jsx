@@ -25,13 +25,10 @@ export default function Index() {
           dispatch(setUser(user));
           setHasValidToken(true);
         } else if (user && !tokenIsValid) {
-          console.log("Stored user found but authToken missing/invalid — clearing session");
           await AsyncStorage.multiRemove(["user", "authToken"]);
         } else {
-          console.log("No stored user found");
         }
       } catch (error) {
-        console.error("Error initializing app:", error);
       } finally {
         setInitialized(true);
       }

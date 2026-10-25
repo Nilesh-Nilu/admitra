@@ -74,7 +74,6 @@ Please let me know about availability and delivery details.`;
           AppToast(`Sharing ${cleanTitle} with image via WhatsApp`);
           return;
         } catch (err) {
-          console.log("File share failed, falling back to text:", err);
         }
       }
 
@@ -95,7 +94,6 @@ Please let me know about availability and delivery details.`;
         AppToast(`Opening WhatsApp Web for ${cleanTitle}`);
       }
     } catch (error) {
-      console.error("Error sharing product:", error);
       AppToast("Unable to share product. Please try again.");
     }
   };
@@ -128,7 +126,6 @@ Please let me know about availability and delivery details.`;
       await Linking.openURL(webWhatsappUrl);
       AppToast(`Opening WhatsApp Web to enquire about ${cleanTitle}`);
     } catch (error) {
-      console.error("Enquiry redirect failed:", error);
       AppToast("Unable to open WhatsApp. Please try again.");
     }
   };

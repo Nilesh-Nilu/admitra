@@ -92,7 +92,6 @@ export default function SeeAllBannersScreen() {
         await Linking.openURL(url);
       }
     } catch (error) {
-      console.log("Error opening website:", error);
     }
   };
 
@@ -107,7 +106,6 @@ export default function SeeAllBannersScreen() {
           await Linking.openURL(url);
         }
       } catch (error) {
-        console.log("Error opening video:", error);
       }
     }
   };

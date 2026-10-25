@@ -102,7 +102,6 @@ export default function ChatScreen() {
         setConversations(response);
        }
     } catch (error) {
-      console.log(error, "error");
     } finally {
       setLoading(false);
     }

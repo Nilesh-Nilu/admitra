@@ -133,7 +133,6 @@ export default function HomeScreen() {
       const response = await getNotifications(user.id, 1, 1);
       setHasUnreadNotifications((response?.data?.data?.length || 0) > 0);
     } catch (error) {
-      console.log(error, "Failed to fetch unread notifications");
     }
   }, [user?.id]);
 
@@ -189,7 +188,6 @@ export default function HomeScreen() {
         setSelectedCity(safeCities[0]);
         setIsCityInitialized(true);
       } catch (error) {
-        console.log("Error initializing city:", error);
         if (safeCities.length > 0) {
           setSelectedCity(safeCities[0]);
           setIsCityInitialized(true);
@@ -232,7 +230,6 @@ export default function HomeScreen() {
           }
         }
       } catch (error) {
-        console.log("Error initializing locality:", error);
       }
     };
     initializeLocality();
@@ -250,7 +247,6 @@ export default function HomeScreen() {
     dispatch(getStatesApi(getStatesUrl));
     const citiesRequest = dispatch(getCitiesApi(getCitiesUrl)) as unknown as Promise<unknown>;
     citiesRequest.catch((error) => {
-      console.log("Error loading home cities:", error);
       finishInitialHomeLoading();
     });
     dispatch(setClearData(null));
@@ -309,7 +305,6 @@ export default function HomeScreen() {
           }
         })
         .catch((error) => {
-          console.log("Error loading home products:", error);
         })
         .finally(() => {
           finishInitialHomeLoading();
@@ -340,7 +335,6 @@ export default function HomeScreen() {
       }
       currentPageRef.current = nextPage;
     } catch {
-      // console.log('[Pagination] error:', e?.message, e?.response?.status);
     }
     isLoadingMoreRef.current = false;
     setIsLoadingMore(false);

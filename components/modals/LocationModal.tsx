@@ -109,7 +109,6 @@ export const LocationModal = ({
     try {
       await AsyncStorage.setItem("selectedLocality", JSON.stringify(locality));
     } catch (e) {
-      console.log("Error saving selected locality:", e);
     }
     reset();
     onClose();

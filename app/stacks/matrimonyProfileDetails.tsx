@@ -55,7 +55,7 @@ export default function MatrimonyProfileDetailsScreen() {
     if (!listProfile?.id) return;
     getMatrimonyProfileByIdApi(listProfile.id)
       .then((detail: any) => detail && setProfile({ ...listProfile, ...detail }))
-      .catch((error: any) => console.log(error?.response?.status || error, "matrimony profile"));
+      .catch(() => {});
   }, [profileData]);
 
   const photo = getProfilePhoto(profile, ImageUrl);
@@ -95,7 +95,6 @@ export default function MatrimonyProfileDetailsScreen() {
         Alert.alert("Error", "Failed to create conversation");
       }
     } catch (error) {
-      console.log(error, "matrimony chat");
     } finally {
       setChatLoading(false);
     }

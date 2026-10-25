@@ -212,7 +212,6 @@ export default function CropModal({
       );
       onCrop(`data:image/jpeg;base64,${result.base64}`);
     } catch (e) {
-      console.log("Crop error:", e);
     }
     setIsCropping(false);
   };

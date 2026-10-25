@@ -55,7 +55,6 @@ export default function MatrimonyRenewPlanModal({ profile, user, onClose, onRene
         setSelectedPlan(rows[0] ?? null);
       })
       .catch((error: any) => {
-        console.log(error?.response?.status || error, "matrimony renew plans error");
         setPlans([]);
       });
   }, [profile, plans]);
@@ -79,7 +78,6 @@ export default function MatrimonyRenewPlanModal({ profile, user, onClose, onRene
       onRenewed();
       onClose();
     } catch (error: any) {
-      console.log(error?.response?.data || error, "renewMatrimonyPlan");
       Alert.alert(
         "Unable to renew plan",
         String(
@@ -141,7 +139,6 @@ export default function MatrimonyRenewPlanModal({ profile, user, onClose, onRene
           setIsPaying(false);
         });
     } catch (error: any) {
-      console.log(error?.response?.data || error, "matrimony renewal payment flow error");
       AppToast(error?.response?.data?.message || "Unable to start payment. Please try again.");
       setIsPaying(false);
     }

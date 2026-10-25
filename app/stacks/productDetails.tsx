@@ -85,7 +85,6 @@ export default function ProductDetailsScreen() {
           setLoading(false);
         });
       } catch (error) {
-        console.error("Error parsing product data:", error);
         setProduct(null);
       }
     }
@@ -133,7 +132,6 @@ export default function ProductDetailsScreen() {
         Alert.alert("Error", "Failed to create conversation");
       }
     } catch (error) {
-      console.log(error, "error");
     }
   };
 
@@ -224,7 +222,6 @@ export default function ProductDetailsScreen() {
         setReportReason("");
       }
     } catch (error) {
-      console.log(error, "error");
       AppToast("Failed to report this ad. Please try again.");
     }
   };
@@ -252,7 +249,6 @@ export default function ProductDetailsScreen() {
         setReportUserReason("");
       }
     } catch(error) {
-      console.log(error, "error");
       AppToast("Failed to report user. Please try again.");
     } finally {
       setIsReportingUser(false);

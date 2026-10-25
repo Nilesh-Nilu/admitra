@@ -162,7 +162,6 @@ export function usePostAd() {
         )
       )
       .catch((error: any) => {
-        console.log(error?.response?.status || error, "matrimony plans error");
         setMatrimonyPlans([]);
       })
       .finally(() => setMatrimonyPlansLoading(false));
@@ -549,7 +548,6 @@ export function usePostAd() {
       );
       clearForm();
     } catch (error: any) {
-      console.log(error?.response?.data, "submitProduct");
       const serverError = String(error?.response?.data?.error || error?.response?.data?.message || "").trim();
       if (serverError.includes("website_link") && serverError.includes("too long")) {
         Alert.alert("Unable to post ad", "Website link is too long. Use a shorter URL and try again.");
@@ -696,7 +694,6 @@ export function usePostAd() {
         })
         .finally(() => setIsLoading(false));
     } catch (error: any) {
-      console.log(error?.response?.data || error, "renewal payment flow error");
       AppToast(error?.message || "Unable to renew this ad. Please try again.");
       setIsLoading(false);
     }
@@ -737,7 +734,6 @@ export function usePostAd() {
       );
       clearForm();
     } catch (error: any) {
-      console.log(error?.response?.data || error, "submitMatrimonyProfile");
       const errors = error?.response?.data?.errors;
       const firstFieldError = errors && Object.values(errors).flat()[0];
       Alert.alert(
@@ -810,7 +806,6 @@ export function usePostAd() {
           setIsLoading(false);
         });
     } catch (error: any) {
-      console.log(error?.response?.data || error, "matrimony payment flow error");
       AppToast(error?.response?.data?.message || "Unable to start payment. Please try again.");
       setIsLoading(false);
     }
@@ -868,7 +863,6 @@ export function usePostAd() {
       const totalAmount = Number(order?.total_amount ?? 0);
       const razorpayOrderId = order?.order_id || order?.id;
 
-      console.log("Order response:", orderRes, "Parsed:", { totalAmount, razorpayOrderId });
 
       // Free plan via create-order (amount 0) — include plan_id like Free Product curl
       // Free trial / is_free still omit plan_id
@@ -905,11 +899,9 @@ export function usePostAd() {
 
       RazorpayCheckout.open(options as any)
         .then(async (paymentResponse: any) => {
-          console.log("Payment successful:", paymentResponse);
           await submitProduct(paymentResponse);
         })
         .catch((error: any) => {
-          console.log("Razorpay error:", error);
           if (error?.code === "payment_cancelled" || error?.description === "Payment Cancelled") {
             AppToast("Payment cancelled");
           } else {
@@ -920,7 +912,6 @@ export function usePostAd() {
           setIsLoading(false);
         });
     } catch (error: any) {
-      console.log("Payment flow error:", error);
       AppToast("Something went wrong. Please try again.");
       setIsLoading(false);
     }

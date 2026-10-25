@@ -158,9 +158,7 @@ const SignupScreen = () => {
     if (userParam) {
       try {
         parsedUser = typeof userParam === 'string' ? JSON.parse(userParam) : userParam;
-        console.log(parsedUser, "parsedUser");
       } catch (e) {
-        console.log("Error parsing userParam", e);
       }
     }
 
@@ -303,11 +301,10 @@ const SignupScreen = () => {
         dispatch(setUser(response.data.data));
         await AsyncStorage.setItem("user", JSON.stringify(response.data.user));
         await AsyncStorage.setItem("authToken", response.data.access_token);
-        getfcmToken().catch((err) => console.log(err, "getfcmToken after signup"));
+        getfcmToken().catch(() => {});
         router.replace("/(tabs)");
       }
     } catch (error: any) {
-      console.log(error.response.data, "error");
       // Check if backend response has 'errors' object with fields (e.g., email error)
       if (error.response?.data?.errors) {
         const errors = error.response.data.errors;
@@ -349,11 +346,10 @@ const SignupScreen = () => {
       if (result?.access_token) {
         await AsyncStorage.setItem("authToken", result.access_token);
       }
-      getfcmToken().catch((err) => console.log(err, "getfcmToken after profile update"));
+      getfcmToken().catch(() => {});
       router.replace("/(tabs)");
 
     } catch (error: any) {
-      console.log(error, "error");
       AppToast(error.response.data.message || "Failed to update profile");
     } finally {
       setLoading(false);

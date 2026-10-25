@@ -89,12 +89,10 @@ export default function BannerDetailsScreen() {
       try {
         setBanner(JSON.parse(params.bannerData as string));
       } catch (error) {
-        console.log("Failed to parse banner data:", error);
         setBanner(null);
       }
     }
   }, [banners, params.bannerId, params.bannerData]);
-  console.log(banner)
 
   const handleCall = () => {
     if (product?.user?.phone) {
@@ -108,7 +106,7 @@ export default function BannerDetailsScreen() {
   }, [initializeBanner]);
 
   useEffect(() => {
-    getBannerWarningApi().then(setBannerWarnings).catch(console.error);
+    getBannerWarningApi().then(setBannerWarnings).catch(() => {});
     dispatch(getFavoritesApi(favoritesUrl) as any);
   }, []);
 
@@ -167,7 +165,6 @@ export default function BannerDetailsScreen() {
         Alert.alert("Error", "Failed to create conversation");
       }
     } catch (error) {
-      console.log(error, "error");
     }
   };
 
@@ -194,7 +191,6 @@ export default function BannerDetailsScreen() {
         }
       }
     } catch (error) {
-      console.log(error, "error");
       dispatch(getFavoritesApi(favoritesUrl) as any);
       AppToast("Failed to update favorites. Please try again.");
     }
@@ -233,7 +229,6 @@ export default function BannerDetailsScreen() {
         setReportReason("");
       }
     } catch (error) {
-      console.log(error, "error");
       AppToast(`Failed to report this ${reportTarget === "user" ? "user" : "ad"}. Please try again.`);
     } finally {
       setIsReporting(false);

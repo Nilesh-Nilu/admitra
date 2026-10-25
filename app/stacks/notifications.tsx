@@ -93,7 +93,6 @@ export default function NotificationsScreen() {
         setHasMore(pageNo < apiData.last_page);
         setPage(pageNo);
       } catch (error) {
-        console.log("Notification Error:", error);
       } finally {
         setLoading(false);
       }
@@ -156,7 +155,6 @@ export default function NotificationsScreen() {
         )
       );
     } catch (error) {
-      console.log(error);
     }
   };
 

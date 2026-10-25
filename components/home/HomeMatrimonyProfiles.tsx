@@ -20,7 +20,7 @@ export const HomeMatrimonyProfiles = ({ onPressSeeAll }: HomeMatrimonyProfilesPr
     useCallback(() => {
       getMatrimonyProfilesApi(1, 20)
         .then((paginator: any) => setProfiles(Array.isArray(paginator?.data) ? paginator.data : []))
-        .catch((error: any) => console.log(error?.response?.status || error, "matrimony profiles"));
+        .catch(() => {});
     }, [])
   );
 
