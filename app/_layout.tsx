@@ -18,6 +18,7 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
+import { Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -126,7 +127,7 @@ export default function RootLayout() {
           <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
             <StatusBar style="dark" />
             <View style={{ flex: 1, backgroundColor: "#F5F5F5" }}>
-              <Stack screenOptions={{ headerShown: false }}>
+              <Stack screenOptions={{ headerShown: false, ...(Platform.OS === "android" && { animation: "fade" }) }}>
                 <Stack.Screen name="(tabs)" />
                 <Stack.Screen name="(auth)" />
                 <Stack.Screen name="stacks" />

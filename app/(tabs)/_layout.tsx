@@ -5,7 +5,7 @@ import { getConversationApi } from '@/constants/functions';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Dimensions, Image, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Image, Modal, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import ImageViewer from 'react-native-image-zoom-viewer';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -63,6 +63,8 @@ export default function TabLayout() {
       <Tabs
         screenOptions={{
           headerShown: false,
+          // Android only: tab contents slide and fade when switching tabs.
+          ...(Platform.OS === "android" && { animation: "shift" }),
         }}
         tabBar={(props) => <AnimatedTabBar {...props} />}
       >

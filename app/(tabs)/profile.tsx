@@ -1,5 +1,6 @@
 import EditProfileModal from "@/components/modals/EditProfileModal";
 import GetVerifiedProfileModal from "@/components/modals/GetVerifiedProfileModal";
+import { HowToPostAdSection } from "@/components/home/HowToPostAdSection";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
@@ -468,6 +469,28 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
         )}
+        {/* How to Post Ad (admin-managed) */}
+        <HowToPostAdSection placement="profile" style={styles.howToPostAd} />
+
+        {/* Account */}
+        {!!user?.email && (
+          <View style={styles.menuCard}>
+            <TouchableOpacity
+              style={[styles.menuItem, styles.menuItemLast]}
+              onPress={() => router.push("/stacks/changePassword" as any)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.menuIcon, { backgroundColor: COLORS.primary }]}>
+                  <Ionicons name="key-outline" size={20} color={COLORS.white} />
+                </View>
+                <ThemedText style={styles.menuLabel} numberOfLines={1}>Change Password</ThemedText>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Menu Items */}
         <View style={styles.menuCard}>
           {visibleMenuItems.map((item, index) => (
@@ -894,6 +917,10 @@ const styles = StyleSheet.create({
   },
 
   /* Menu Card */
+  howToPostAd: {
+    marginHorizontal: SIZES.padding,
+    marginTop: 16,
+  },
   menuCard: {
     marginHorizontal: SIZES.padding,
     marginTop: 16,

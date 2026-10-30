@@ -1,4 +1,7 @@
+import FilterSheet from "@/components/filters/FilterSheet";
+import { useListFilters } from "@/components/filters/useListFilters";
 import ThemeHeader from "@/components/headers/ThemeHeader";
+import { isMatrimonyCategoryName } from "@/components/post/postUtils";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
@@ -7,7 +10,7 @@ import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 import { addFavoriteItem, getFeaturedAdsApi, removeFavoriteById } from "@/store/reducers/userReducer";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   BackHandler,
   Dimensions,
@@ -25,9 +28,12 @@ const CARD_WIDTH = (SCREEN_WIDTH - SIZES.padding * 2 - 12) / 2;
 export default function SeeAllFeaturedScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { featuredAds, favorites } = useSelector((state: any) => state.entities.userReducer) || {};
+  const { featuredAds, favorites, categories } = useSelector((state: any) => state.entities.userReducer) || {};
   const safeFeatured = Array.isArray(featuredAds) ? featuredAds : [];
   const safeFavorites = Array.isArray(favorites) ? favorites : [];
+  const filterCategories = (Array.isArray(categories) ? categories : []).filter((cat: any) => !isMatrimonyCategoryName(cat?.name));
+  const [showFilters, setShowFilters] = useState(false);
+  const { rows: filteredRows, sections, filters, setFilters, defaults, activeCount } = useListFilters("featured", safeFeatured, { categories: filterCategories });
 
   useEffect(() => {
     dispatch(getFeaturedAdsApi(getFeaturedAdsUrl));
@@ -140,15 +146,21 @@ export default function SeeAllFeaturedScreen() {
 
   return (
     <ThemedView style={[styles.container]}>
-      <ThemeHeader onBackPress={() => router.back()} title="All Featured Ads" />
-      {safeFeatured.length === 0 ? (
+      <ThemeHeader
+        onBackPress={() => router.back()}
+        title="All Featured Ads"
+        rightIcon="options-outline"
+        onRightPress={() => setShowFilters(true)}
+        rightBadge={activeCount}
+      />
+      {filteredRows.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="star-outline" size={64} color={COLORS.gray} />
-          <ThemedText style={styles.emptyText}>No featured ads available</ThemedText>
+          <ThemedText style={styles.emptyText}>{activeCount > 0 ? "No ads match these filters" : "No featured ads available"}</ThemedText>
         </View>
       ) : (
         <FlatList
-          data={safeFeatured}
+          data={filteredRows}
           renderItem={renderFeaturedItem}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContainer}
@@ -156,6 +168,17 @@ export default function SeeAllFeaturedScreen() {
           columnWrapperStyle={styles.columnWrapper}
         />
       )}
+      <FilterSheet
+        visible={showFilters}
+        sections={sections}
+        value={filters}
+        defaultValue={defaults}
+        onClose={() => setShowFilters(false)}
+        onApply={(next) => {
+          setFilters(next);
+          setShowFilters(false);
+        }}
+      />
     </ThemedView>
   );
 }

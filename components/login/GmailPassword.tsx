@@ -126,7 +126,7 @@ export default function GmailPasswordScreen({ onBack }: { onBack: () => void }) 
               </View>
   
               {/* Password field */}
-              <View style={[shared.fieldWrap, { marginBottom: 28 }, password.length > 0 && { borderColor: PURPLE }]}>
+              <View style={[shared.fieldWrap, { marginBottom: 10 }, password.length > 0 && { borderColor: PURPLE }]}>
                 <Ionicons name="lock-closed-outline" size={20} color={COLORS.gray} />
                 <TextInput
                   style={shared.fieldInput}
@@ -142,6 +142,13 @@ export default function GmailPasswordScreen({ onBack }: { onBack: () => void }) 
                 </Pressable>
               </View>
   
+              <Pressable
+                style={{ alignSelf: "flex-end", marginBottom: 20, paddingVertical: 4 }}
+                onPress={() => router.push({ pathname: "/(auth)/forgotPassword" as any, params: { email: email.trim() } })}
+              >
+                <ThemedText style={{ fontSize: 13, fontWeight: "600", color: PURPLE }}>Forgot Password?</ThemedText>
+              </Pressable>
+
               <PrimaryBtn label="Sign In as User" loading={loading} disabled={!isValid} color={PURPLE} onPress={handleLogin} arrow />
   
               <Pressable

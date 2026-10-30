@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
 import { ThemedText } from "@/components/ThemedText";
 import { MatrimonyCard } from "@/components/cards/MatrimonyCard";
+import { MatrimonyPromotion } from "@/components/home/MatrimonyPromotion";
 import { COLORS } from "@/constants/Colors";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 import { getMatrimonyProfilesApi } from "@/constants/functions";
@@ -40,6 +41,7 @@ export const HomeMatrimonyProfiles = ({ onPressSeeAll }: HomeMatrimonyProfilesPr
           </TouchableOpacity>
         )}
       </View>
+      <MatrimonyPromotion />
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}

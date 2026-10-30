@@ -2,6 +2,7 @@ import DatePickerModal from "@/components/inputs/DatePickerModal";
 import ThemeSelect from "@/components/inputs/ThemeSelect";
 import { ThemedText } from "@/components/ThemedText";
 import { COLORS } from "@/constants/Colors";
+import { getCasteCommunitiesByReligionApi } from "@/constants/functions";
 import {
   getActiveMasterItems,
   getMasterLabel,
@@ -10,7 +11,7 @@ import {
   parseDateOfBirth,
 } from "@/constants/matrimony";
 import { Ionicons } from "@expo/vector-icons";
-import { useState, type ComponentProps } from "react";
+import { useEffect, useState, type ComponentProps } from "react";
 import { ActivityIndicator, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 
 type Props = {
@@ -38,6 +39,35 @@ export default function MatrimonyDetailsSection({ masters, isLoading, values, on
   const dateOfBirth = parseDateOfBirth(values.date_of_birth);
   const hobbies = getActiveMasterItems(masters, "hobbies");
   const selectedHobbies: number[] = values.hobbies_interest || [];
+  const religionId = values.religion_id;
+  const [casteCommunities, setCasteCommunities] = useState<any[]>([]);
+  const [casteLoading, setCasteLoading] = useState(false);
+
+  // Castes belong to a religion; the backend rejects a caste from another religion,
+  // so load them per religion instead of using the full master-data list.
+  useEffect(() => {
+    if (!religionId) {
+      setCasteCommunities([]);
+      return;
+    }
+    let cancelled = false;
+    setCasteLoading(true);
+    getCasteCommunitiesByReligionApi(religionId)
+      .then((rows: any[]) => {
+        console.log("caste communities for religion_id", religionId, JSON.stringify(rows, null, 2));
+        if (!cancelled) setCasteCommunities(getActiveMasterItems({ caste_communities: rows }, "caste_communities"));
+      })
+      .catch((error: any) => {
+        console.log(error?.response?.status || error, "caste communities by religion error");
+        if (!cancelled) setCasteCommunities([]);
+      })
+      .finally(() => {
+        if (!cancelled) setCasteLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [religionId]);
 
   const toggleHobby = (id: number) =>
     onChange(
@@ -104,20 +134,32 @@ export default function MatrimonyDetailsSection({ masters, isLoading, values, on
       />
 
       {MATRIMONY_SELECT_FIELDS.map((field) => {
-        const items = getActiveMasterItems(masters, field.master).map((item) => ({
+        const isCaste = field.key === "caste_community_id";
+        const items = (isCaste ? casteCommunities : getActiveMasterItems(masters, field.master)).map((item) => ({
           id: item.id,
           name: getMasterLabel(item),
         }));
+        const placeholder = isLoading || (isCaste && casteLoading)
+          ? "Loading..."
+          : isCaste && !religionId
+            ? "Select Religion first"
+            : `Select ${field.label}`;
         return (
           <ThemeSelect
             key={field.key}
             label={field.label}
-            placeholder={isLoading ? "Loading..." : `Select ${field.label}`}
+            placeholder={placeholder}
             required
-            disabled={isLoading}
+            disabled={isLoading || (isCaste && (!religionId || casteLoading))}
             value={items.find((item) => item.id === values[field.key]) || null}
             items={items}
-            onSelect={(item) => onChange(field.key, item.id)}
+            onSelect={(item) => {
+              if (field.key === "religion_id" && item.id !== religionId) {
+                onChange("caste_community_id", null);
+              }
+              console.log("matrimony select", field.key, "=", item.id, item.name);
+              onChange(field.key, item.id);
+            }}
             containerStyle={styles.field}
           />
         );

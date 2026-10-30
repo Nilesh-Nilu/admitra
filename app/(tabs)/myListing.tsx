@@ -1,18 +1,21 @@
 import ThemeHeader from "@/components/headers/ThemeHeader";
+import EditPriceModal from "@/components/modals/EditPriceModal";
 import MatrimonyRenewPlanModal, { isMatrimonyProfileExpired } from "@/components/modals/MatrimonyRenewPlanModal";
 import { isBannerWebsiteLinkVerified } from "@/components/post/postUtils";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import AppToast from "@/components/toasts/AppToast";
 import { COLORS } from "@/constants/Colors";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
-import { favoritesUrl, getMyBannerAdsUrl, getMyFeaturedAdsUrl, getMatrimonyPaymentHistoryApi, getMyMatrimonyProfilesApi, getMyProductsUrl, ImageUrl } from "@/constants/functions";
+import { createConversationApi, deleteMyAdApi, favoritesUrl, getApiErrorMessage, getMyBannerAdsUrl, getMyFeaturedAdsUrl, getMatrimonyPaymentHistoryApi, getMyMatrimonyProfilesApi, getMyProductsUrl, ImageUrl, removeFromFavoritesApi, updateMyAdPriceApi } from "@/constants/functions";
 import { getProfileAge, getProfileMasterName, getProfilePhoto } from "@/constants/matrimony";
-import { getFavoritesApi, getMyBannerAdsApi, getMyFeaturedAdsApi, getMyProductsApi } from "@/store/reducers/userReducer";
+import { addFavoriteItem, getFavoritesApi, getMyBannerAdsApi, getMyFeaturedAdsApi, getMyProductsApi, removeFavoriteById } from "@/store/reducers/userReducer";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
+  Alert,
   Dimensions,
   FlatList,
   Image,
@@ -108,7 +111,7 @@ export default function MyListingsScreen() {
   const filteredProducts = isFavoritesTab
     ? safeFavorites
       .filter((fav: any) => fav?.product != null)
-      .map((fav: any) => ({ ...fav.product, _favoritedAt: fav.favorited_at }))
+      .map((fav: any) => ({ ...fav.product, _favoritedAt: fav.favorited_at, _favoriteRecord: fav }))
     : safeProducts.filter((p: any) => {
       const type = getProductType(p);
       if (selectedFilter === 'pending') return p.approve === 'pending';
@@ -136,6 +139,151 @@ export default function MyListingsScreen() {
     setModalVisible(false);
     setSelectedItem(null);
   };
+
+  // ── Edit price / delete ──
+  type AdKind = "normal" | "featured" | "banner" | "matrimony";
+  const [editingAd, setEditingAd] = useState<{ kind: AdKind; id: number; price: any; title: string } | null>(null);
+  const [savingPrice, setSavingPrice] = useState(false);
+  const [chatLoadingId, setChatLoadingId] = useState<number | null>(null);
+
+  const getAdKind = (product: any): AdKind => {
+    const type = getProductType(product);
+    return type === "featured" || type === "banner" ? (type as AdKind) : "normal";
+  };
+
+  const refreshMyAds = () => {
+    dispatch(getMyFeaturedAdsApi(`${getMyFeaturedAdsUrl}`));
+    dispatch(getMyBannerAdsApi(`${getMyBannerAdsUrl}`));
+    dispatch(getMyProductsApi(`${getMyProductsUrl}`));
+  };
+
+  const handleSavePrice = async (price: number) => {
+    if (!editingAd) return;
+    setSavingPrice(true);
+    try {
+      const res = await updateMyAdPriceApi(editingAd.kind, editingAd.id, price);
+      if (res?.success === false || res?.status === false) {
+        AppToast(res?.message || "Could not update price.");
+        return;
+      }
+      AppToast(res?.message || "Price updated");
+      setEditingAd(null);
+      refreshMyAds();
+    } catch (error) {
+      AppToast(getApiErrorMessage(error, "Could not update price. Please try again."));
+    } finally {
+      setSavingPrice(false);
+    }
+  };
+
+  const confirmDelete = (kind: AdKind, id: number, name?: string) => {
+    Alert.alert(
+      kind === "matrimony" ? "Delete Profile" : "Delete Ad",
+      `Delete "${name || (kind === "matrimony" ? "this profile" : "this ad")}"? This cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const res = await deleteMyAdApi(kind, id);
+              if (res?.success === false || res?.status === false) {
+                AppToast(res?.message || "Could not delete.");
+                return;
+              }
+              AppToast(res?.message || "Deleted successfully");
+              if (kind === "matrimony") loadMyMatrimonyProfiles();
+              else refreshMyAds();
+            } catch (error) {
+              AppToast(getApiErrorMessage(error, "Could not delete. Please try again."));
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const confirmRemoveFavorite = (item: any) => {
+    const record = item?._favoriteRecord;
+    if (!record?.id) return;
+    Alert.alert("Remove Favorite", `Remove "${item.name || "this ad"}" from your favorites?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: async () => {
+          dispatch(removeFavoriteById(record.id));
+          try {
+            await removeFromFavoritesApi(record.id);
+          } catch {
+            dispatch(addFavoriteItem(record));
+            AppToast("Could not remove favorite. Please try again.");
+          }
+        },
+      },
+    ]);
+  };
+
+  const getSellerId = (product: any) => product?.user?.user_id ?? product?.user?.id ?? product?.user_id;
+
+  const handleChatWithSeller = async (product: any) => {
+    const vendorId = getSellerId(product);
+    if (vendorId == null || chatLoadingId != null) return;
+    setChatLoadingId(product.id);
+    try {
+      const response = await createConversationApi({ vendor_id: vendorId, subject: "Product inquiry" });
+      if (response?.id) {
+        router.push({
+          pathname: "/stacks/chatDetail",
+          params: {
+            conversation_id: response.id,
+            receiverId: response.vendor_id,
+            userName: product?.user?.name || "Seller",
+          },
+        });
+      }
+    } catch {
+    } finally {
+      setChatLoadingId(null);
+    }
+  };
+
+  const renderAdActions = (actions: { icon: string; label: string; color: string; onPress: () => void; loading?: boolean }[]) => (
+    <View style={styles.adActionsRow}>
+      {actions.map((action) => (
+        <TouchableOpacity
+          key={action.label}
+          style={[styles.adActionBtn, { borderColor: action.color + "55", backgroundColor: action.color + "12" }]}
+          onPress={(event) => {
+            event.stopPropagation();
+            action.onPress();
+          }}
+          disabled={action.loading}
+          activeOpacity={0.8}
+        >
+          <Ionicons name={action.icon as any} size={14} color={action.color} />
+          <ThemedText style={[styles.adActionText, { color: action.color }]}>
+            {action.loading ? "Please wait..." : action.label}
+          </ThemedText>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+
+  const editPriceAction = (kind: AdKind, id: number, price: any, title: string) => ({
+    icon: "pricetag-outline",
+    label: "Edit Price",
+    color: "#1565C0",
+    onPress: () => setEditingAd({ kind, id, price, title }),
+  });
+
+  const deleteAction = (kind: AdKind, id: number, name?: string) => ({
+    icon: "trash-outline",
+    label: "Delete",
+    color: COLORS.error,
+    onPress: () => confirmDelete(kind, id, name),
+  });
 
   const formatPrice = (price: number) => {
     if (price >= 100000) {
@@ -194,7 +342,11 @@ export default function MyListingsScreen() {
       <TouchableOpacity
         style={styles.listingCard}
         activeOpacity={0.8}
-        onPress={() => openDetailModal(item)}
+        onPress={() =>
+          isFavoritesTab
+            ? router.push({ pathname: "/stacks/productDetails", params: { productData: JSON.stringify(item) } })
+            : openDetailModal(item)
+        }
       >
         {/* Product Image */}
         {firstImage ? (
@@ -239,6 +391,33 @@ export default function MyListingsScreen() {
             {item.description || "No description"}
           </ThemedText>
 
+          {isFavoritesTab && (
+            <View style={styles.favoriteMeta}>
+              {(item.category?.name || item.sub_category?.name) && (
+                <View style={styles.favoriteMetaRow}>
+                  <Ionicons name="folder-outline" size={12} color={COLORS.gray} />
+                  <ThemedText style={styles.favoriteMetaText} numberOfLines={1}>
+                    {[item.category?.name, item.sub_category?.name].filter(Boolean).join(" › ")}
+                  </ThemedText>
+                </View>
+              )}
+              {(item.user?.city?.name || item.user?.state?.name) && (
+                <View style={styles.favoriteMetaRow}>
+                  <Ionicons name="location-outline" size={12} color={COLORS.gray} />
+                  <ThemedText style={styles.favoriteMetaText} numberOfLines={1}>
+                    {[item.user?.city?.name, item.user?.state?.name].filter(Boolean).join(", ")}
+                  </ThemedText>
+                </View>
+              )}
+              {!!item.user?.name && (
+                <View style={styles.favoriteMetaRow}>
+                  <Ionicons name="person-outline" size={12} color={COLORS.gray} />
+                  <ThemedText style={styles.favoriteMetaText} numberOfLines={1}>{item.user.name}</ThemedText>
+                </View>
+              )}
+            </View>
+          )}
+
           <View style={styles.listingFooter}>
             <ThemedText style={styles.listingPrice}>{formatPrice(item.price)}</ThemedText>
             <View style={styles.listingDate}>
@@ -268,6 +447,24 @@ export default function MyListingsScreen() {
               <ThemedText style={styles.renewButtonText}>Renew Ad</ThemedText>
             </TouchableOpacity>
           )}
+
+          {isFavoritesTab
+            ? renderAdActions([
+                ...(getSellerId(item) != null && Number(getSellerId(item)) !== Number(currentUserId)
+                  ? [{
+                      icon: "chatbubble-ellipses-outline",
+                      label: "Chat",
+                      color: "#7C3AED",
+                      loading: chatLoadingId === item.id,
+                      onPress: () => handleChatWithSeller(item),
+                    }]
+                  : []),
+                { icon: "heart-dislike-outline", label: "Remove", color: COLORS.error, onPress: () => confirmRemoveFavorite(item) },
+              ])
+            : renderAdActions([
+                editPriceAction(getAdKind(item), item.id, item.price, item.name),
+                deleteAction(getAdKind(item), item.id, item.name),
+              ])}
         </View>
       </TouchableOpacity>
     );
@@ -353,6 +550,9 @@ export default function MyListingsScreen() {
               <ThemedText style={styles.renewButtonText}>Renew Plan</ThemedText>
             </TouchableOpacity>
           )}
+
+          {/* Matrimony profiles have no price, so only Delete applies. */}
+          {renderAdActions([deleteAction("matrimony", item.id, item?.full_name)])}
         </View>
       </TouchableOpacity>
     );
@@ -405,6 +605,11 @@ export default function MyListingsScreen() {
               <ThemedText style={[styles.statusText, { color: statusConfig.color }]}>{statusConfig.label}</ThemedText>
             </View>
           </View>
+
+          {renderAdActions([
+            editPriceAction("featured", item.id, item.price, item.name),
+            deleteAction("featured", item.id, item.name),
+          ])}
         </View>
       </TouchableOpacity>
     );
@@ -475,6 +680,11 @@ export default function MyListingsScreen() {
               </View>
             ) : null}
           </View>
+
+          {renderAdActions([
+            ...(product ? [editPriceAction("banner", item.id, product.price, product.name)] : []),
+            deleteAction("banner", item.id, product?.name),
+          ])}
         </View>
       </View>
     );
@@ -694,6 +904,14 @@ export default function MyListingsScreen() {
 
       {/* Product Detail Modal */}
       {renderDetailModal()}
+      <EditPriceModal
+        visible={!!editingAd}
+        title={editingAd?.title}
+        currentPrice={editingAd?.price}
+        saving={savingPrice}
+        onClose={() => setEditingAd(null)}
+        onSave={handleSavePrice}
+      />
       <MatrimonyRenewPlanModal
         profile={renewingMatrimonyProfile}
         user={currentUser}
@@ -708,6 +926,39 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  adActionsRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 10,
+  },
+  adActionBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  adActionText: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  favoriteMeta: {
+    gap: 3,
+    marginBottom: 4,
+  },
+  favoriteMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  favoriteMetaText: {
+    flex: 1,
+    fontSize: 12,
+    color: COLORS.gray,
   },
   header: {
     flexDirection: "row",

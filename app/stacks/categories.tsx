@@ -4,8 +4,8 @@ import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { Image, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { BackHandler, Image, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useSelector } from "react-redux";
 
 const SIDEBAR_WIDTH = 72;
@@ -37,6 +37,19 @@ export default function CategoriesScreen() {
     }
   }, [safeCategories, selectedCategory]);
 
+  const goBack = useCallback(() => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)");
+  }, [router]);
+
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
+      goBack();
+      return true;
+    });
+    return () => backHandler.remove();
+  }, [goBack]);
+
   const selectedCategoryData = safeCategories.find((c: any) => c.id === selectedCategory);
   const filteredSubCategories = safeSubCategories.filter(
     (sc: any) => Number(sc.category_id) === Number(selectedCategory)
@@ -46,7 +59,7 @@ export default function CategoriesScreen() {
     <ThemedView style={styles.container}>
       {/* Header */}
       <ThemeHeader
-        onBackPress={() => router.replace("/(tabs)")}
+        onBackPress={goBack}
         title="Categories"
       />
       <View style={styles.body}>

@@ -1,4 +1,7 @@
+import FilterSheet from "@/components/filters/FilterSheet";
+import { useListFilters } from "@/components/filters/useListFilters";
 import ThemeHeader from "@/components/headers/ThemeHeader";
+import { isMatrimonyCategoryName } from "@/components/post/postUtils";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
@@ -7,7 +10,7 @@ import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 import { addFavoriteItem, getAllProducts, removeFavoriteById } from "@/store/reducers/userReducer";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   BackHandler,
   Dimensions,
@@ -25,7 +28,7 @@ const CARD_WIDTH = (SCREEN_WIDTH - SIZES.padding * 2 - 12) / 2;
 export default function SeeAllFreshScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { products, favorites } = useSelector((state: any) => state.entities.userReducer) || {};
+  const { products, favorites, categories } = useSelector((state: any) => state.entities.userReducer) || {};
   const safeProducts = Array.isArray(products)
     ? products.filter((product: any) => {
         const type = String(product?.product_type || product?.plan_info?.plan_type || "normal").toLowerCase();
@@ -33,6 +36,9 @@ export default function SeeAllFreshScreen() {
       })
     : [];
   const safeFavorites = Array.isArray(favorites) ? favorites : [];
+  const filterCategories = (Array.isArray(categories) ? categories : []).filter((cat: any) => !isMatrimonyCategoryName(cat?.name));
+  const [showFilters, setShowFilters] = useState(false);
+  const { rows: filteredRows, sections, filters, setFilters, defaults, activeCount } = useListFilters("normal", safeProducts, { categories: filterCategories });
 
   useEffect(() => {
     if (safeProducts.length === 0) {
@@ -148,15 +154,21 @@ export default function SeeAllFreshScreen() {
 
   return (
     <ThemedView style={[styles.container]}>
-      <ThemeHeader onBackPress={() => router.back()} title="All Normal Ads" />
-      {safeProducts.length === 0 ? (
+      <ThemeHeader
+        onBackPress={() => router.back()}
+        title="All Normal Ads"
+        rightIcon="options-outline"
+        onRightPress={() => setShowFilters(true)}
+        rightBadge={activeCount}
+      />
+      {filteredRows.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="cube-outline" size={64} color={COLORS.gray} />
-          <ThemedText style={styles.emptyText}>No products available</ThemedText>
+          <ThemedText style={styles.emptyText}>{activeCount > 0 ? "No ads match these filters" : "No products available"}</ThemedText>
         </View>
       ) : (
         <FlatList
-          data={safeProducts}
+          data={filteredRows}
           renderItem={renderProductItem}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContainer}
@@ -164,6 +176,17 @@ export default function SeeAllFreshScreen() {
           columnWrapperStyle={styles.columnWrapper}
         />
       )}
+      <FilterSheet
+        visible={showFilters}
+        sections={sections}
+        value={filters}
+        defaultValue={defaults}
+        onClose={() => setShowFilters(false)}
+        onApply={(next) => {
+          setFilters(next);
+          setShowFilters(false);
+        }}
+      />
     </ThemedView>
   );
 }

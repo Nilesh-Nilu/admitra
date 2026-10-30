@@ -881,6 +881,15 @@ export const getMatrimonyMasterDataApi = async () => {
   return Object.fromEntries(entries);
 };
 
+/** Active caste communities of one religion (GET matrimony/master/caste-communities?religion_id=). */
+export const getCasteCommunitiesByReligionApi = async (religionId) => {
+  const response = await axios.get(
+    `${baseUrl}/matrimony/master/caste-communities?religion_id=${religionId}`,
+    await getAuthToken()
+  );
+  return Array.isArray(response.data?.data) ? response.data.data : [];
+};
+
 export const createMatrimonyProfileApi = async (data) => {
   const authConfig = await getAuthToken();
   const response = await axios.post(`${baseUrl}/${matrimonyProfilesUrl}`, data, {
@@ -978,3 +987,119 @@ export const getMatrimonyPaymentHistoryApi = async () => {
   const response = await axios.get(`${baseUrl}/${matrimonyPaymentHistoryUrl}`, await getAuthToken());
   return response.data?.data ?? null;
 };
+
+// ── New features (23-10-2026 requirements) ─────────────────────────────────
+// Endpoint paths below are agreed placeholders until the backend publishes them;
+// change the path here and every screen follows.
+export const forgotPasswordUrl = "forgot-password"; // POST { email } → sends OTP
+export const resetPasswordUrl = "reset-password"; // POST { email, otp, password, password_confirmation }
+export const changePasswordUrl = "change-password"; // POST { current_password, password, password_confirmation }
+
+// Per-module edit-price / delete for the user's own ads (banner id for banner ads, product id otherwise).
+const MY_AD_ENDPOINTS = {
+  normal: "ads/normal",
+  featured: "ads/featured",
+  banner: "ads/banner",
+};
+export const matrimonyProfileDeleteUrl = "matrimony/profiles"; // DELETE matrimony/profiles/{id}
+
+// Filters for the See All screens: GET <url>?category_id=&min_price=&max_price=&sort_by=&sort_direction=
+export const adFilterUrls = {
+  normal: "ads/normal/filter",
+  featured: "ads/featured/filter",
+  banner: "ads/banner/filter",
+  matrimony: "matrimony/profiles/filter",
+};
+export const matrimonySearchUrl = "matrimony/profiles/search"; // GET ?search=
+export const matrimonyPromotionUrl = "matrimony-promotion/get-all"; // same shape as business-promotion
+export const howToPostAdUrl = "how-to-post-ad/get-all"; // [{ id, title, description, link, link_text, icon, is_active }]
+
+const jsonAuthConfig = async () => {
+  const authConfig = await getAuthToken();
+  return {
+    ...authConfig,
+    headers: { ...(authConfig.headers || {}), accept: "application/json", "Content-Type": "application/json" },
+  };
+};
+
+/** Server message from an axios error, or the fallback. */
+export const getApiErrorMessage = (error, fallback) => {
+  const data = error?.response?.data;
+  const firstFieldError = data?.errors && Object.values(data.errors).flat()[0];
+  return firstFieldError || data?.message || fallback;
+};
+
+export const forgotPasswordApi = async (email) => {
+  const response = await axios.post(`${baseUrl}/${forgotPasswordUrl}`, { email }, {
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+  });
+  return response.data;
+};
+
+export const resetPasswordApi = async (data) => {
+  const response = await axios.post(`${baseUrl}/${resetPasswordUrl}`, data, {
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+  });
+  return response.data;
+};
+
+export const changePasswordApi = async (data) => {
+  const response = await axios.post(`${baseUrl}/${changePasswordUrl}`, data, await jsonAuthConfig());
+  return response.data;
+};
+
+/** type: "normal" | "featured" | "banner" */
+export const updateMyAdPriceApi = async (type, id, price) => {
+  const response = await axios.put(
+    `${baseUrl}/${MY_AD_ENDPOINTS[type] || MY_AD_ENDPOINTS.normal}/${id}/price`,
+    { price },
+    await jsonAuthConfig()
+  );
+  return response.data;
+};
+
+/** type: "normal" | "featured" | "banner" | "matrimony" */
+export const deleteMyAdApi = async (type, id) => {
+  const base = type === "matrimony" ? matrimonyProfileDeleteUrl : MY_AD_ENDPOINTS[type] || MY_AD_ENDPOINTS.normal;
+  const response = await axios.delete(`${baseUrl}/${base}/${id}`, await jsonAuthConfig());
+  return response.data;
+};
+
+/** Rows from a filter endpoint, or null when the endpoint is unavailable (callers then filter locally). */
+export const getFilteredAdsApi = async (module, params) => {
+  try {
+    const response = await axios.get(`${baseUrl}/${adFilterUrls[module]}`, { ...(await getAuthToken()), params });
+    const rows = response.data?.data;
+    if (Array.isArray(rows)) return rows;
+    if (Array.isArray(rows?.data)) return rows.data;
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+/** Matrimony search rows, or null when the endpoint is unavailable. */
+export const searchMatrimonyProfilesApi = async (search) => {
+  try {
+    const response = await axios.get(`${baseUrl}/${matrimonySearchUrl}`, { ...(await getAuthToken()), params: { search } });
+    const rows = response.data?.data;
+    if (Array.isArray(rows)) return rows;
+    if (Array.isArray(rows?.data)) return rows.data;
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+const getActiveList = async (url) => {
+  try {
+    const response = await axios.get(`${baseUrl}/${url}`, await getAuthToken());
+    const rows = Array.isArray(response.data?.data) ? response.data.data : [];
+    return rows.filter((row) => row?.is_active !== false && row?.is_active !== 0 && row?.status !== 0);
+  } catch {
+    return [];
+  }
+};
+
+export const getMatrimonyPromotionApi = () => getActiveList(matrimonyPromotionUrl);
+export const getHowToPostAdApi = () => getActiveList(howToPostAdUrl);

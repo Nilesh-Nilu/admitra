@@ -64,13 +64,18 @@ export default function SearchScreen() {
     }
     setSelectedSubCategory(params.subCategoryId ? parseInt(params.subCategoryId as string) : null);
   }, [params.category, params.categoryId, params.subCategoryId]);
+  // Shared by the header arrow and the device back button.
+  const handleBack = () => {
+    dispatch(getCategoriesApi(getCategoriesUrl));
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)");
+    clearFilters();
+  };
+
   useEffect(() => {
     if (!isFocused) return;
     const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
-      dispatch(getCategoriesApi(getCategoriesUrl));
-      if (router.canGoBack()) router.back();
-      else router.replace("/(tabs)");
-      clearFilters();
+      handleBack();
       return true;
     });
     return () => backHandler.remove();
@@ -337,6 +342,9 @@ export default function SearchScreen() {
     <ThemedView style={styles.container}>
       {/* Search Header */}
       <View style={[styles.searchHeader]}>
+        <TouchableOpacity style={styles.backBtn} onPress={handleBack} hitSlop={6}>
+          <Ionicons name="chevron-back" size={24} color={COLORS.text} />
+        </TouchableOpacity>
         <View style={styles.searchInputContainer}>
           <Ionicons name="search" size={20} color={COLORS.gray} />
           <TextInput

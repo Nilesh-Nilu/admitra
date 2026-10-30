@@ -707,6 +707,7 @@ export function usePostAd() {
       const profilePhoto = images[0] ? await toUploadableImage(images[0]) : "";
       const isPaid = Boolean(paymentData?.razorpay_payment_id);
       const saveProfile = isPaid ? verifyMatrimonyPaymentAndSaveApi : createMatrimonyProfileApi;
+      console.log("matrimony submit religion_id", matrimonyDetails.religion_id, "caste_community_id", matrimonyDetails.caste_community_id);
       const response = await saveProfile({
         ...(isPaid && {
           plan_id: adType?.id,

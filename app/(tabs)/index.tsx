@@ -341,7 +341,6 @@ export default function HomeScreen() {
   }, [dispatch, getProductsRequestUrl]);
 
   const handleCategoryPress = (categoryId: number | null) => {
-    setSelectedCategory(categoryId);
     if (categoryId !== null) {
       router.push({
         pathname: "/stacks/categories",

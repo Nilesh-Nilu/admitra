@@ -1,4 +1,7 @@
+import FilterSheet from "@/components/filters/FilterSheet";
+import { useListFilters } from "@/components/filters/useListFilters";
 import ThemeHeader from "@/components/headers/ThemeHeader";
+import { isMatrimonyCategoryName } from "@/components/post/postUtils";
 import { getVerifiedBannerWebsiteLink } from "@/components/post/postUtils";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -8,7 +11,7 @@ import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
 import { addFavoriteItem, getBannersApi, removeFavoriteById } from "@/store/reducers/userReducer";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   BackHandler,
@@ -29,9 +32,12 @@ const BANNER_WIDTH = SCREEN_WIDTH - SIZES.padding * 2;
 export default function SeeAllBannersScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { banners, favorites } = useSelector((state: any) => state.entities.userReducer) || {};
+  const { banners, favorites, categories } = useSelector((state: any) => state.entities.userReducer) || {};
   const safeBanners = Array.isArray(banners) ? banners : [];
   const safeFavorites = Array.isArray(favorites) ? favorites : [];
+  const filterCategories = (Array.isArray(categories) ? categories : []).filter((cat: any) => !isMatrimonyCategoryName(cat?.name));
+  const [showFilters, setShowFilters] = useState(false);
+  const { rows: filteredRows, sections, filters, setFilters, defaults, activeCount } = useListFilters("banner", safeBanners, { categories: filterCategories, getProduct: (item: any) => item?.product });
 
   const isFavorited = (item: any) =>
     safeFavorites.some((fav: any) => fav.product?.id === item.product?.id);
@@ -197,20 +203,37 @@ export default function SeeAllBannersScreen() {
 
   return (
     <ThemedView style={[styles.container]}>
-      <ThemeHeader onBackPress={() => router.push("/(tabs)")} title="All Banner Ads" />
-      {safeBanners.length === 0 ? (
+      <ThemeHeader
+        onBackPress={() => router.push("/(tabs)")}
+        title="All Banner Ads"
+        rightIcon="options-outline"
+        onRightPress={() => setShowFilters(true)}
+        rightBadge={activeCount}
+      />
+      {filteredRows.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="images-outline" size={64} color={COLORS.gray} />
-          <ThemedText style={styles.emptyText}>No banners available</ThemedText>
+          <ThemedText style={styles.emptyText}>{activeCount > 0 ? "No ads match these filters" : "No banners available"}</ThemedText>
         </View>
       ) : (
         <FlatList
-          data={safeBanners}
+          data={filteredRows}
           renderItem={renderBannerItem}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContainer}
         />
       )}
+      <FilterSheet
+        visible={showFilters}
+        sections={sections}
+        value={filters}
+        defaultValue={defaults}
+        onClose={() => setShowFilters(false)}
+        onApply={(next) => {
+          setFilters(next);
+          setShowFilters(false);
+        }}
+      />
     </ThemedView>
   );
 }
