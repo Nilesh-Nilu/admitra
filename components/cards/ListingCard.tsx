@@ -1,3 +1,5 @@
+import AppToast from "@/components/toasts/AppToast";
+import ReportButton from "@/components/buttons/ReportButton";
 import React from "react";
 import { Dimensions, Image, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -54,8 +56,11 @@ export const ListingCard = ({ item }: ListingCardProps) => {
       try {
         const res = await addToFavoritesApi(item.id);
         dispatch(removeFavoriteById(`temp_${item.id}`));
-        if (res?.data) dispatch(addFavoriteItem(res.data));
-      } catch { dispatch(removeFavoriteById(`temp_${item.id}`)); }
+        dispatch(addFavoriteItem({ ...(res?.data || {}), id: res?.data?.id ?? `temp_${item.id}`, product: res?.data?.product ?? item }));
+      } catch (error: any) {
+        dispatch(removeFavoriteById(`temp_${item.id}`));
+        AppToast(error?.response?.data?.message || "Could not save to favorites. Please try again.");
+      }
     }
   };
 
@@ -84,6 +89,7 @@ export const ListingCard = ({ item }: ListingCardProps) => {
             <ThemedText style={styles.verifiedText}>Verified</ThemedText>
           </View>
         )}
+        <ReportButton product={item} />
         <TouchableOpacity style={styles.heartBtn} onPress={handleToggleFavorite} activeOpacity={0.8}>
           <Ionicons name={isFavorited ? "heart" : "heart-outline"} size={18} color={isFavorited ? "#E91E63" : COLORS.white} />
         </TouchableOpacity>

@@ -5,15 +5,16 @@ import { useEffect, useMemo, useState } from "react";
 
 type Module = "normal" | "featured" | "banner" | "matrimony";
 
-const SORTS: Record<string, { label: string; sort_by: string; sort_direction: "asc" | "desc" }> = {
-  newest: { label: "Newest First", sort_by: "created_at", sort_direction: "desc" },
-  oldest: { label: "Oldest First", sort_by: "created_at", sort_direction: "asc" },
-  price_asc: { label: "Price: Low to High", sort_by: "price", sort_direction: "asc" },
-  price_desc: { label: "Price: High to Low", sort_by: "price", sort_direction: "desc" },
+// `api` is the ads/products sort_by value (latest | price_asc | price_desc | oldest).
+const SORTS: Record<string, { label: string; api: string; sort_by: string; sort_direction: "asc" | "desc" }> = {
+  newest: { label: "Newest First", api: "latest", sort_by: "created_at", sort_direction: "desc" },
+  oldest: { label: "Oldest First", api: "oldest", sort_by: "created_at", sort_direction: "asc" },
+  price_asc: { label: "Price: Low to High", api: "price_asc", sort_by: "price", sort_direction: "asc" },
+  price_desc: { label: "Price: High to Low", api: "price_desc", sort_by: "price", sort_direction: "desc" },
 };
 
 const AD_DEFAULTS: FilterValues = { categoryId: null, minPrice: "", maxPrice: "", sort: "newest" };
-const MATRIMONY_DEFAULTS: FilterValues = { genderId: null, religionId: null, minAge: "", maxAge: "", sort: "newest" };
+const MATRIMONY_DEFAULTS: FilterValues = { religionId: null, maritalStatusId: null, casteId: null, minAge: "", maxAge: "", sort: "newest" };
 
 const toNumber = (value: any) => (value === "" || value == null ? null : Number(value));
 const time = (value: any) => new Date(value || 0).getTime() || 0;
@@ -26,7 +27,7 @@ type Options = {
   /** Banner rows wrap their listing in `product`; return the listing to filter on. */
   getProduct?: (item: any) => any;
   categories?: any[];
-  masters?: { genders?: any[]; religions?: any[] } | null;
+  masters?: { religions?: any[]; maritalStatuses?: any[]; casteCommunities?: any[] } | null;
 };
 
 /**
@@ -55,8 +56,9 @@ export function useListFilters(module: Module, items: any[], { getProduct = (ite
       ];
       return [
         sortSection,
-        { key: "genderId", title: "Gender", type: "chips", options: chipsFrom(masters?.genders) },
         { key: "religionId", title: "Religion", type: "chips", options: chipsFrom(masters?.religions) },
+        { key: "maritalStatusId", title: "Marital Status", type: "chips", options: chipsFrom(masters?.maritalStatuses) },
+        { key: "casteId", title: "Caste / Community", type: "chips", options: chipsFrom(masters?.casteCommunities) },
         { key: "age", title: "Age (years)", type: "range", minKey: "minAge", maxKey: "maxAge", minPlaceholder: "Min age", maxPlaceholder: "Max age" },
       ];
     }
@@ -80,8 +82,9 @@ export function useListFilters(module: Module, items: any[], { getProduct = (ite
     const sort = SORTS[filters.sort] || SORTS.newest;
     const params: Record<string, any> = isMatrimony
       ? {
-          gender_id: filters.genderId ?? undefined,
           religion_id: filters.religionId ?? undefined,
+          marital_status_id: filters.maritalStatusId ?? undefined,
+          caste_community_id: filters.casteId ?? undefined,
           min_age: toNumber(filters.minAge) ?? undefined,
           max_age: toNumber(filters.maxAge) ?? undefined,
           sort_by: sort.sort_by,
@@ -91,8 +94,7 @@ export function useListFilters(module: Module, items: any[], { getProduct = (ite
           category_id: filters.categoryId ?? undefined,
           min_price: toNumber(filters.minPrice) ?? undefined,
           max_price: toNumber(filters.maxPrice) ?? undefined,
-          sort_by: sort.sort_by,
-          sort_direction: sort.sort_direction,
+          sort_by: sort.api,
         };
     let cancelled = false;
     getFilteredAdsApi(module, params).then((rows: any[] | null) => {
@@ -104,13 +106,15 @@ export function useListFilters(module: Module, items: any[], { getProduct = (ite
   }, [module, isMatrimony, filters, activeCount]);
 
   const localRows = useMemo(() => {
-    let rows = [...(items || [])];
+    // Server rows (when present) are re-checked locally so filters the endpoint ignores still apply.
+    let rows = [...(serverRows ?? items ?? [])];
     if (isMatrimony) {
       const minAge = toNumber(filters.minAge);
       const maxAge = toNumber(filters.maxAge);
       const idOf = (row: any, relation: string) => row?.[`${relation}_id`] ?? row?.[relation]?.id;
-      if (filters.genderId != null) rows = rows.filter((row) => Number(idOf(row, "gender")) === Number(filters.genderId));
       if (filters.religionId != null) rows = rows.filter((row) => Number(idOf(row, "religion")) === Number(filters.religionId));
+      if (filters.maritalStatusId != null) rows = rows.filter((row) => Number(idOf(row, "marital_status")) === Number(filters.maritalStatusId));
+      if (filters.casteId != null) rows = rows.filter((row) => Number(idOf(row, "caste_community")) === Number(filters.casteId));
       if (minAge != null || maxAge != null) {
         rows = rows.filter((row) => {
           const age = getProfileAge(row);
@@ -135,7 +139,7 @@ export function useListFilters(module: Module, items: any[], { getProduct = (ite
     return rows;
     // getProduct is a stable accessor per screen
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, filters, isMatrimony]);
+  }, [items, serverRows, filters, isMatrimony]);
 
   return {
     filters,
@@ -143,6 +147,6 @@ export function useListFilters(module: Module, items: any[], { getProduct = (ite
     defaults,
     sections,
     activeCount,
-    rows: serverRows ?? localRows,
+    rows: localRows,
   };
 }

@@ -1,3 +1,4 @@
+import ReportButton from "@/components/buttons/ReportButton";
 import ReportModal from "@/components/modals/ReportModal";
 import ImageZoomModal from "@/components/modals/ImageZoomModal";
 import { ThemedText } from "@/components/ThemedText";
@@ -334,6 +335,7 @@ export default function ProductDetailsScreen() {
               <ThemedText style={styles.typeBadgeText}>Normal</ThemedText>
             </View>
           )}
+          <ReportButton product={product} />
           {/* Favorite pill */}
           <TouchableOpacity
             style={styles.favPill}
@@ -535,6 +537,8 @@ export default function ProductDetailsScreen() {
         onClose={() => { if (!isReportingUser) setReportUserModalVisible(false); }}
         onSubmit={handleReportUser}
         isSubmitting={isReportingUser}
+        title="Report User"
+        subtitle="Tell us why you are reporting this user."
       />
     </ThemedView>
   );

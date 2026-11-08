@@ -113,8 +113,8 @@ export function usePostAd() {
     : isMatrimony && matrimonyPlans?.length
     ? matrimonyPlans
     : (plans || []).filter((plan: any) => isMatrimonyPlanType(plan) === isMatrimony);
-  // All posts take a single photo.
-  const maxImages = 1;
+  // Banner and Matrimony posts take a single photo; Normal and Featured take up to 4.
+  const maxImages = isBannerPlan || isMatrimony ? 1 : 4;
   // Trial access is evaluated before the selected product plan.
   // Free verify-and-store (no Razorpay): always send plan_id, the API requires it.
   const hasFreeTrialAccess = isFreeTrial || user?.free_trial_enabled === true;
@@ -230,7 +230,7 @@ export function usePostAd() {
         "Maximum Images",
         isBannerPlan
           ? "Banner ads allow only 1 photo"
-          : "You can only upload 1 photo"
+          : `You can upload up to ${maxImages} photo${maxImages === 1 ? "" : "s"}`
       );
       return;
     }
@@ -345,7 +345,7 @@ export function usePostAd() {
         "Maximum Images",
         isBannerPlan
           ? "Banner ads allow only 1 photo"
-          : "You can only upload 1 photo"
+          : `You can upload up to ${maxImages} photo${maxImages === 1 ? "" : "s"}`
       );
       return;
     }

@@ -1,8 +1,11 @@
 import ThemeHeader from "@/components/headers/ThemeHeader";
+import ImageZoomModal from "@/components/modals/ImageZoomModal";
+import ReportModal from "@/components/modals/ReportModal";
+import AppToast from "@/components/toasts/AppToast";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
-import { createConversationApi, getMatrimonyProfileByIdApi, ImageUrl } from "@/constants/functions";
+import { createConversationApi, getMatrimonyProfileByIdApi, ImageUrl, reportMatrimonyProfileApi, reportUserApi } from "@/constants/functions";
 import { getProfileAge, getProfileMasterName, getProfilePhoto } from "@/constants/matrimony";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -48,6 +51,11 @@ export default function MatrimonyProfileDetailsScreen() {
   const { user: currentUser } = useSelector((state: any) => state.entities.authReducer) || {};
   const [profile, setProfile] = useState<any>(() => parseProfile(profileData));
   const [chatLoading, setChatLoading] = useState(false);
+  const [zoomVisible, setZoomVisible] = useState(false);
+  const [reportVisible, setReportVisible] = useState(false);
+  const [reportTarget, setReportTarget] = useState<"ad" | "user">("user");
+  const [reportReason, setReportReason] = useState("");
+  const [reporting, setReporting] = useState(false);
 
   useEffect(() => {
     const listProfile = parseProfile(profileData);
@@ -73,6 +81,34 @@ export default function MatrimonyProfileDetailsScreen() {
   const currentUserId = currentUser?.id ?? currentUser?.user_id;
   const isOwnProfile = memberId != null && currentUserId != null && Number(memberId) === Number(currentUserId);
   const canChat = memberId != null && !isOwnProfile;
+
+  const isVerified = Number(profile?.user?.is_verify) === 1;
+  const location = [profile?.user?.city?.name, profile?.user?.state?.name].filter(Boolean).join(", ");
+  const postedBy = profile?.user?.name;
+
+  const handleReportUser = async () => {
+    const reason = reportReason.trim();
+    if (!reason) {
+      Alert.alert("Reason required", `Please enter a reason to report this ${reportTarget === "ad" ? "profile" : "user"}.`);
+      return;
+    }
+    if (reportTarget === "user" && memberId == null) return;
+    if (reportTarget === "ad" && profile?.id == null) return;
+    try {
+      setReporting(true);
+      const response =
+        reportTarget === "ad"
+          ? await reportMatrimonyProfileApi({ matrimony_profile_id: Number(profile.id), reason })
+          : await reportUserApi({ reported_user_id: Number(memberId), reason });
+      AppToast(response?.message || "User reported successfully");
+      setReportVisible(false);
+      setReportReason("");
+    } catch {
+      AppToast(`Failed to report this ${reportTarget === "ad" ? "profile" : "user"}. Please try again.`);
+    } finally {
+      setReporting(false);
+    }
+  };
 
   const handleChat = async () => {
     if (chatLoading) return;
@@ -110,14 +146,33 @@ export default function MatrimonyProfileDetailsScreen() {
       ) : (
         <ScrollView contentContainerStyle={[styles.content, canChat && { paddingBottom: 100 + insets.bottom }]}>
           <View style={styles.card}>
-            <View style={styles.photoBox}>
+            <TouchableOpacity
+              style={styles.photoBox}
+              activeOpacity={photo ? 0.9 : 1}
+              onPress={() => photo && setZoomVisible(true)}
+            >
               {photo ? (
                 <Image source={{ uri: photo }} style={styles.photo} />
               ) : (
                 <Ionicons name="person" size={96} color="#CBD5E1" />
               )}
+              {!!photo && (
+                <View style={styles.zoomHint}>
+                  <Ionicons name="expand-outline" size={16} color={COLORS.white} />
+                </View>
+              )}
+            </TouchableOpacity>
+            <View style={styles.nameRow}>
+              <ThemedText style={styles.name}>{profile.full_name}</ThemedText>
+              {isVerified && <Ionicons name="checkmark-circle" size={20} color="#16A34A" />}
             </View>
-            <ThemedText style={styles.name}>{profile.full_name}</ThemedText>
+            {!!location && (
+              <View style={styles.nameRow}>
+                <Ionicons name="location-outline" size={14} color={COLORS.gray} />
+                <ThemedText style={styles.muted}>{location}</ThemedText>
+              </View>
+            )}
+            {!!postedBy && <ThemedText style={styles.muted}>Posted by {postedBy}</ThemedText>}
             <ThemedText style={styles.muted}>
               {[age ? `${age} yrs` : "", getProfileMasterName(profile, "height"), getProfileMasterName(profile, "religion")]
                 .filter(Boolean)
@@ -162,6 +217,35 @@ export default function MatrimonyProfileDetailsScreen() {
               </View>
             </View>
           )}
+
+          {canChat && (
+            <View style={styles.reportRow}>
+              <TouchableOpacity
+                style={styles.reportBtn}
+                activeOpacity={0.8}
+                onPress={() => {
+                  setReportTarget("ad");
+                  setReportReason("");
+                  setReportVisible(true);
+                }}
+              >
+                <Ionicons name="flag-outline" size={14} color={COLORS.error} />
+                <ThemedText style={styles.reportText}>Report Ad</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.reportBtn}
+                activeOpacity={0.8}
+                onPress={() => {
+                  setReportTarget("user");
+                  setReportReason("");
+                  setReportVisible(true);
+                }}
+              >
+                <Ionicons name="person-remove-outline" size={14} color={COLORS.error} />
+                <ThemedText style={styles.reportText}>Report User</ThemedText>
+              </TouchableOpacity>
+            </View>
+          )}
         </ScrollView>
       )}
 
@@ -177,6 +261,24 @@ export default function MatrimonyProfileDetailsScreen() {
           </TouchableOpacity>
         </View>
       )}
+      <ImageZoomModal
+        visible={zoomVisible}
+        images={photo ? [{ url: photo }] : []}
+        initialIndex={0}
+        onClose={() => setZoomVisible(false)}
+      />
+      <ReportModal
+        visible={reportVisible}
+        reason={reportReason}
+        onChangeReason={setReportReason}
+        onClose={() => {
+          if (!reporting) setReportVisible(false);
+        }}
+        onSubmit={handleReportUser}
+        isSubmitting={reporting}
+        title={reportTarget === "ad" ? "Report Ad" : "Report User"}
+        subtitle={reportTarget === "ad" ? "Tell us why you are reporting this profile." : "Tell us why you are reporting this user."}
+      />
     </ThemedView>
   );
 }
@@ -197,6 +299,11 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   photo: { width: "100%", height: "100%", resizeMode: "cover" },
+  nameRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  zoomHint: { position: "absolute", right: 8, bottom: 8, backgroundColor: "rgba(0,0,0,0.5)", borderRadius: 14, padding: 6 },
+  reportRow: { flexDirection: "row", justifyContent: "center", gap: 24 },
+  reportBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 10 },
+  reportText: { fontSize: 13, fontWeight: "600", color: COLORS.error },
   name: { fontSize: 20, fontWeight: "700", color: COLORS.text },
   title: { fontSize: 16, fontWeight: "700", color: COLORS.text },
   body: { fontSize: 14, color: COLORS.text, lineHeight: 20 },

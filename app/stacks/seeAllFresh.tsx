@@ -1,3 +1,6 @@
+import AppToast from "@/components/toasts/AppToast";
+import ReportButton from "@/components/buttons/ReportButton";
+import LoadMoreButton, { PAGE_SIZE } from "@/components/buttons/LoadMoreButton";
 import FilterSheet from "@/components/filters/FilterSheet";
 import { useListFilters } from "@/components/filters/useListFilters";
 import ThemeHeader from "@/components/headers/ThemeHeader";
@@ -38,11 +41,12 @@ export default function SeeAllFreshScreen() {
   const safeFavorites = Array.isArray(favorites) ? favorites : [];
   const filterCategories = (Array.isArray(categories) ? categories : []).filter((cat: any) => !isMatrimonyCategoryName(cat?.name));
   const [showFilters, setShowFilters] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const { rows: filteredRows, sections, filters, setFilters, defaults, activeCount } = useListFilters("normal", safeProducts, { categories: filterCategories });
 
   useEffect(() => {
     if (safeProducts.length === 0) {
-      dispatch(getAllProducts(`${getProductsUrl}?per_page=20&page=1`));
+      dispatch(getAllProducts(`${getProductsUrl}?per_page=${PAGE_SIZE}&page=1`));
     }
   }, []);
 
@@ -70,8 +74,11 @@ export default function SeeAllFreshScreen() {
       try {
         const res = await addToFavoritesApi(item.id);
         dispatch(removeFavoriteById(`temp_${item.id}`));
-        if (res?.data) dispatch(addFavoriteItem(res.data));
-      } catch { dispatch(removeFavoriteById(`temp_${item.id}`)); }
+        dispatch(addFavoriteItem({ ...(res?.data || {}), id: res?.data?.id ?? `temp_${item.id}`, product: res?.data?.product ?? item }));
+      } catch (error: any) {
+        dispatch(removeFavoriteById(`temp_${item.id}`));
+        AppToast(error?.response?.data?.message || "Could not save to favorites. Please try again.");
+      }
     }
   };
 
@@ -119,6 +126,7 @@ export default function SeeAllFreshScreen() {
             <ThemedText style={styles.verifiedText}>Verified</ThemedText>
           </View>
         )}
+        <ReportButton product={item} />
         <TouchableOpacity
           style={styles.heartBtn}
           onPress={(e) => handleToggleFavorite(e, item)}
@@ -168,12 +176,13 @@ export default function SeeAllFreshScreen() {
         </View>
       ) : (
         <FlatList
-          data={filteredRows}
+          data={filteredRows.slice(0, visibleCount)}
           renderItem={renderProductItem}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContainer}
           numColumns={2}
           columnWrapperStyle={styles.columnWrapper}
+          ListFooterComponent={visibleCount < filteredRows.length ? <LoadMoreButton onPress={() => setVisibleCount((n) => n + PAGE_SIZE)} /> : null}
         />
       )}
       <FilterSheet

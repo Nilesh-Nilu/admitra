@@ -19,6 +19,7 @@ import {
   Dimensions,
   FlatList,
   Image,
+  Linking,
   Modal,
   RefreshControl,
   ScrollView,
@@ -88,7 +89,7 @@ const getStatusConfig = (status: string) => {
 export default function MyListingsScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { favorites, myFeaturedAds, myBannerAds, myProducts } = useSelector((state: any) => state.entities.userReducer) || {};
+  const { favorites, myFeaturedAds, myBannerAds, myProducts, featuredAds, banners } = useSelector((state: any) => state.entities.userReducer) || {};
   const { user: currentUser } = useSelector((state: any) => state.entities.authReducer) || {};
   const currentUserId = currentUser?.id ?? currentUser?.user_id;
   const [myMatrimonyProfiles, setMyMatrimonyProfiles] = useState<any[]>([]);
@@ -97,6 +98,8 @@ export default function MyListingsScreen() {
   const [renewingMatrimonyProfile, setRenewingMatrimonyProfile] = useState<any>(null);
   const safeProducts = Array.isArray(myProducts) ? myProducts : (myProducts?.data || []);
   const safeFavorites = Array.isArray(favorites) ? favorites : [];
+  const safeFeaturedList = Array.isArray(featuredAds) ? featuredAds : [];
+  const safeBannerList = Array.isArray(banners) ? banners : [];
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('normal');
@@ -111,7 +114,26 @@ export default function MyListingsScreen() {
   const filteredProducts = isFavoritesTab
     ? safeFavorites
       .filter((fav: any) => fav?.product != null)
-      .map((fav: any) => ({ ...fav.product, _favoritedAt: fav.favorited_at, _favoriteRecord: fav }))
+      .map((fav: any) => {
+        const product = fav.product;
+        const hasPlan = product?.product_type || product?.plan_info?.plan_type;
+        // Favourite payloads carry no plan info, so resolve the ad type from the loaded Featured / Banner lists.
+        const bannerRow = hasPlan ? null : safeBannerList.find((b: any) => Number(b?.product?.id) === Number(product?.id));
+        const type = hasPlan
+          ? undefined
+          : bannerRow
+          ? "banner"
+          : safeFeaturedList.some((a: any) => Number(a?.id) === Number(product?.id))
+          ? "featured"
+          : undefined;
+        return {
+          ...product,
+          ...(type && { product_type: type }),
+          ...(bannerRow && { _bannerRow: bannerRow }),
+          _favoritedAt: fav.favorited_at,
+          _favoriteRecord: fav,
+        };
+      })
     : safeProducts.filter((p: any) => {
       const type = getProductType(p);
       if (selectedFilter === 'pending') return p.approve === 'pending';
@@ -344,7 +366,9 @@ export default function MyListingsScreen() {
         activeOpacity={0.8}
         onPress={() =>
           isFavoritesTab
-            ? router.push({ pathname: "/stacks/productDetails", params: { productData: JSON.stringify(item) } })
+            ? item._bannerRow
+              ? router.push({ pathname: "/stacks/bannerDetails", params: { bannerId: String(item._bannerRow.id), bannerData: JSON.stringify(item._bannerRow) } })
+              : router.push({ pathname: "/stacks/productDetails", params: { productData: JSON.stringify(item) } })
             : openDetailModal(item)
         }
       >
@@ -450,6 +474,15 @@ export default function MyListingsScreen() {
 
           {isFavoritesTab
             ? renderAdActions([
+                // Banner and Featured favourites get Call + Chat; Normal gets Chat only.
+                ...(getAdKind(item) !== "normal" && item?.user?.phone && Number(getSellerId(item)) !== Number(currentUserId)
+                  ? [{
+                      icon: "call-outline",
+                      label: "Call",
+                      color: "#16A34A",
+                      onPress: () => Linking.openURL(`tel:${item.user.phone}`).catch(() => AppToast("Could not open the dialer")),
+                    }]
+                  : []),
                 ...(getSellerId(item) != null && Number(getSellerId(item)) !== Number(currentUserId)
                   ? [{
                       icon: "chatbubble-ellipses-outline",
@@ -682,7 +715,7 @@ export default function MyListingsScreen() {
           </View>
 
           {renderAdActions([
-            ...(product ? [editPriceAction("banner", item.id, product.price, product.name)] : []),
+            ...(product ? [editPriceAction("normal", product.id ?? item.product_id, product.price, product.name)] : []),
             deleteAction("banner", item.id, product?.name),
           ])}
         </View>

@@ -1,3 +1,4 @@
+import ReportButton from "@/components/buttons/ReportButton";
 import ReportModal from "@/components/modals/ReportModal";
 import ThemeHeader from "@/components/headers/ThemeHeader";
 import { ThemedText } from "@/components/ThemedText";
@@ -56,7 +57,6 @@ export default function BannerDetailsScreen() {
   const [bannerWarnings, setBannerWarnings] = useState<any[]>([]);
   const [warningContentWidth, setWarningContentWidth] = useState(0);
   const [reportTarget, setReportTarget] = useState<"ad" | "user">("ad");
-
   const favorites = useSelector((state: any) => state.entities.userReducer.favorites);
   const { user: currentUser } = useSelector((state: any) => state.entities.authReducer) || {};
   const product = banner?.product;
@@ -258,6 +258,7 @@ export default function BannerDetailsScreen() {
           <View style={styles.typeBadge}>
             <ThemedText style={styles.typeBadgeText}>Banner</ThemedText>
           </View>
+          <ReportButton product={product} />
           {/* Favorite pill */}
           <TouchableOpacity
             style={styles.favPill}
@@ -329,6 +330,7 @@ export default function BannerDetailsScreen() {
 
         {/* ── CTA Buttons ── */}
         <View style={styles.ctaRow}>
+          {!!getVerifiedBannerWebsiteLink(banner) && (
           <TouchableOpacity
             style={[styles.ctaBtn, styles.ctaBtnWebsite]}
             onPress={() => openUrl(getVerifiedBannerWebsiteLink(banner), "Website link")}
@@ -337,6 +339,7 @@ export default function BannerDetailsScreen() {
             <Ionicons name="globe-outline" size={20} color="#1565C0" />
             <ThemedText style={[styles.ctaBtnText, styles.ctaBtnWebsiteText]}>Visit Website</ThemedText>
           </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             style={[styles.ctaBtn, styles.ctaBtnRed]}
@@ -496,6 +499,8 @@ export default function BannerDetailsScreen() {
         onClose={handleCloseReportModal}
         onSubmit={handleReportProduct}
         isSubmitting={isReporting}
+        title={reportTarget === "user" ? "Report User" : "Report Ad"}
+        subtitle={reportTarget === "user" ? "Tell us why you are reporting this user." : "Tell us why you are reporting this listing."}
       />
       <ImageZoomModal
         visible={zoomModalVisible}

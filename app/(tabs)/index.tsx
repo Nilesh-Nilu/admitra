@@ -1,3 +1,4 @@
+import LoadMoreButton, { PAGE_SIZE } from "@/components/buttons/LoadMoreButton";
 import { BannerCard } from "@/components/cards/BannerCard";
 import { FeaturedCard } from "@/components/cards/FeaturedCard";
 import { ListingCard } from "@/components/cards/ListingCard";
@@ -121,7 +122,7 @@ export default function HomeScreen() {
       return page > 1 ? `${locationUrl}&page=${page}` : locationUrl;
     }
 
-    return `${getProductsUrl}?per_page=20&page=${page}`;
+    return `${getProductsUrl}?per_page=${PAGE_SIZE}&page=${page}`;
   }, [isLocationFilterEnabled, selectedCity?.id, selectedCity?.locationScope, selectedCity?.state_id, selectedLocality?.id]);
   const filteredProducts = selectedCategory
     ? safeProducts.filter((p: any) => p.category_id === selectedCategory)
@@ -361,9 +362,9 @@ export default function HomeScreen() {
     let featuredIndex = 0;
 
     while (productIndex < filteredProducts.length) {
-      // 20 products per chunk (matches per_page)
-      const normalChunk = filteredProducts.slice(productIndex, productIndex + 20);
-      productIndex += 20;
+      // PAGE_SIZE products per chunk (matches per_page)
+      const normalChunk = filteredProducts.slice(productIndex, productIndex + PAGE_SIZE);
+      productIndex += PAGE_SIZE;
 
       // Group products in rows of 2
       for (let i = 0; i < normalChunk.length; i += 2) {
@@ -569,15 +570,10 @@ export default function HomeScreen() {
               )}
             </>
           }
-          onEndReached={loadMoreProducts}
-          onEndReachedThreshold={0.15}
           ListFooterComponent={
             <View style={styles.footerLoader}>
-              {isLoadingMore ? (
-                <>
-                  <ActivityIndicator size="small" color={COLORS.primary} />
-                  <ThemedText style={styles.footerLoaderText}>Loading more...</ThemedText>
-                </>
+              {hasMoreProducts ? (
+                <LoadMoreButton loading={isLoadingMore} onPress={loadMoreProducts} />
               ) : !hasMoreProducts ? (
                 <ThemedText style={styles.footerEndText}>You&apos;re all caught up</ThemedText>
               ) : null}

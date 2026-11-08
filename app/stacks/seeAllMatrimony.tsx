@@ -1,3 +1,4 @@
+import LoadMoreButton, { PAGE_SIZE } from "@/components/buttons/LoadMoreButton";
 import { MatrimonyCard } from "@/components/cards/MatrimonyCard";
 import FilterSheet from "@/components/filters/FilterSheet";
 import { useListFilters } from "@/components/filters/useListFilters";
@@ -46,7 +47,7 @@ export default function SeeAllMatrimonyScreen() {
 
   const loadPage = useCallback(async (page: number) => {
     try {
-      const paginator: any = await getMatrimonyProfilesApi(page, 20);
+      const paginator: any = await getMatrimonyProfilesApi(page, PAGE_SIZE);
       const list = Array.isArray(paginator?.data) ? paginator.data : [];
       setProfiles((prev) => (page === 1 ? list : [...prev, ...list]));
       pageRef.current = page;
@@ -62,8 +63,9 @@ export default function SeeAllMatrimonyScreen() {
     getMatrimonyMasterDataApi()
       .then((data: any) =>
         setMasters({
-          genders: getActiveMasterItems(data, "genders"),
           religions: getActiveMasterItems(data, "religions"),
+          maritalStatuses: getActiveMasterItems(data, "marital_statuses"),
+          casteCommunities: getActiveMasterItems(data, "caste_communities"),
         })
       )
       .catch(() => {});
@@ -166,11 +168,9 @@ export default function SeeAllMatrimonyScreen() {
           keyboardShouldPersistTaps="handled"
           ListHeaderComponent={listHeader}
           renderItem={({ item }) => <MatrimonyCard item={item} width={CARD_WIDTH} />}
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.4}
           ListFooterComponent={
             <>
-              {loadingMore ? <ActivityIndicator color={COLORS.primary} /> : null}
+              {canPage && hasMoreRef.current ? <LoadMoreButton loading={loadingMore} onPress={loadMore} /> : null}
               <HowToPostAdSection placement="matrimony" style={styles.howTo} />
             </>
           }

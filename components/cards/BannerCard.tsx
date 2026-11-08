@@ -1,3 +1,5 @@
+import AppToast from "@/components/toasts/AppToast";
+import ReportButton from "@/components/buttons/ReportButton";
 import React from "react";
 import { getVerifiedBannerWebsiteLink } from "@/components/post/postUtils";
 import {
@@ -56,8 +58,11 @@ export const BannerCard = ({ item, isInline = false }: BannerCardProps) => {
       try {
         const res = await addToFavoritesApi(productId);
         dispatch(removeFavoriteById(`temp_${productId}`));
-        if (res?.data) dispatch(addFavoriteItem(res.data));
-      } catch { dispatch(removeFavoriteById(`temp_${productId}`)); }
+        dispatch(addFavoriteItem({ ...(res?.data || {}), id: res?.data?.id ?? `temp_${productId}`, product: res?.data?.product ?? item.product }));
+      } catch (error: any) {
+        dispatch(removeFavoriteById(`temp_${productId}`));
+        AppToast(error?.response?.data?.message || "Could not save to favorites. Please try again.");
+      }
     }
   };
 
@@ -119,6 +124,7 @@ export const BannerCard = ({ item, isInline = false }: BannerCardProps) => {
             <ThemedText style={styles.verifiedText}>Verified</ThemedText>
           </View>
         )}
+        <ReportButton product={item?.product} />
         <TouchableOpacity style={styles.heartBtn} onPress={handleToggleFavorite} activeOpacity={0.8}>
           <Ionicons name={isFavorited ? "heart" : "heart-outline"} size={20} color={isFavorited ? "#E91E63" : COLORS.white} />
         </TouchableOpacity>
@@ -146,6 +152,7 @@ export const BannerCard = ({ item, isInline = false }: BannerCardProps) => {
           )}
         </View>
         <View style={styles.btnRow}>
+          {!!getVerifiedBannerWebsiteLink(item) && (
           <TouchableOpacity
               style={styles.bannerBtnLeft}
               activeOpacity={0.8}
@@ -157,6 +164,7 @@ export const BannerCard = ({ item, isInline = false }: BannerCardProps) => {
               <Ionicons name="globe-outline" size={16} color="#1565C0" />
               <ThemedText style={styles.bannerBtnLeftText}>Visit Website</ThemedText>
             </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={styles.bannerBtnRight}
             activeOpacity={0.8}

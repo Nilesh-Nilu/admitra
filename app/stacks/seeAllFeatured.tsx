@@ -1,3 +1,6 @@
+import AppToast from "@/components/toasts/AppToast";
+import ReportButton from "@/components/buttons/ReportButton";
+import LoadMoreButton, { PAGE_SIZE } from "@/components/buttons/LoadMoreButton";
 import FilterSheet from "@/components/filters/FilterSheet";
 import { useListFilters } from "@/components/filters/useListFilters";
 import ThemeHeader from "@/components/headers/ThemeHeader";
@@ -33,6 +36,7 @@ export default function SeeAllFeaturedScreen() {
   const safeFavorites = Array.isArray(favorites) ? favorites : [];
   const filterCategories = (Array.isArray(categories) ? categories : []).filter((cat: any) => !isMatrimonyCategoryName(cat?.name));
   const [showFilters, setShowFilters] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const { rows: filteredRows, sections, filters, setFilters, defaults, activeCount } = useListFilters("featured", safeFeatured, { categories: filterCategories });
 
   useEffect(() => {
@@ -63,8 +67,11 @@ export default function SeeAllFeaturedScreen() {
       try {
         const res = await addToFavoritesApi(item.id);
         dispatch(removeFavoriteById(`temp_${item.id}`));
-        if (res?.data) dispatch(addFavoriteItem(res.data));
-      } catch { dispatch(removeFavoriteById(`temp_${item.id}`)); }
+        dispatch(addFavoriteItem({ ...(res?.data || {}), id: res?.data?.id ?? `temp_${item.id}`, product: res?.data?.product ?? item }));
+      } catch (error: any) {
+        dispatch(removeFavoriteById(`temp_${item.id}`));
+        AppToast(error?.response?.data?.message || "Could not save to favorites. Please try again.");
+      }
     }
   };
 
@@ -108,6 +115,7 @@ export default function SeeAllFeaturedScreen() {
         <View style={styles.featuredBadge}>
           <ThemedText style={styles.featuredBadgeText}>Featured</ThemedText>
         </View>
+        <ReportButton product={item} />
         <TouchableOpacity
           style={styles.heartBtn}
           onPress={(e) => handleToggleFavorite(e, item)}
@@ -160,12 +168,13 @@ export default function SeeAllFeaturedScreen() {
         </View>
       ) : (
         <FlatList
-          data={filteredRows}
+          data={filteredRows.slice(0, visibleCount)}
           renderItem={renderFeaturedItem}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContainer}
           numColumns={2}
           columnWrapperStyle={styles.columnWrapper}
+           ListFooterComponent={visibleCount < filteredRows.length ? <LoadMoreButton onPress={() => setVisibleCount((n) => n + PAGE_SIZE)} /> : null}
         />
       )}
       <FilterSheet

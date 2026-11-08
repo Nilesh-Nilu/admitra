@@ -90,7 +90,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="post"
           options={{
-            title: 'Sell',
+            title: 'Create Ad',
             tabBarIcon: ({ focused }) => (
               <View style={styles.postButtonWrapper}>
                 <View style={styles.postButtonOuter}>

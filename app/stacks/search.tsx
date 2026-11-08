@@ -100,12 +100,15 @@ export default function SearchScreen() {
       .filter((banner: any) => banner?.product?.id)
       .map((banner: any) => ({
         ...banner.product,
+        product_type: "banner",
+        _bannerRow: banner,
         images: banner.product.images?.length
           ? banner.product.images
           : [{ image: banner.banner_image }],
       }));
+    const featuredProducts = safeFeaturedAds.map((ad: any) => ({ ...ad, product_type: "featured" }));
     const seenIds = new Set<number>();
-    let filtered = [...safeProducts, ...safeFeaturedAds, ...bannerProducts].filter((item: any) => {
+    let filtered = [...bannerProducts, ...featuredProducts, ...safeProducts].filter((item: any) => {
       const id = Number(item?.id);
       if (!id || seenIds.has(id)) return false;
       seenIds.add(id);
@@ -179,10 +182,17 @@ export default function SearchScreen() {
     <TouchableOpacity
       style={styles.listingCard}
       activeOpacity={0.9}
-      onPress={() => router.push({
-        pathname: "/stacks/productDetails",
-        params: { productData: JSON.stringify(item) }
-      })}
+      onPress={() =>
+        item._bannerRow
+          ? router.push({
+              pathname: "/stacks/bannerDetails",
+              params: { bannerId: String(item._bannerRow.id), bannerData: JSON.stringify(item._bannerRow) },
+            })
+          : router.push({
+              pathname: "/stacks/productDetails",
+              params: { productData: JSON.stringify(item) },
+            })
+      }
     >
       <View style={styles.listingImageContainer}>
         <Image

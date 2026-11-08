@@ -597,6 +597,12 @@ export const getPolicyApi = async () => {
   }
 }
 
+/** POST matrimony/profile/report — { matrimony_profile_id, reason } */
+export const reportMatrimonyProfileApi = async (data) => {
+  const response = await axios.post(`${baseUrl}/matrimony/profile/report`, data, await getAuthToken());
+  return response.data;
+};
+
 export const reportUserApi = async (data) => {
   try {
     const response = await axios.post(
@@ -899,12 +905,23 @@ export const createMatrimonyProfileApi = async (data) => {
   return response.data;
 };
 
-/** Paginated matrimony profiles: resolves to the paginator ({ data, current_page, last_page, ... }). */
-export const getMatrimonyProfilesApi = async (page = 1, perPage = 20) => {
-  const response = await axios.get(
-    `${baseUrl}/${matrimonyProfilesUrl}?page=${page}&per_page=${perPage}&sort_by=created_at&sort_direction=desc`,
-    await getAuthToken()
-  );
+/**
+ * Paginated matrimony profiles of the opposite gender (GET matrimony/profiles/opposite-gender).
+ * `filters` may carry religion_id, marital_status_id, caste_community_id, product_category_id,
+ * mother_tongue, city_id, name, city, search, sort_by, sort_direction.
+ * Falls back to the public list when the user has no matrimony profile yet.
+ * Resolves to the paginator ({ data, current_page, last_page, ... }).
+ */
+export const getMatrimonyProfilesApi = async (page = 1, perPage = 20, filters = {}) => {
+  const authConfig = await getAuthToken();
+  const params = { sort_by: "created_at", sort_direction: "desc", ...filters, page, per_page: perPage };
+  try {
+    const response = await axios.get(`${baseUrl}/${matrimonyOppositeGenderUrl}`, { ...authConfig, params });
+    const body = response.data?.data;
+    if (body && (Array.isArray(body) || Array.isArray(body.data))) return Array.isArray(body) ? { data: body } : body;
+  } catch (error) {
+  }
+  const response = await axios.get(`${baseUrl}/${matrimonyProfilesUrl}`, { ...authConfig, params });
   return response.data?.data || { data: [] };
 };
 
@@ -1005,14 +1022,15 @@ export const matrimonyProfileDeleteUrl = "matrimony/profiles"; // DELETE matrimo
 
 // Filters for the See All screens: GET <url>?category_id=&min_price=&max_price=&sort_by=&sort_direction=
 export const adFilterUrls = {
-  normal: "ads/normal/filter",
-  featured: "ads/featured/filter",
-  banner: "ads/banner/filter",
-  matrimony: "matrimony/profiles/filter",
+  normal: "products", // GET ?per_page&page&category_id&sub_category_id&child_category_id&min_price&max_price&sort_by(latest|price_asc|price_desc|oldest)
+  featured: "ads/featured",
+  banner: "ads/banner",
+  matrimony: "matrimony/profiles/opposite-gender",
 };
+export const matrimonyOppositeGenderUrl = "matrimony/profiles/opposite-gender";
 export const matrimonySearchUrl = "matrimony/profiles/search"; // GET ?search=
 export const matrimonyPromotionUrl = "matrimony-promotion/get-all"; // same shape as business-promotion
-export const howToPostAdUrl = "how-to-post-ad/get-all"; // [{ id, title, description, link, link_text, icon, is_active }]
+export const howToPostAdUrl = "how-to-post-ads"; // [{ id, title, description, link, link_text, icon, is_active }]
 
 const jsonAuthConfig = async () => {
   const authConfig = await getAuthToken();
@@ -1048,13 +1066,65 @@ export const changePasswordApi = async (data) => {
   return response.data;
 };
 
-/** type: "normal" | "featured" | "banner" */
+/** PUT products/{id} — JSON body (images as base64 strings when present). */
+export const updateProductApi = async (id, data) => {
+  const response = await axios.put(`${baseUrl}/products/${id}`, data, await jsonAuthConfig());
+  return response.data;
+};
+
+/** POST ads/featured/{id} — { name, description, price, condition, price_negotiable }. */
+export const updateFeaturedAdApi = async (id, data) => {
+  const response = await axios.post(`${baseUrl}/ads/featured/${id}`, data, await jsonAuthConfig());
+  return response.data;
+};
+
+/**
+ * POST ads/banner/{id} — id is the ProductPlan (banner) id.
+ * data: { banner_image?: { uri, name?, type? }, banner_video_url?, website_link? }
+ * Sent as multipart with _method=PUT (required by the backend for image upload).
+ */
+export const updateBannerAdApi = async (id, data = {}) => {
+  const form = new FormData();
+  form.append("_method", "PUT");
+  if (data.banner_video_url != null) form.append("banner_video_url", data.banner_video_url);
+  if (data.website_link != null) form.append("website_link", data.website_link);
+  if (data.banner_image?.uri) {
+    form.append("banner_image", {
+      uri: data.banner_image.uri,
+      name: data.banner_image.name || "banner.jpg",
+      type: data.banner_image.type || "image/jpeg",
+    });
+  }
+  const authConfig = await getAuthToken();
+  const response = await axios.post(`${baseUrl}/ads/banner/${id}`, form, {
+    ...authConfig,
+    headers: { ...(authConfig.headers || {}), Accept: "application/json", "Content-Type": "multipart/form-data" },
+  });
+  return response.data;
+};
+
+/** type: "normal" | "featured" — banner ads have no price field. */
 export const updateMyAdPriceApi = async (type, id, price) => {
-  const response = await axios.put(
-    `${baseUrl}/${MY_AD_ENDPOINTS[type] || MY_AD_ENDPOINTS.normal}/${id}/price`,
-    { price },
-    await jsonAuthConfig()
-  );
+  if (type === "featured") return updateFeaturedAdApi(id, { price });
+  if (type === "banner") throw new Error("Banner ads do not have a price.");
+  return updateProductApi(id, { price });
+};
+
+// Matrimony Promotion CRUD (get-all is used by getMatrimonyPromotionApi above).
+export const addMatrimonyPromotionApi = async (data) => {
+  const response = await axios.post(`${baseUrl}/matrimony-promotion/add`, data, await jsonAuthConfig());
+  return response.data;
+};
+export const getMatrimonyPromotionByIdApi = async (id) => {
+  const response = await axios.get(`${baseUrl}/matrimony-promotion/get/${id}`, await jsonAuthConfig());
+  return response.data;
+};
+export const updateMatrimonyPromotionApi = async (id, data) => {
+  const response = await axios.post(`${baseUrl}/matrimony-promotion/update/${id}`, data, await jsonAuthConfig());
+  return response.data;
+};
+export const deleteMatrimonyPromotionApi = async (id) => {
+  const response = await axios.delete(`${baseUrl}/matrimony-promotion/delete/${id}`, await jsonAuthConfig());
   return response.data;
 };
 
@@ -1068,7 +1138,7 @@ export const deleteMyAdApi = async (type, id) => {
 /** Rows from a filter endpoint, or null when the endpoint is unavailable (callers then filter locally). */
 export const getFilteredAdsApi = async (module, params) => {
   try {
-    const response = await axios.get(`${baseUrl}/${adFilterUrls[module]}`, { ...(await getAuthToken()), params });
+    const response = await axios.get(`${baseUrl}/${adFilterUrls[module]}`, { ...(await getAuthToken()), params: { per_page: 100, ...params } });
     const rows = response.data?.data;
     if (Array.isArray(rows)) return rows;
     if (Array.isArray(rows?.data)) return rows.data;
@@ -1081,7 +1151,7 @@ export const getFilteredAdsApi = async (module, params) => {
 /** Matrimony search rows, or null when the endpoint is unavailable. */
 export const searchMatrimonyProfilesApi = async (search) => {
   try {
-    const response = await axios.get(`${baseUrl}/${matrimonySearchUrl}`, { ...(await getAuthToken()), params: { search } });
+    const response = await axios.get(`${baseUrl}/${matrimonyOppositeGenderUrl}`, { ...(await getAuthToken()), params: { search, per_page: 50 } });
     const rows = response.data?.data;
     if (Array.isArray(rows)) return rows;
     if (Array.isArray(rows?.data)) return rows.data;
@@ -1103,3 +1173,21 @@ const getActiveList = async (url) => {
 
 export const getMatrimonyPromotionApi = () => getActiveList(matrimonyPromotionUrl);
 export const getHowToPostAdApi = () => getActiveList(howToPostAdUrl);
+
+// How-to-post-ad content management: POST/PUT/DELETE how-to-post-ads[/{id}]
+export const getHowToPostAdByIdApi = async (id) => {
+  const response = await axios.get(`${baseUrl}/${howToPostAdUrl}/${id}`, await jsonAuthConfig());
+  return response.data;
+};
+export const createHowToPostAdApi = async (data) => {
+  const response = await axios.post(`${baseUrl}/${howToPostAdUrl}`, data, await jsonAuthConfig());
+  return response.data;
+};
+export const updateHowToPostAdApi = async (id, data) => {
+  const response = await axios.put(`${baseUrl}/${howToPostAdUrl}/${id}`, data, await jsonAuthConfig());
+  return response.data;
+};
+export const deleteHowToPostAdApi = async (id) => {
+  const response = await axios.delete(`${baseUrl}/${howToPostAdUrl}/${id}`, await jsonAuthConfig());
+  return response.data;
+};

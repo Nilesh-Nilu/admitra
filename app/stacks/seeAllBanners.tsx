@@ -1,3 +1,6 @@
+import AppToast from "@/components/toasts/AppToast";
+import ReportButton from "@/components/buttons/ReportButton";
+import LoadMoreButton, { PAGE_SIZE } from "@/components/buttons/LoadMoreButton";
 import FilterSheet from "@/components/filters/FilterSheet";
 import { useListFilters } from "@/components/filters/useListFilters";
 import ThemeHeader from "@/components/headers/ThemeHeader";
@@ -37,6 +40,7 @@ export default function SeeAllBannersScreen() {
   const safeFavorites = Array.isArray(favorites) ? favorites : [];
   const filterCategories = (Array.isArray(categories) ? categories : []).filter((cat: any) => !isMatrimonyCategoryName(cat?.name));
   const [showFilters, setShowFilters] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const { rows: filteredRows, sections, filters, setFilters, defaults, activeCount } = useListFilters("banner", safeBanners, { categories: filterCategories, getProduct: (item: any) => item?.product });
 
   const isFavorited = (item: any) =>
@@ -56,8 +60,11 @@ export default function SeeAllBannersScreen() {
       try {
         const res = await addToFavoritesApi(productId);
         dispatch(removeFavoriteById(`temp_${productId}`));
-        if (res?.data) dispatch(addFavoriteItem(res.data));
-      } catch { dispatch(removeFavoriteById(`temp_${productId}`)); }
+        dispatch(addFavoriteItem({ ...(res?.data || {}), id: res?.data?.id ?? `temp_${productId}`, product: res?.data?.product ?? item.product }));
+      } catch (error: any) {
+        dispatch(removeFavoriteById(`temp_${productId}`));
+        AppToast(error?.response?.data?.message || "Could not save to favorites. Please try again.");
+      }
     }
   };
 
@@ -142,6 +149,7 @@ export default function SeeAllBannersScreen() {
             <ThemedText style={styles.verifiedText}>Verified</ThemedText>
           </View>
         )}
+        <ReportButton product={item?.product} />
         <TouchableOpacity
           style={styles.heartBtn}
           onPress={(e) => handleToggleFavorite(e, item)}
@@ -175,6 +183,7 @@ export default function SeeAllBannersScreen() {
         ) : null}
       </View>
       <View style={styles.bannerActions}>
+        {!!getVerifiedBannerWebsiteLink(item) && (
         <TouchableOpacity
             style={styles.bannerBtnLeft}
             activeOpacity={0.8}
@@ -186,6 +195,7 @@ export default function SeeAllBannersScreen() {
             <Ionicons name="globe-outline" size={16} color="#1565C0" />
             <ThemedText style={styles.bannerBtnLeftText}>Visit Website</ThemedText>
           </TouchableOpacity>
+        )}
         <TouchableOpacity
           style={styles.bannerBtnRight}
           activeOpacity={0.8}
@@ -217,10 +227,11 @@ export default function SeeAllBannersScreen() {
         </View>
       ) : (
         <FlatList
-          data={filteredRows}
+          data={filteredRows.slice(0, visibleCount)}
           renderItem={renderBannerItem}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContainer}
+           ListFooterComponent={visibleCount < filteredRows.length ? <LoadMoreButton onPress={() => setVisibleCount((n) => n + PAGE_SIZE)} /> : null}
         />
       )}
       <FilterSheet
