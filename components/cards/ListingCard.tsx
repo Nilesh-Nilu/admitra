@@ -1,3 +1,4 @@
+import AdIdBadge from "@/components/badges/AdIdBadge";
 import AppToast from "@/components/toasts/AppToast";
 import ReportButton from "@/components/buttons/ReportButton";
 import React from "react";
@@ -89,6 +90,7 @@ export const ListingCard = ({ item }: ListingCardProps) => {
             <ThemedText style={styles.verifiedText}>Verified</ThemedText>
           </View>
         )}
+        <AdIdBadge kind={"normal"} id={item.id} />
         <ReportButton product={item} />
         <TouchableOpacity style={styles.heartBtn} onPress={handleToggleFavorite} activeOpacity={0.8}>
           <Ionicons name={isFavorited ? "heart" : "heart-outline"} size={18} color={isFavorited ? "#E91E63" : COLORS.white} />

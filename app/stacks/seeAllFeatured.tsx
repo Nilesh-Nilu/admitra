@@ -1,3 +1,4 @@
+import AdIdBadge from "@/components/badges/AdIdBadge";
 import AppToast from "@/components/toasts/AppToast";
 import ReportButton from "@/components/buttons/ReportButton";
 import LoadMoreButton, { PAGE_SIZE } from "@/components/buttons/LoadMoreButton";
@@ -115,6 +116,7 @@ export default function SeeAllFeaturedScreen() {
         <View style={styles.featuredBadge}>
           <ThemedText style={styles.featuredBadgeText}>Featured</ThemedText>
         </View>
+        <AdIdBadge kind={"featured"} id={item.id} />
         <ReportButton product={item} />
         <TouchableOpacity
           style={styles.heartBtn}

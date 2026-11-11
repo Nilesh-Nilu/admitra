@@ -4,7 +4,7 @@ import PrimaryBtn from "@/components/login/PrimaryButton";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import AppToast from "@/components/toasts/AppToast";
-import { forgotPasswordApi, getApiErrorMessage, resetPasswordApi } from "@/constants/functions";
+import { forgotPasswordApi, getApiErrorMessage, resetPasswordApi, verifyForgotOtpApi } from "@/constants/functions";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
@@ -14,8 +14,8 @@ const PURPLE = "#7C6FCD";
 const MIN_PASSWORD = 6;
 
 export default function ForgotPasswordScreen() {
-  const params = useLocalSearchParams<{ email?: string }>();
-  const [step, setStep] = useState<"email" | "reset">("email");
+  const params = useLocalSearchParams<{ email?: string; step?: string }>();
+  const [step, setStep] = useState<"email" | "reset">(params.step === "reset" ? "reset" : "email");
   const [email, setEmail] = useState(params.email || "");
   const [otp, setOtp] = useState("");
   const [password, setPassword] = useState("");
@@ -54,11 +54,21 @@ export default function ForgotPasswordScreen() {
     if (!isResetValid) return;
     setLoading(true);
     try {
+      const verified = await verifyForgotOtpApi(email.trim(), otp.trim());
+      if (verified?.success === false) {
+        AppToast(verified?.message || "Invalid OTP. Please try again.");
+        return;
+      }
+      const resetToken = verified?.reset_token ?? verified?.data?.reset_token;
+      if (!resetToken) {
+        AppToast("Could not verify OTP. Please try again.");
+        return;
+      }
       const res = await resetPasswordApi({
         email: email.trim(),
-        otp: otp.trim(),
+        resetToken,
         password,
-        password_confirmation: confirmPassword,
+        passwordConfirmation: confirmPassword,
       });
       if (res?.success === false) {
         AppToast(res?.message || "Could not reset password. Please try again.");

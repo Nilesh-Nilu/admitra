@@ -1,3 +1,4 @@
+import AdIdBadge from "@/components/badges/AdIdBadge";
 import ReportButton from "@/components/buttons/ReportButton";
 import ReportModal from "@/components/modals/ReportModal";
 import ThemeHeader from "@/components/headers/ThemeHeader";
@@ -258,6 +259,7 @@ export default function BannerDetailsScreen() {
           <View style={styles.typeBadge}>
             <ThemedText style={styles.typeBadgeText}>Banner</ThemedText>
           </View>
+          <AdIdBadge kind={"banner"} id={product?.id} />
           <ReportButton product={product} />
           {/* Favorite pill */}
           <TouchableOpacity

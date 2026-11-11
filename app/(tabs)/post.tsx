@@ -7,6 +7,7 @@ import CategorySelectField from "@/components/post/CategorySelectField";
 import ImageUploadSection from "@/components/post/ImageUploadSection";
 import MatrimonyDetailsSection from "@/components/post/MatrimonyDetailsSection";
 import PostSubmitButton from "@/components/post/PostSubmitButton";
+import PostEditNotice from "@/components/post/PostEditNotice";
 import PostWarningNotice from "@/components/post/PostWarningNotice";
 import ProductBasicFields from "@/components/post/ProductBasicFields";
 import RenewalNotice from "@/components/post/RenewalNotice";
@@ -189,6 +190,7 @@ export default function PostScreen() {
             />
           )}
 
+          {!isRenewal && <PostEditNotice />}
           <PostWarningNotice />
 
           <View

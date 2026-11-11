@@ -1,3 +1,4 @@
+import AdIdBadge from "@/components/badges/AdIdBadge";
 import ThemeHeader from "@/components/headers/ThemeHeader";
 import ImageZoomModal from "@/components/modals/ImageZoomModal";
 import ReportModal from "@/components/modals/ReportModal";
@@ -156,6 +157,7 @@ export default function MatrimonyProfileDetailsScreen() {
               ) : (
                 <Ionicons name="person" size={96} color="#CBD5E1" />
               )}
+              <AdIdBadge kind="matrimony" id={profile?.id} style={{ left: 8 }} />
               {!!photo && (
                 <View style={styles.zoomHint}>
                   <Ionicons name="expand-outline" size={16} color={COLORS.white} />

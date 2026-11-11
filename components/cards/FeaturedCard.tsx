@@ -1,3 +1,4 @@
+import AdIdBadge from "@/components/badges/AdIdBadge";
 import AppToast from "@/components/toasts/AppToast";
 import ReportButton from "@/components/buttons/ReportButton";
 import React from "react";
@@ -82,7 +83,8 @@ export const FeaturedCard = ({ item, isInline = false }: FeaturedCardProps) => {
         <View style={styles.featuredBadge}>
           <ThemedText style={styles.featuredBadgeText}>Featured</ThemedText>
         </View>
-        <ReportButton product={item} />
+        <AdIdBadge kind={"featured"} id={item.id} style={styles.inlineCornerId} />
+        <ReportButton product={item} style={styles.inlineCornerReport} />
         <TouchableOpacity style={styles.heartBtn} onPress={handleToggleFavorite} activeOpacity={0.8}>
           <Ionicons name={isFavorited ? "heart" : "heart-outline"} size={18} color={isFavorited ? "#E91E63" : COLORS.white} />
         </TouchableOpacity>
@@ -130,7 +132,8 @@ export const FeaturedCard = ({ item, isInline = false }: FeaturedCardProps) => {
       <View style={styles.featuredBadge}>
         <ThemedText style={styles.featuredBadgeText}>Featured</ThemedText>
       </View>
-      <ReportButton product={item} />
+      <AdIdBadge kind={"featured"} id={item.id} style={styles.imageCornerId} />
+      <ReportButton product={item} style={styles.imageCornerReport} />
       <TouchableOpacity style={styles.heartBtn} onPress={handleToggleFavorite} activeOpacity={0.8}>
         <Ionicons name={isFavorited ? "heart" : "heart-outline"} size={18} color={isFavorited ? "#E91E63" : COLORS.white} />
       </TouchableOpacity>
@@ -166,7 +169,13 @@ export const FeaturedCard = ({ item, isInline = false }: FeaturedCardProps) => {
 
 export default FeaturedCard;
 
+const IMAGE_HEIGHT = FEATURED_CARD_WIDTH * 0.75;
+const INLINE_IMAGE_HEIGHT = 130;
+
 const styles = StyleSheet.create({
+  // This layout stacks the image above the info block, so pin the controls to the image's bottom edge.
+  imageCornerReport: { bottom: undefined, top: IMAGE_HEIGHT - 38 },
+  imageCornerId: { bottom: undefined, top: IMAGE_HEIGHT - 34 },
   /* Horizontal card style */
   featuredCard: {
     width: FEATURED_CARD_WIDTH,
@@ -261,9 +270,12 @@ const styles = StyleSheet.create({
     borderColor: "#FFD54F",
     position: "relative",
   },
+  // The inline card stacks a 130px image above the info block, so pin the controls to the image's bottom edge.
+  inlineCornerReport: { bottom: undefined, top: INLINE_IMAGE_HEIGHT - 38 },
+  inlineCornerId: { bottom: undefined, top: INLINE_IMAGE_HEIGHT - 34 },
   inlineFeaturedImage: {
     width: "100%",
-    height: 130,
+    height: INLINE_IMAGE_HEIGHT,
     resizeMode: "cover",
   },
 });

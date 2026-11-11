@@ -1,51 +1,42 @@
 import ThemeHeader from "@/components/headers/ThemeHeader";
-import PasswordField from "@/components/login/PasswordField";
 import PrimaryBtn from "@/components/login/PrimaryButton";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import AppToast from "@/components/toasts/AppToast";
 import { COLORS } from "@/constants/Colors";
-import { changePasswordApi, getApiErrorMessage } from "@/constants/functions";
+import { forgotPasswordApi, getApiErrorMessage } from "@/constants/functions";
 import { router } from "expo-router";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { useSelector } from "react-redux";
 
-const MIN_PASSWORD = 6;
-
+/**
+ * Change password uses the same email OTP flow as Forgot Password: an OTP is sent to the
+ * signed-in user's email, then the new password is set on the next screen.
+ */
 export default function ChangePasswordScreen() {
   const { user } = useSelector((state: any) => state.entities.authReducer) || {};
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const email = String(user?.email || "").trim();
   const [loading, setLoading] = useState(false);
-
-  const isValid =
-    currentPassword.length > 0 && password.length >= MIN_PASSWORD && password === confirmPassword;
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)/profile"));
 
-  const handleSubmit = async () => {
-    if (password === currentPassword) {
-      AppToast("New password must be different from the current one");
+  const handleSendOtp = async () => {
+    if (!email) {
+      AppToast("No email is linked to your account");
       return;
     }
-    if (!isValid) return;
     setLoading(true);
     try {
-      const res = await changePasswordApi({
-        current_password: currentPassword,
-        password,
-        password_confirmation: confirmPassword,
-      });
+      const res = await forgotPasswordApi(email);
       if (res?.success === false) {
-        AppToast(res?.message || "Could not change password. Please try again.");
+        AppToast(res?.message || "Could not send OTP. Please try again.");
         return;
       }
-      AppToast(res?.message || "Password changed successfully");
-      goBack();
+      AppToast(res?.message || "OTP sent to your email");
+      router.push({ pathname: "/(auth)/forgotPassword" as any, params: { email, step: "reset" } });
     } catch (error) {
-      AppToast(getApiErrorMessage(error, "Could not change password. Please try again."));
+      AppToast(getApiErrorMessage(error, "Could not send OTP. Please try again."));
     } finally {
       setLoading(false);
     }
@@ -54,35 +45,23 @@ export default function ChangePasswordScreen() {
   return (
     <ThemedView style={styles.container}>
       <ThemeHeader onBackPress={goBack} title="Change Password" />
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <View style={styles.card}>
           <ThemedText style={styles.subHeading}>
-            Use at least {MIN_PASSWORD} characters. You will use the new password to sign in with your email.
+            We will send a one-time password (OTP) to your email. Enter it on the next screen with your new password.
           </ThemedText>
-          <PasswordField placeholder="Current password" value={currentPassword} onChangeText={setCurrentPassword} />
-          <PasswordField placeholder="New password" value={password} onChangeText={setPassword} />
-          <PasswordField placeholder="Confirm new password" value={confirmPassword} onChangeText={setConfirmPassword} />
-          {confirmPassword.length > 0 && password !== confirmPassword && (
-            <ThemedText style={styles.errorText}>Passwords do not match</ThemedText>
-          )}
-          <PrimaryBtn label="Update Password" loading={loading} disabled={!isValid} color={COLORS.primary} onPress={handleSubmit} />
-          <Pressable
-            style={styles.linkBtn}
-            onPress={() => router.push({ pathname: "/(auth)/forgotPassword" as any, params: { email: user?.email || "" } })}
-          >
-            <ThemedText style={styles.linkText}>Forgot your current password?</ThemedText>
-          </Pressable>
-        </ScrollView>
-      </KeyboardAvoidingView>
+          <ThemedText style={styles.email}>{email || "No email linked to this account"}</ThemedText>
+        </View>
+        <PrimaryBtn label="Send OTP" loading={loading} disabled={!email} color={COLORS.primary} onPress={handleSendOtp} arrow />
+      </ScrollView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  scroll: { padding: 20, paddingBottom: 40 },
-  subHeading: { fontSize: 13, color: "#64748B", marginBottom: 20, lineHeight: 19 },
-  errorText: { fontSize: 12, color: "#DC2626", marginTop: -8, marginBottom: 12 },
-  linkBtn: { alignSelf: "center", padding: 6 },
-  linkText: { fontSize: 13, fontWeight: "600", color: COLORS.primary },
+  scroll: { padding: 20, paddingBottom: 40, gap: 16 },
+  card: { backgroundColor: COLORS.white, borderRadius: 16, padding: 16, gap: 8 },
+  subHeading: { fontSize: 13, color: "#64748B", lineHeight: 19 },
+  email: { fontSize: 15, fontWeight: "700", color: COLORS.text },
 });

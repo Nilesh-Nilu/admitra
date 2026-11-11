@@ -1,3 +1,4 @@
+import AdIdBadge from "@/components/badges/AdIdBadge";
 import { ThemedText } from "@/components/ThemedText";
 import { COLORS } from "@/constants/Colors";
 import { ImageUrl } from "@/constants/functions";
@@ -21,6 +22,7 @@ export const MatrimonyCard = ({ item, width = CARD_WIDTH }: Props) => {
   const photo = getProfilePhoto(item, ImageUrl);
   const age = getProfileAge(item);
   const religion = getProfileMasterName(item, "religion");
+  const location = [item?.user?.city?.name, item?.user?.state?.name].filter(Boolean).join(", ");
   const subtitle = [age ? `${age} yrs` : "", getProfileMasterName(item, "height")]
     .filter(Boolean)
     .join(" • ");
@@ -42,15 +44,27 @@ export const MatrimonyCard = ({ item, width = CARD_WIDTH }: Props) => {
         ) : (
           <Ionicons name="person" size={width * 0.4} color="#CBD5E1" />
         )}
+        <AdIdBadge kind="matrimony" id={item?.id} style={{ left: 8 }} />
         <View style={styles.badge}>
           <Ionicons name="heart" size={10} color={COLORS.white} />
           <ThemedText style={styles.badgeText}>Matrimony</ThemedText>
         </View>
       </View>
       <View style={styles.info}>
-        <ThemedText style={styles.name} numberOfLines={1}>
-          {item?.full_name || "Profile"}
-        </ThemedText>
+        <View style={styles.nameRow}>
+          <ThemedText style={[styles.name, { flexShrink: 1 }]} numberOfLines={1}>
+            {item?.full_name || "Profile"}
+          </ThemedText>
+          {Number(item?.user?.is_verify) === 1 && <Ionicons name="checkmark-circle" size={14} color="#16A34A" />}
+        </View>
+        {!!location && (
+          <View style={styles.locationRow}>
+            <Ionicons name="location-outline" size={11} color={COLORS.gray} />
+            <ThemedText style={styles.meta} numberOfLines={1}>
+              {location}
+            </ThemedText>
+          </View>
+        )}
         {!!subtitle && (
           <ThemedText style={styles.meta} numberOfLines={1}>
             {subtitle}
@@ -99,5 +113,7 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 10, fontWeight: "700", color: COLORS.white },
   info: { padding: SIZES.padding8, gap: SIZES.padding2 },
   name: { fontSize: SIZES.fontSize14, fontWeight: "700", color: COLORS.text },
+  nameRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  locationRow: { flexDirection: "row", alignItems: "center", gap: 3 },
   meta: { fontSize: SIZES.fontSize12, color: COLORS.gray },
 });

@@ -1008,8 +1008,13 @@ export const getMatrimonyPaymentHistoryApi = async () => {
 // ── New features (23-10-2026 requirements) ─────────────────────────────────
 // Endpoint paths below are agreed placeholders until the backend publishes them;
 // change the path here and every screen follows.
-export const forgotPasswordUrl = "forgot-password"; // POST { email } → sends OTP
-export const resetPasswordUrl = "reset-password"; // POST { email, otp, password, password_confirmation }
+// Forgot password, per the Swagger "Forgot Password" section:
+//   POST forgot-password/send-otp   { email }                       → sends OTP
+//   POST forgot-password/verify-otp { email, otp }                  → { reset_token }
+//   POST forgot-password/reset      { email, reset_token, password, password_confirmation }
+export const forgotPasswordUrl = "forgot-password/send-otp";
+export const verifyForgotOtpUrl = "forgot-password/verify-otp";
+export const resetPasswordUrl = "forgot-password/reset";
 export const changePasswordUrl = "change-password"; // POST { current_password, password, password_confirmation }
 
 // Per-module edit-price / delete for the user's own ads (banner id for banner ads, product id otherwise).
@@ -1047,19 +1052,27 @@ export const getApiErrorMessage = (error, fallback) => {
   return firstFieldError || data?.message || fallback;
 };
 
-export const forgotPasswordApi = async (email) => {
-  const response = await axios.post(`${baseUrl}/${forgotPasswordUrl}`, { email }, {
+const postJson = async (url, data) => {
+  const response = await axios.post(`${baseUrl}/${url}`, data, {
     headers: { Accept: "application/json", "Content-Type": "application/json" },
   });
   return response.data;
 };
 
-export const resetPasswordApi = async (data) => {
-  const response = await axios.post(`${baseUrl}/${resetPasswordUrl}`, data, {
-    headers: { Accept: "application/json", "Content-Type": "application/json" },
+/** Step 1: emails the OTP to the account. */
+export const forgotPasswordApi = (email) => postJson(forgotPasswordUrl, { email });
+
+/** Step 2: checks the OTP; resolves to the reset token (also at res.reset_token or res.data.reset_token). */
+export const verifyForgotOtpApi = (email, otp) => postJson(verifyForgotOtpUrl, { email, otp });
+
+/** Step 3: sets the new password with the reset token from step 2. */
+export const resetPasswordApi = ({ email, resetToken, password, passwordConfirmation }) =>
+  postJson(resetPasswordUrl, {
+    email,
+    reset_token: resetToken,
+    password,
+    password_confirmation: passwordConfirmation,
   });
-  return response.data;
-};
 
 export const changePasswordApi = async (data) => {
   const response = await axios.post(`${baseUrl}/${changePasswordUrl}`, data, await jsonAuthConfig());
@@ -1068,8 +1081,16 @@ export const changePasswordApi = async (data) => {
 
 /** PUT products/{id} — JSON body (images as base64 strings when present). */
 export const updateProductApi = async (id, data) => {
-  const response = await axios.put(`${baseUrl}/products/${id}`, data, await jsonAuthConfig());
-  return response.data;
+  try {
+    const response = await axios.put(`${baseUrl}/products/${id}`, data, await jsonAuthConfig());
+    return response.data;
+  } catch (error) {
+    // Temporary: log the exact request and backend error body to debug the SQL error.
+    console.log("[updateProductApi] PUT /products/" + id + " request:", JSON.stringify(data));
+    console.log("[updateProductApi] status:", error?.response?.status);
+    console.log("[updateProductApi] response:", JSON.stringify(error?.response?.data));
+    throw error;
+  }
 };
 
 /** POST ads/featured/{id} — { name, description, price, condition, price_negotiable }. */
@@ -1103,11 +1124,42 @@ export const updateBannerAdApi = async (id, data = {}) => {
   return response.data;
 };
 
-/** type: "normal" | "featured" — banner ads have no price field. */
+/**
+ * type: "normal" | "featured" | "banner". The update endpoints require name, price and status
+ * (and the other product fields), so the ad is loaded first and sent back with only the price changed.
+ * Banner ads have no price of their own; their product price is edited.
+ */
 export const updateMyAdPriceApi = async (type, id, price) => {
-  if (type === "featured") return updateFeaturedAdApi(id, { price });
-  if (type === "banner") throw new Error("Banner ads do not have a price.");
-  return updateProductApi(id, { price });
+  const res = await getProductByIdApi(id);
+  const current = res?.data?.data ?? res?.data ?? res ?? {};
+  // Send exactly the types the spec validates (422 otherwise): integers for ids, boolean status,
+  // number price, and optional fields omitted rather than sent as null/undefined.
+  const toId = (value) => {
+    const n = Number(value);
+    return value != null && value !== "" && Number.isInteger(n) ? n : undefined;
+  };
+  const isTrue = (value) => value === true || value === 1 || value === "1" || value === "true";
+  const full = {
+    category_id: toId(current.category_id),
+    sub_category_id: toId(current.sub_category_id),
+    child_category_id: toId(current.child_category_id),
+    name: current.name,
+    description: current.description ?? "",
+    condition: ["new", "used"].includes(current.condition) ? current.condition : undefined,
+    price_negotiable: isTrue(current.price_negotiable),
+    custom_fields: (Array.isArray(current.custom_fields) ? current.custom_fields : [])
+      .map((field) => ({ name: String(field?.name ?? ""), value: String(field?.value ?? "") }))
+      .filter((field) => field.name && field.value)
+      .slice(0, 4),
+    status: current.status == null ? true : isTrue(current.status) || ["active", "approved"].includes(current.status),
+    price: Number(price),
+  };
+  Object.keys(full).forEach((key) => full[key] === undefined && delete full[key]);
+  if (type === "featured") {
+    const { category_id, sub_category_id, child_category_id, status, custom_fields, ...featured } = full;
+    return updateFeaturedAdApi(id, featured);
+  }
+  return updateProductApi(id, full);
 };
 
 // Matrimony Promotion CRUD (get-all is used by getMatrimonyPromotionApi above).

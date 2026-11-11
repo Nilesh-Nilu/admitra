@@ -1,3 +1,4 @@
+import AdIdBadge from "@/components/badges/AdIdBadge";
 import ReportButton from "@/components/buttons/ReportButton";
 import ReportModal from "@/components/modals/ReportModal";
 import ImageZoomModal from "@/components/modals/ImageZoomModal";
@@ -335,6 +336,7 @@ export default function ProductDetailsScreen() {
               <ThemedText style={styles.typeBadgeText}>Normal</ThemedText>
             </View>
           )}
+          <AdIdBadge kind={(isBannerAd ? "banner" : isFeaturedAd ? "featured" : "normal")} id={product?.id} />
           <ReportButton product={product} />
           {/* Favorite pill */}
           <TouchableOpacity

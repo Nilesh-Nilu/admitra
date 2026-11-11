@@ -1,3 +1,4 @@
+import AdIdBadge from "@/components/badges/AdIdBadge";
 import AppToast from "@/components/toasts/AppToast";
 import ReportButton from "@/components/buttons/ReportButton";
 import LoadMoreButton, { PAGE_SIZE } from "@/components/buttons/LoadMoreButton";
@@ -149,6 +150,7 @@ export default function SeeAllBannersScreen() {
             <ThemedText style={styles.verifiedText}>Verified</ThemedText>
           </View>
         )}
+        <AdIdBadge kind={"banner"} id={item?.product?.id} />
         <ReportButton product={item?.product} />
         <TouchableOpacity
           style={styles.heartBtn}

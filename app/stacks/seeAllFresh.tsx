@@ -1,3 +1,5 @@
+import axios from "axios";
+import AdIdBadge from "@/components/badges/AdIdBadge";
 import AppToast from "@/components/toasts/AppToast";
 import ReportButton from "@/components/buttons/ReportButton";
 import LoadMoreButton, { PAGE_SIZE } from "@/components/buttons/LoadMoreButton";
@@ -8,12 +10,12 @@ import { isMatrimonyCategoryName } from "@/components/post/postUtils";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { COLORS } from "@/constants/Colors";
-import { addToFavoritesApi, getProductsUrl, remoteImageSource, removeFromFavoritesApi } from "@/constants/functions";
+import { addToFavoritesApi, baseUrl, getAuthToken, getProductsUrl, remoteImageSource, removeFromFavoritesApi } from "@/constants/functions";
 import { SIZES_WITH_ALIASES as SIZES } from "@/constants/Sizes";
-import { addFavoriteItem, getAllProducts, removeFavoriteById } from "@/store/reducers/userReducer";
+import { addFavoriteItem, removeFavoriteById } from "@/store/reducers/userReducer";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BackHandler,
   Dimensions,
@@ -31,24 +33,55 @@ const CARD_WIDTH = (SCREEN_WIDTH - SIZES.padding * 2 - 12) / 2;
 export default function SeeAllFreshScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { products, favorites, categories } = useSelector((state: any) => state.entities.userReducer) || {};
-  const safeProducts = Array.isArray(products)
-    ? products.filter((product: any) => {
-        const type = String(product?.product_type || product?.plan_info?.plan_type || "normal").toLowerCase();
-        return type === "normal";
-      })
-    : [];
+  const { favorites, categories } = useSelector((state: any) => state.entities.userReducer) || {};
+  // This screen pages the server itself: PAGE_SIZE ads per page, Load More fetches the next page.
+  const [pagedProducts, setPagedProducts] = useState<any[]>([]);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const pageRef = useRef(0);
+  const loadingRef = useRef(false);
+  const safeProducts = pagedProducts;
   const safeFavorites = Array.isArray(favorites) ? favorites : [];
   const filterCategories = (Array.isArray(categories) ? categories : []).filter((cat: any) => !isMatrimonyCategoryName(cat?.name));
   const [showFilters, setShowFilters] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const { rows: filteredRows, sections, filters, setFilters, defaults, activeCount } = useListFilters("normal", safeProducts, { categories: filterCategories });
 
-  useEffect(() => {
-    if (safeProducts.length === 0) {
-      dispatch(getAllProducts(`${getProductsUrl}?per_page=${PAGE_SIZE}&page=1`));
+  const fetchPage = useCallback(async (page: number) => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+    setLoadingMore(true);
+    try {
+      const res = await axios.get(`${baseUrl}/${getProductsUrl}?per_page=${PAGE_SIZE}&page=${page}`, await getAuthToken());
+      const paginator = res.data?.data;
+      const list: any[] = Array.isArray(paginator) ? paginator : Array.isArray(paginator?.data) ? paginator.data : [];
+      const normal = list.filter((product: any) =>
+        String(product?.product_type || product?.plan_info?.plan_type || "normal").toLowerCase() === "normal" && product?.approve === "approved"
+      );
+      pageRef.current = page;
+      setPagedProducts((prev) => {
+        const seen = new Set(prev.map((product: any) => product.id));
+        return [...prev, ...normal.filter((product: any) => !seen.has(product.id))];
+      });
+      const noMore = !paginator?.next_page_url || (paginator?.last_page != null && paginator.current_page >= paginator.last_page);
+      setHasMore(!noMore);
+    } catch {
+      AppToast("Could not load ads. Please try again.");
+    } finally {
+      loadingRef.current = false;
+      setLoadingMore(false);
     }
   }, []);
+
+  useEffect(() => {
+    fetchPage(1);
+  }, []);
+
+  const handleLoadMore = () => {
+    const next = visibleCount + PAGE_SIZE;
+    if (next > filteredRows.length && hasMore) fetchPage(pageRef.current + 1);
+    setVisibleCount(next);
+  };
 
   useEffect(() => {
     const backAction = () => {
@@ -126,6 +159,7 @@ export default function SeeAllFreshScreen() {
             <ThemedText style={styles.verifiedText}>Verified</ThemedText>
           </View>
         )}
+        <AdIdBadge kind={"normal"} id={item.id} />
         <ReportButton product={item} />
         <TouchableOpacity
           style={styles.heartBtn}
@@ -182,7 +216,7 @@ export default function SeeAllFreshScreen() {
           contentContainerStyle={styles.listContainer}
           numColumns={2}
           columnWrapperStyle={styles.columnWrapper}
-          ListFooterComponent={visibleCount < filteredRows.length ? <LoadMoreButton onPress={() => setVisibleCount((n) => n + PAGE_SIZE)} /> : null}
+          ListFooterComponent={visibleCount < filteredRows.length || hasMore ? <LoadMoreButton loading={loadingMore} onPress={handleLoadMore} /> : null}
         />
       )}
       <FilterSheet
